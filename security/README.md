@@ -26,6 +26,12 @@ python security/keys/generate_keys.py       # cheile reale, o singură dată (î
 Un test picat oprește scriptul cu cod de eroare. Fiecare test se poate rula și singur, din folderul lui
 (`cd security/tokens && python test_login.py`), după ce cheile au fost generate.
 
+## Legătura cu aplicația
+
+Backend-ul folosește aceleași chei: la pornire citește `security/keys/keys_files/` și creează cu
+`generate_keys.py` ce lipsește (inclusiv câte o cheie pe dispozitiv, `wearable-cm-1` … `wearable-cm-4`). Codul
+care rulează în aplicație e în `backend/app/security/` și are testele lui în `backend/tests/security/`.
+
 ## Ce nu acoperă încă (de spus onest juriului)
 
 - **Jurnalul de acces:** lanțul arată o intrare modificată sau ștearsă din mijloc. Ștergerea ultimelor intrări sau

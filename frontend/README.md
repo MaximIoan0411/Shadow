@@ -17,6 +17,10 @@ npm run app
 pornește singură din `..\backend` (cu `uv run uvicorn`) și îl oprește la ieșire. Prima pornire a backend-ului
 durează un minut, cât `uv` instalează dependențele; ecranul de autentificare arată „Starting the SHADOW server…”.
 
+La fel pornește și **serviciul AI** din `..\ai` (portul 8001), dacă nu rulează deja. Modelul lui se alege în
+`ai\.env` (vezi `ai\README.md`); fără model sau fără serviciu, medicul AI răspunde cu textul din catalog și
+ecranul spune asta deschis. `SHADOW_NO_AI=1` oprește pornirea automată.
+
 Pornirile următoare: `npm run app:start` (fără reconstruire).
 
 Dacă vrei backend-ul separat (ca să-i vezi log-urile), într-un alt terminal:

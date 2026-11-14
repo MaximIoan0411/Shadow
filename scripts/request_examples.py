@@ -2,6 +2,45 @@
 mock-urile și să pună în documentație răspunsuri REALE, și de smoke.py ca să verifice că toate răspund.
 Un endpoint nou fără exemplu aici face smoke.py să pice."""
 
+import os
+import tempfile
+
+
+def use_scratch_environment() -> None:
+    """Apelată ÎNAINTE de `from app.main import app`. Verificările de contract și documentația nu depind de ce are
+    acest calculator: chei și bază de date de probă, fără indexul AI, fără model, fără sarcini de fundal.
+    Tokenurile `mock-<utilizator>` sunt pornite doar aici (în aplicație sunt oprite implicit)."""
+    scratch = tempfile.mkdtemp(prefix="shadow-contract-")
+    os.environ["BACKGROUND_TASKS"] = "false"
+    os.environ["ALLOW_MOCK_TOKENS"] = "true"
+    os.environ.setdefault("SHADOW_KEYS_DIR", os.path.join(scratch, "keys"))
+    os.environ["SHADOW_INDEX_DIR"] = os.path.join(scratch, "no-index")
+    os.environ["SHADOW_LLM_URL"] = ""
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///" + os.path.join(scratch, "contract.sqlite")
+
+
+def mock_headers(username: str | None) -> dict:
+    return {"Authorization": f"Bearer mock-{username}"} if username else {}
+
+
+def id_resolver(client):
+    """Întoarce funcția care schimbă id-urile de exemplu cu cele reale: al-1042 = alerta imunitară a lui cm-2
+    (nivel 2), al-1039 = alerta lui de tastare (nivel 1); pk-0006 / pk-0007 = cel mai nou pachet spre Pământ
+    (creat de exemplul de escaladare la nivel 3, care rulează înaintea exemplelor cu pachete)."""
+    mine = {a["topic"]: a["id"] for a in client.get("/api/v1/crew/cm-2/alerts", headers=mock_headers("specialist2")).json()}
+    ids = {"al-1042": mine["immune"], "al-1039": mine["behavioral"]}
+
+    def real(value):
+        if isinstance(value, dict):
+            return {k: real(x) for k, x in value.items()}
+        if value in ("pk-0006", "pk-0007"):
+            return client.get("/api/v1/link/packets?direction=down", headers=mock_headers("earth")).json()[0]["id"]
+        return ids.get(value, value) if isinstance(value, str) else value
+
+    real.ids = ids
+    return real
+
+
 # câte un cont pe astronaut: A = Specialist de misiune 2 (cm-2), C = ofițerul medical (cm-3), E = medicul de zbor
 A, C, E = "specialist2", "medic", "earth"
 P = "/api/v1"

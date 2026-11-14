@@ -31,7 +31,8 @@ const STAGE_WIDE = 624;
 const STAGE_NARROW = 360;
 const BODY_HEIGHT = 500;
 const GROUND_Y = 522;
-const CARD_WIDTH = 196;
+// aceeași lățime ca în clasa `w-[208px]` a etichetei (Tailwind are nevoie de clasa scrisă întreagă)
+const CARD_WIDTH = 208;
 const CARD_HEIGHT = 88;
 const CARD_GAP = 6;
 
@@ -249,7 +250,7 @@ export function BodyFigure({ pillars, selected, onSelect }: BodyFigureProps): Re
               active={active === summary.pillar}
               onSelect={() => onSelect(summary.pillar)}
               onHover={(hovering) => setHovered(hovering ? summary.pillar : null)}
-              className={cx("absolute w-[196px]", CARD_PLACE[summary.pillar].side === "left" ? "left-0" : "right-0")}
+              className={cx("absolute w-[208px]", CARD_PLACE[summary.pillar].side === "left" ? "left-0" : "right-0")}
               style={{ top: CARD_PLACE[summary.pillar].top }}
             />
           ))}

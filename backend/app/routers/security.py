@@ -45,7 +45,7 @@ async def rejections(
     session: AsyncSession = Depends(get_session),
 ):
     """Impossible values, "frozen" sensors, invalid signatures and replayed packets, newest first."""
-    return await security_log.rejections(session, limit)
+    return await security_log.rejections(session, limit, user)
 
 
 @router.post(
@@ -68,7 +68,8 @@ async def ingest(
     A rejected measurement still returns 200, with `accepted = false`, and shows up in `/security/rejections`.
 
     **SSE:** `measurement.rejected` on rejection."""
-    result, events = await security_log.ingest(session, data, request.app.state.keys, body)
+    signed = await request.json()  # the body as sent: the signature covers exactly these fields and values
+    result, events = await security_log.ingest(session, data, request.app.state.keys, body, signed)
     publish_all(events)
     return result
 

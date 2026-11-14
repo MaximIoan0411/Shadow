@@ -218,7 +218,21 @@ async def packet(session: AsyncSession, packet_id: str, user: User) -> PacketDet
     p = await session.get(PacketRow, packet_id)
     if p is None:
         raise ApiError(404, "not_found", f"Packet {packet_id} does not exist.")
-    return to_detail(p, user)
+    detail = to_detail(p, user)
+    if detail.payload is not None and p.crew_id is not None and p.crew_id != user.crew_id:
+        # opening the content of a packet about a crew member is written to the access log, like any other read
+        from . import access
+
+        await access.record(
+            session,
+            user,
+            action="read_packet",
+            resource=f"link/packets/{packet_id}",
+            crew_id=p.crew_id,
+            outcome="allowed",
+        )
+        await session.commit()
+    return detail
 
 
 def _message_body(p: PacketRow) -> str:

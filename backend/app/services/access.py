@@ -73,34 +73,23 @@ async def record_denied(request: Request) -> None:
         log.exception("could not write access_denied to the access log")
 
 
-async def _all_entries(session: AsyncSession) -> list[access_log.Entry | AccessLog]:
-    if "write" in access_log.PROVIZORIU:
-        return list(access_log._entries)
-    return list((await session.scalars(select(AccessLog).order_by(AccessLog.id))).all())
-
-
 async def entries(session: AsyncSession, user: User, crew_id: str | None, limit: int) -> list[AccessLogEntry]:
     target = user.crew_id if user.role == Role.astronaut else crew_id
-    out: list[AccessLogEntry] = []
-    for e in reversed(await _all_entries(session)):
-        if target is not None and e.crew_id != target:
-            continue
-        if e.actor_role not in ROLES:
-            continue
-        out.append(
-            AccessLogEntry(
-                id=e.id,
-                at=e.at,
-                actor=e.actor,
-                actor_role=Role(e.actor_role),
-                action=e.action,
-                resource=e.resource,
-                crew_id=e.crew_id,
-                outcome=e.outcome,
-                prev_hash=e.prev_hash,
-                hash=e.hash,
-            )
+    stmt = select(AccessLog).where(AccessLog.actor_role.in_(ROLES)).order_by(AccessLog.id.desc()).limit(limit)
+    if target is not None:
+        stmt = stmt.where(AccessLog.crew_id == target)
+    return [
+        AccessLogEntry(
+            id=e.id,
+            at=e.at,
+            actor=e.actor,
+            actor_role=Role(e.actor_role),
+            action=e.action,
+            resource=e.resource,
+            crew_id=e.crew_id,
+            outcome=e.outcome,
+            prev_hash=e.prev_hash,
+            hash=e.hash,
         )
-        if len(out) >= limit:
-            break
-    return out
+        for e in (await session.scalars(stmt)).all()
+    ]

@@ -105,6 +105,9 @@ _ids = itertools.count(1)
 
 
 EARTH_EVENT_PREFIXES = ("packet.", "mission.", "environment.")
+ALERT_EVENT_PREFIX = "alert."
+CMO_MIN_LEVEL = 2
+SUBSCRIBER_QUEUE_MAX = 1000
 
 
 def publish(type_: str, data: Any, crew_id: str | None = None) -> None:
@@ -118,6 +121,8 @@ def publish(type_: str, data: Any, crew_id: str | None = None) -> None:
         "data": data,
     }
     for q in list(_subscribers):
+        if q.full():  # a client that stopped reading: drop its oldest event instead of growing without limit
+            q.get_nowait()
         q.put_nowait(event)
 
 
@@ -128,11 +133,16 @@ def visible_to(user: User, event: dict) -> bool:
         return event.get("crew_id") in (None, user.crew_id)
     if user.role == Role.earth:
         return event["type"].startswith(EARTH_EVENT_PREFIXES)
+    if event["type"].startswith(ALERT_EVENT_PREFIX) and event.get("crew_id") != user.crew_id:
+        # same rule as GET /alerts/{id}: the crew medical officer sees a colleague's alert from level 2 up
+        data = event.get("data")
+        level = data.get("level") if isinstance(data, dict) else None
+        return isinstance(level, int) and level >= CMO_MIN_LEVEL
     return True
 
 
 def subscribe() -> asyncio.Queue:
-    q: asyncio.Queue = asyncio.Queue()
+    q: asyncio.Queue = asyncio.Queue(maxsize=SUBSCRIBER_QUEUE_MAX)
     _subscribers.add(q)
     return q
 

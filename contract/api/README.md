@@ -3,9 +3,8 @@
 **NASA Space Apps 2026 · versiunea 1.2.0 · 57 endpoint-uri · 97 modele**
 
 Acest document este **înțelegerea dintre frontend și backend**. Dacă amândouă părțile îl respectă, se pot construi
-separat și se potrivesc la integrare. Tot ce e aici rulează deja: scheletul din `backend/` este un **server mock**
-care răspunde la toate endpoint-urile cu date de exemplu valide, iar textele, mediile, catalogul și pragurile vin
-deja din `data/`.
+separat și se potrivesc la integrare. Tot ce e aici rulează: `backend/` este **serverul real** (bază de date,
+motor de triaj, coadă spre Pământ, securitate), iar textele, mediile, catalogul și pragurile vin din `data/`.
 
 Contractele cu restul aplicației sunt în același folder: `contract/ai/` (backend ↔ serviciul AI),
 `contract/security/` (backend ↔ codul de securitate) și `contract/data/` (backend ↔ fișierele din `data/`).
@@ -25,13 +24,13 @@ Contractele cu restul aplicației sunt în același folder: `contract/ai/` (back
 > **Nou în 1.1 — autentificare separată pentru fiecare astronaut.** Nu mai există contul comun `astronaut`: fiecare
 > membru al echipajului are contul și parola lui. Au apărut `GET /auth/accounts` și `POST /auth/logout`, eroarea
 > `429 too_many_attempts` și câmpul `initials` pe `User`. Utilizatorii de test s-au schimbat (secțiunea 1), iar
-> tokenurile mock sunt acum `mock-specialist2`, `mock-medic` etc. Detalii: secțiunea 4.
+> tokenurile de test (doar cu `ALLOW_MOCK_TOKENS=true`) sunt `mock-specialist2`, `mock-medic` etc. Detalii: secțiunea 4.
 
 ## Ce citești, în funcție de ce faci
 
 | Dacă lucrezi la… | Citește | Apoi |
 |---|---|---|
-| **Frontend** | secțiunile 1–7 și 10 | pornește mock-ul, generează tipurile TypeScript, construiește pe datele mock |
+| **Frontend** | secțiunile 1–7 și 10 | pornește backend-ul, generează tipurile TypeScript, construiește pe datele scenariului |
 | **Backend** | secțiunile 1–9, apoi `backend/PLAN_DE_ATAC_BACKEND.md` | înlocuiește pe rând corpul funcțiilor din `backend/app/routers/` cu servicii reale |
 | **Securitate** | secțiunile 3, 4, 8 și `contract/security/README.md` | înlocuiește corpul funcțiilor provizorii din `backend/app/security/` |
 | **Medicul AI** | `contract/ai/README.md`; aici doar `/ai/*` | serviciul din `ai/`, pe portul 8001 |
@@ -68,8 +67,8 @@ Fără `uv`, varianta clasică: `python -m venv .venv && source .venv/bin/activa
   încerca orice endpoint din browser.
 - **http://localhost:8000/health** — verifică dacă serverul răspunde.
 
-**Conturi de test — câte unul pentru fiecare astronaut.** Fiecare are altă parolă (valorile de test sunt și în
-`backend/app/examples.py`, la `MOCK_PASSWORDS`):
+**Conturi de test — câte unul pentru fiecare astronaut.** Fiecare are altă parolă (valorile de test sunt în
+`backend/seed/users.json`):
 
 | Utilizator | Parolă de test | Rol | Membru de echipaj | Ecranul lui |
 |---|---|---|---|---|
@@ -87,13 +86,14 @@ curl -s localhost:8000/api/v1/auth/accounts          # conturile pentru ecranul 
 curl -s -X POST localhost:8000/api/v1/auth/login \
   -H 'content-type: application/json' \
   -d '{"username":"specialist2","password":"cm2-shadow"}'
-# → {"access_token":"mock-specialist2", "user": {"role":"astronaut","crew_id":"cm-2", ...}}
+# → {"access_token":"eyJhbGciOi…", "user": {"role":"astronaut","crew_id":"cm-2", ...}}
 
-curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H 'Authorization: Bearer mock-specialist2'   # 200, datele lui
-curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H 'Authorization: Bearer mock-comandant'     # 403, nu sunt ale lui
+TOKEN=eyJhbGciOi…   # access_token din răspunsul de mai sus
+curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H "Authorization: Bearer $TOKEN"   # 200, datele lui
+curl -s localhost:8000/api/v1/crew/cm-1/dashboard -H "Authorization: Bearer $TOKEN"   # 403, nu sunt ale lui
 ```
 
-Scenariul mock: **ziua 96 din 140, ora 07:00, tranzit spre Marte**. Misiunea pornește din acest punct; zilele 1–95
+Scenariul: **ziua 96 din 140, ora 07:00, tranzit spre Marte**. Misiunea pornește din acest punct; zilele 1–95
 sunt istoric, iar zilele 97–140 nu au avut loc încă. Specialist de misiune 2 are o alertă imunitară de nivel 2
 (puls de noapte +7 bpm, 3 nopți) și una comportamentală de nivel 1 (tastare mai lentă cu 18%). Ceilalți trei membri
 ai echipajului au totul „în limite”: autentificați-vă cu conturi diferite ca să vedeți că fiecare își primește
@@ -127,10 +127,10 @@ backend/app/
 ├── main.py                  ← create_app(), lifespan, forma erorilor, OpenAPI
 ├── deps.py                  ← autentificare, roluri, difuzorul SSE
 ├── routers/                 ← câte un fișier pe domeniu; aici intră logica reală (prin services/)
-├── examples.py              ← datele mock (scenariul zilei 96); dispare pe măsură ce apare logica reală
+├── services/, engine/, link/, simulator/, db/   ← logica reală (vezi secțiunea 8)
 ├── datafiles.py             ← formatul fișierelor din data/ + încărcarea lor
 ├── ai_schemas.py            ← copie a ai/service/schemas.py
-└── security/                ← al echipei de securitate (variante provizorii, semnături finale)
+└── security/                ← al echipei de securitate (Ed25519, AES-256-GCM, HS256, argon2id)
 
 frontend/src/lib/
 ├── shadow-api.d.ts          ← tipuri TypeScript generate din contract/api/openapi.json
@@ -307,8 +307,9 @@ Afișați mereu, vizibil, cine e autentificat (nume + inițiale, în antet). Tas
 - **Jurnal:** `login`, `login_failed` și `logout` se scriu în jurnalul de acces, cu contul și ora.
 - **Fără conturi noi din aplicație:** echipajul e fix, stabilit înainte de misiune. Nu există endpoint de înregistrare.
 
-**În mock**, tokenul este textul `mock-<utilizator>` (de exemplu `mock-specialist2`), ca să puteți testa fără
-login, și nu se revocă la `logout`.
+**Doar pentru teste**, cu `ALLOW_MOCK_TOKENS=true` în `.env`, backend-ul acceptă și tokenul `mock-<utilizator>`
+(de exemplu `mock-specialist2`), FĂRĂ parolă; acesta nu se revocă la `logout`. Implicit e oprit: într-un demo sau
+pe o rețea cu alți oameni ar însemna că oricine intră în orice cont.
 
 ### Ce are voie fiecare rol
 
@@ -396,7 +397,7 @@ data: {"id":"ev-000123","type":"alert.created","at":"2027-04-15T07:42:00Z","crew
 
 | `type` | Când vine | Forma lui `data` | Ce face frontend-ul |
 |---|---|---|---|
-| `mission.tick` | la ~1 secundă reală (mock: la 3 s) | [MissionTick](#missiontick) | actualizează ceasul și ziua misiunii |
+| `mission.tick` | la ~1 secundă reală | [MissionTick](#missiontick) | actualizează ceasul și ziua misiunii |
 | `environment.changed` | s-a schimbat mediul | [MissionState](#missionstate) | actualizează comutatorul și întârzierea afișată |
 | `dashboard.changed` | după check-in, exerciții, test de reacție, reverificare, salt de zi, reset | `{ "reason": "checkin" \| "exercise" \| "pvt" \| "keystrokes" \| "recheck" \| "jump" \| "reset" }` | reîncarcă `dashboard` și panoul deschis; la `reset`, reîncarcă **tot** (ca după o reconectare) |
 | `alert.created` | triajul a creat o alertă | [AlertBrief](#alertbrief) | notificare + reîncarcă `dashboard` |
@@ -545,7 +546,7 @@ Contractul fixează **ce** se vede din afară. **Cum** se construiește backend-
 pornire din ziua 96, task-uri din fundal, ordinea pe ore) e în `backend/PLAN_DE_ATAC_BACKEND.md`, iar lista
 funcționalităților, în `BACKEND_SARCINI.md`. Pe scurt:
 
-| Modul | Unde | Ce înlocuiește mock-ul |
+| Modul | Unde | Ce face |
 |---|---|---|
 | Fundație | `main.py` (`create_app`, `lifespan`), `config.py`, `clock.py`, `db/` | baza SQLite asincronă, recreată la fiecare pornire; `SimClock`; încărcarea `data/` cu `datafiles.load_all()` |
 | Autentificare | `routers/auth.py`, `deps.py` | conturile din `backend/seed/users.json`, tokenuri reale, revocare, jurnal (funcțiile vin din `security/`) |
@@ -671,31 +672,32 @@ Sfaturi:
 
 ## 11. Referința endpoint-urilor
 
-Generată din cod. Exemplele sunt **răspunsuri reale ale serverului mock**; listele lungi sunt scurtate.
+Generată din cod. Exemplele sunt **răspunsuri reale ale backend-ului**, pe scenariul zilei 96; listele lungi sunt scurtate.
 
-- [0. Sănătatea serverului](#0-sănătatea-serverului)
-- [1. Autentificare](#1-autentificare)
-- [2. Misiune, mediu, ceas](#2-misiune-mediu-ceas)
-- [3. Echipaj și corpul interactiv](#3-echipaj-și-corpul-interactiv)
+- [0. Server health](#0-server-health)
+- [1. Authentication](#1-authentication)
+- [2. Mission, environment, clock](#2-mission-environment-clock)
+- [3. Crew and the interactive body](#3-crew-and-the-interactive-body)
 - [4. Check-in](#4-check-in)
-- [5. Tastare și test de reacție](#5-tastare-și-test-de-reacție)
-- [6. Exerciții](#6-exerciții)
-- [7. Alerte, triaj, catalog](#7-alerte-triaj-catalog)
-- [8. Legătura cu Pământul](#8-legătura-cu-pământul)
-- [9. Radiații și furtuna solară](#9-radiații-și-furtuna-solară)
-- [10. Medicul AI](#10-medicul-ai)
-- [11. Securitate și dovezi](#11-securitate-și-dovezi)
-- [12. Demo și simulator](#12-demo-și-simulator)
-- [13. Evenimente live (SSE)](#13-evenimente-live-sse)
+- [5. Typing and reaction test](#5-typing-and-reaction-test)
+- [6. Exercise](#6-exercise)
+- [7. Alerts, triage, catalog](#7-alerts-triage-catalog)
+- [8. Link with Earth](#8-link-with-earth)
+- [9. Radiation and the solar storm](#9-radiation-and-the-solar-storm)
+- [10. AI doctor](#10-ai-doctor)
+- [11. Security and evidence](#11-security-and-evidence)
+- [12. Demo and simulator](#12-demo-and-simulator)
+- [13. Live events (SSE)](#13-live-events-sse)
 
-### 0. Sănătatea serverului
+### 0. Server health
 
-#### `GET /health` — Serverul răspunde?
+#### `GET /health` — Is the server up?
 
 **Cine poate apela:** oricine, fără autentificare
 
-Fără autentificare. Folosit de Docker Compose și de frontend la pornire.
-`mode` e `mock` cât timp există endpoint-uri pe date de exemplu, apoi `real`.
+No authentication. Used by Docker Compose and by the frontend at startup.
+`mode` is `mock` while some endpoints still serve example data, then `real`.
+`db` is `ok` when the database answers a `SELECT 1`.
 
 **Răspuns 200:** flux `text/event-stream`
 
@@ -711,7 +713,8 @@ Răspuns `200`:
 {
   "ok": true,
   "version": "1.2.0",
-  "mode": "mock"
+  "mode": "real",
+  "db": "ok"
 }
 ```
 
@@ -719,17 +722,17 @@ Răspuns `200`:
 
 ---
 
-### 1. Autentificare
+### 1. Authentication
 
-#### `GET /api/v1/auth/accounts` — Conturile de pe ecranul de autentificare
+#### `GET /api/v1/auth/accounts` — Accounts shown on the sign-in screen
 
 **Cine poate apela:** fără autentificare
 
-Lista conturilor, pentru ecranul „Cine ești?”. **Fără autentificare** și fără nicio dată medicală: doar nume,
-inițiale și rol.
+The list of accounts for the "Who are you?" screen. **No authentication** and no medical data at all: only
+names, initials and role.
 
-Frontend: afișați câte o casetă pentru fiecare cont cu `location = "ship"` pe stația de lucru de la bord și
-doar contul cu `location = "earth"` pe ecranul Controlul misiunii. La click pe o casetă cereți parola acelui cont.
+Frontend: show one tile per account with `location = "ship"` on the onboard workstation and only the account
+with `location = "earth"` on the Mission Control screen. On click, ask for that account's password.
 
 **Răspuns 200:** listă de [LoginAccount](#loginaccount)
 
@@ -745,7 +748,7 @@ Răspuns `200`:
 [
   {
     "username": "comandant",
-    "display_name": "Comandant",
+    "display_name": "Commander",
     "initials": "CD",
     "role": "astronaut",
     "crew_id": "cm-1",
@@ -753,7 +756,7 @@ Răspuns `200`:
   },
   {
     "username": "specialist2",
-    "display_name": "Specialist de misiune 2",
+    "display_name": "Mission Specialist 2",
     "initials": "S2",
     "role": "astronaut",
     "crew_id": "cm-2",
@@ -767,23 +770,23 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/auth/login` — Autentificare (un cont pentru fiecare astronaut)
+#### `POST /api/v1/auth/login` — Sign in (one account per astronaut)
 
 **Cine poate apela:** fără autentificare
 
-**Fiecare astronaut are contul și parola lui.** Nu există cont comun de echipaj: tokenul primit e legat de un
-singur `crew_id`, iar toate datele (baseline, tastare, check-in, alerte) se leagă de el.
+**Every astronaut has their own account and password.** There is no shared crew account: the token is bound
+to a single `crew_id`, and all data (baseline, typing, check-in, alerts) is linked to it.
 
-Conturile de test sunt în README, secțiunea 1; parolele de test sunt în fișierul de seed.
+Test accounts are in the README, section 1; test passwords are in the seed file.
 
-* Parolă greșită → `401 invalid_credentials`. Mesajul e același și dacă utilizatorul nu există.
-* 5 parole greșite pe același cont în 5 minute → `429 too_many_attempts`; contul se deblochează singur după
-  60 de secunde reale. `details.retry_after_s` spune cât mai e de așteptat.
-* Fiecare autentificare, reușită sau nu, se scrie în jurnalul de acces (`login` / `login_failed`).
+* Wrong password → `401 invalid_credentials`. The message is the same when the user does not exist.
+* 5 wrong passwords on the same account within 5 minutes → `429 too_many_attempts`; the account unlocks by
+  itself after 60 real seconds. `details.retry_after_s` says how long is left.
+* Every sign-in, successful or not, is written to the access log (`login` / `login_failed`).
 
-Frontend: țineți `access_token` în memorie (nu în `localStorage`) și trimiteți-l în antetul
-`Authorization: Bearer <token>`. `user.role` decide ecranul: `astronaut` → corpul interactiv,
-`cmo` → coada ofițerului medical, `earth` → Controlul misiunii.
+Frontend: keep `access_token` in memory (not in `localStorage`) and send it in the
+`Authorization: Bearer <token>` header. `user.role` decides the screen: `astronaut` → the interactive body,
+`cmo` → the crew medical officer's queue, `earth` → Mission Control.
 
 **Corpul cererii:** [LoginRequest](#loginrequest)
 
@@ -810,13 +813,13 @@ Răspuns `200`:
 
 ```json
 {
-  "access_token": "mock-specialist2",
+  "access_token": "eyJhbGciOiJIUzI1NiIs…",
   "token_type": "bearer",
   "expires_in": 43200,
   "user": {
     "id": "u-cm-2",
     "username": "specialist2",
-    "display_name": "Specialist de misiune 2",
+    "display_name": "Mission Specialist 2",
     "initials": "S2",
     "role": "astronaut",
     "crew_id": "cm-2"
@@ -828,11 +831,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/auth/me` — Cine sunt
+#### `GET /api/v1/auth/me` — Who am I
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Întoarce contul din token. Util la reîncărcarea paginii și ca să afișați mereu, vizibil, cine e autentificat.
+Returns the account from the token. Useful after a page reload and to always show, visibly, who is signed in.
 
 **Răspuns 200:** [User](#user)
 
@@ -850,7 +853,7 @@ Răspuns `200`:
 {
   "id": "u-cm-2",
   "username": "specialist2",
-  "display_name": "Specialist de misiune 2",
+  "display_name": "Mission Specialist 2",
   "initials": "S2",
   "role": "astronaut",
   "crew_id": "cm-2"
@@ -861,17 +864,18 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/auth/logout` — Deconectare (schimbarea astronautului)
+#### `POST /api/v1/auth/logout` — Sign out (switching astronaut)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Invalidează tokenul curent (backend-ul trece `jti`-ul lui pe lista de tokenuri revocate). Se scrie în jurnal (`logout`).
+Invalidates the current token (the backend puts its `jti` on the revoked-token list). Written to the access
+log (`logout`).
 
-**Schimbarea astronautului pe aceeași stație de lucru:** `logout` → ștergeți din memorie tokenul și TOATE datele
-încărcate → închideți conexiunea `/events` → ecranul „Cine ești?” → `login` cu alt cont → deschideți din nou
-`/events`. Colectorul de tastare se oprește la deconectare, ca apăsările să nu ajungă la alt astronaut.
+**Switching astronaut on the same workstation:** `logout` → delete the token and ALL loaded data from memory →
+close the `/events` connection → the "Who are you?" screen → `login` with another account → open `/events`
+again. The typing collector stops on sign-out, so keystrokes never reach another astronaut.
 
-În mock, tokenul rămâne valid (e textul fix `mock-<utilizator>`).
+Mock tokens (`mock-<username>`) stay valid after logout.
 
 **Răspuns 200:** [Ok](#ok)
 
@@ -895,18 +899,18 @@ Răspuns `200`:
 
 ---
 
-### 2. Misiune, mediu, ceas
+### 2. Mission, environment, clock
 
-#### `GET /api/v1/mission` — Starea misiunii
+#### `GET /api/v1/mission` — Mission state
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Ora misiunii (SimClock), ziua curentă, mediul și starea legăturii cu Pământul.
+Mission time (SimClock), current day, environment and the state of the link with Earth.
 
-Misiunea pornește în **ziua 96, ora 07:00** (zilele 1–95 sunt istoric generat la pornirea serverului), cu
-timpul accelerat de `time_scale` ori (implicit ×60: o zi de misiune = 24 de minute reale).
+The mission starts on **day 96 at 07:00** (days 1–95 are history generated when the server starts), with time
+sped up `time_scale` times (default ×60: one mission day = 24 real minutes).
 
-Apelați-l o dată la pornire. După aceea, ora vine prin SSE (`mission.tick`), nu prin polling.
+Call it once at startup. After that, the time comes through SSE (`mission.tick`), not through polling.
 
 **Răspuns 200:** [MissionState](#missionstate)
 
@@ -923,13 +927,13 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:42:00Z",
+  "sim_now": "2027-04-15T07:02:08.523777Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
   "environment": {
     "id": "mars_transit",
-    "name": "Tranzit spre Marte",
+    "name": "Transit to Mars",
     "one_way_delay_s": 700.0,
     "gravity_g": 0.0,
     "baseline_dose_usv_h": 65.8,
@@ -938,14 +942,14 @@ Răspuns `200`:
       "distance",
       "… încă 1 elemente de același fel"
     ],
-    "description": "Întârziere de 3–22 de minute; nivelurile 1 și 2 rezolvă aproape tot la bord."
+    "description": "A 3–22 minute delay; levels 1 and 2 handle almost everything on board."
   },
   "link": {
     "environment": "mars_transit",
     "one_way_delay_s": 700.0,
     "one_way_delay_real_s": 11.67,
     "window_open": true,
-    "window_closes_at": "2027-04-15T08:24:00Z",
+    "window_closes_at": null,
     "next_window_at": null,
     "queued_down": 0,
     "queued_up": 0
@@ -957,11 +961,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/environments` — Lista mediilor
+#### `GET /api/v1/environments` — List of environments
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Cele 4 medii pentru comutator: stație, Lună, tranzit spre Marte, bază pe Marte.
+The 4 environments for the switch: station, Moon, transit to Mars, base on Mars.
 
 **Răspuns 200:** listă de [EnvironmentInfo](#environmentinfo)
 
@@ -979,7 +983,7 @@ Răspuns `200`:
 [
   {
     "id": "iss",
-    "name": "Stația spațială (orbită joasă)",
+    "name": "Space station (low Earth orbit)",
     "one_way_delay_s": 1.0,
     "gravity_g": 0.0,
     "baseline_dose_usv_h": 30.5,
@@ -987,11 +991,11 @@ Răspuns `200`:
       "gravity",
       "hostile_environment"
     ],
-    "description": "Pământul răspunde aproape imediat; triajul trimite mai ușor la nivelul 3."
+    "description": "Earth answers almost immediately; triage escalates to level 3 more readily."
   },
   {
     "id": "moon_base",
-    "name": "Bază pe Lună",
+    "name": "Moon base",
     "one_way_delay_s": 1.3,
     "gravity_g": 0.165,
     "baseline_dose_usv_h": 57.0,
@@ -999,7 +1003,7 @@ Răspuns `200`:
       "radiation",
       "gravity"
     ],
-    "description": "Gravitație redusă, dar nu zero: alte praguri pentru oase și inimă."
+    "description": "Reduced gravity, but not zero: different thresholds for bones and the heart."
   },
   "… încă 2 elemente de același fel"
 ]
@@ -1009,14 +1013,14 @@ Răspuns `200`:
 
 ---
 
-#### `PUT /api/v1/mission/environment` — Schimbă mediul
+#### `PUT /api/v1/mission/environment` — Change the environment
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Comutatorul de mediu. Schimbă întârzierea legăturii, rata de doză de fond și pragurile dependente de gravitație.
+The environment switch. Changes the link delay, the background dose rate and the gravity-dependent thresholds.
 
-**Efecte:** pachetele deja `in_transit` își păstrează ora de sosire; cele noi folosesc noua întârziere.
-**SSE:** `environment.changed` cu noul `MissionState`.
+**Effects:** packets already `in_transit` keep their arrival time; new ones use the new delay.
+**SSE:** `environment.changed` with the new `MissionState`.
 
 **Corpul cererii:** [EnvironmentUpdate](#environmentupdate)
 
@@ -1043,13 +1047,13 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:42:00Z",
+  "sim_now": "2027-04-15T07:02:09.466220Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
   "environment": {
     "id": "mars_transit",
-    "name": "Tranzit spre Marte",
+    "name": "Transit to Mars",
     "one_way_delay_s": 700.0,
     "gravity_g": 0.0,
     "baseline_dose_usv_h": 65.8,
@@ -1058,14 +1062,14 @@ Răspuns `200`:
       "distance",
       "… încă 1 elemente de același fel"
     ],
-    "description": "Întârziere de 3–22 de minute; nivelurile 1 și 2 rezolvă aproape tot la bord."
+    "description": "A 3–22 minute delay; levels 1 and 2 handle almost everything on board."
   },
   "link": {
     "environment": "mars_transit",
     "one_way_delay_s": 700.0,
     "one_way_delay_real_s": 11.67,
     "window_open": true,
-    "window_closes_at": "2027-04-15T08:24:00Z",
+    "window_closes_at": null,
     "next_window_at": null,
     "queued_down": 0,
     "queued_up": 0
@@ -1077,20 +1081,20 @@ Răspuns `200`:
 
 ---
 
-#### `PUT /api/v1/sim/clock` — Schimbă viteza sau ziua ceasului (demo)
+#### `PUT /api/v1/sim/clock` — Change the clock speed or day (demo)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Doar pentru demo.
+Demo only.
 
-* `time_scale` schimbă viteza; ora curentă a misiunii rămâne aceeași.
-* `mission_day` sare **înainte** la începutul acelei zile (07:00): backend-ul generează zilele lipsă cu
-  simulatorul și rulează motorul peste ele, deci pot apărea alerte noi. **Înapoi nu se poate** (409
-  `invalid_state`); pentru o repetiție de la capăt folosiți `POST /sim/reset`.
+* `time_scale` changes the speed; the current mission time stays the same.
+* `mission_day` jumps **forward** to the start of that day (07:00): the backend generates the missing days with
+  the simulator and runs the engine over them, so new alerts can appear. **Going back is not possible** (409
+  `invalid_state`); for a rehearsal from the start use `POST /sim/reset`.
 
-Derulatorul NU folosește acest endpoint: el doar citește istoricul cu `?as_of_day=`.
+The timeline scrubber does NOT use this endpoint: it only reads the history with `?as_of_day=`.
 
-**SSE:** `mission.tick` cu noua zi, apoi `dashboard.changed` și eventual `alert.created`.
+**SSE:** `mission.tick` with the new day, then `dashboard.changed` and possibly `alert.created`.
 
 **Corpul cererii:** [ClockUpdate](#clockupdate)
 
@@ -1117,13 +1121,13 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:42:00Z",
+  "sim_now": "2027-04-15T07:02:10.182911Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
   "environment": {
     "id": "mars_transit",
-    "name": "Tranzit spre Marte",
+    "name": "Transit to Mars",
     "one_way_delay_s": 700.0,
     "gravity_g": 0.0,
     "baseline_dose_usv_h": 65.8,
@@ -1132,14 +1136,14 @@ Răspuns `200`:
       "distance",
       "… încă 1 elemente de același fel"
     ],
-    "description": "Întârziere de 3–22 de minute; nivelurile 1 și 2 rezolvă aproape tot la bord."
+    "description": "A 3–22 minute delay; levels 1 and 2 handle almost everything on board."
   },
   "link": {
     "environment": "mars_transit",
     "one_way_delay_s": 700.0,
     "one_way_delay_real_s": 11.67,
     "window_open": true,
-    "window_closes_at": "2027-04-15T08:24:00Z",
+    "window_closes_at": null,
     "next_window_at": null,
     "queued_down": 0,
     "queued_up": 0
@@ -1151,13 +1155,13 @@ Răspuns `200`:
 
 ---
 
-### 3. Echipaj și corpul interactiv
+### 3. Crew and the interactive body
 
-#### `GET /api/v1/crew` — Lista echipajului
+#### `GET /api/v1/crew` — Crew list
 
 **Cine poate apela:** ofițer medical (cmo)
 
-Doar pentru ofițerul medical. Conține doar starea generală, nu valori medicale.
+For the crew medical officer only. Holds only the overall status, no medical values.
 
 **Răspuns 200:** listă de [CrewSummary](#crewsummary)
 
@@ -1176,9 +1180,9 @@ Răspuns `200`:
   {
     "member": {
       "id": "cm-1",
-      "display_name": "Comandant",
+      "display_name": "Commander",
       "initials": "CD",
-      "role_title": "Comandant",
+      "role_title": "Commander",
       "is_cmo": false
     },
     "overall_status": "ok",
@@ -1188,9 +1192,9 @@ Răspuns `200`:
   {
     "member": {
       "id": "cm-2",
-      "display_name": "Specialist de misiune 2",
+      "display_name": "Mission Specialist 2",
       "initials": "S2",
-      "role_title": "Specialist de misiune",
+      "role_title": "Mission Specialist",
       "is_cmo": false
     },
     "overall_status": "alert",
@@ -1205,19 +1209,19 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/dashboard` — Tabloul de bord al astronautului
+#### `GET /api/v1/crew/{crew_id}/dashboard` — The astronaut's dashboard
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-**Apelul principal al ecranului astronautului.** Într-un singur răspuns: starea celor 4 piloni (culorile zonelor
-de pe corp), decalajul de percepție, semnalele încrucișate, alerta principală, seriile de zile și reamintirile.
+**The main call of the astronaut's screen.** In one response: the state of the 4 pillars (the colours of the
+body zones), the perception gap, the cross signals, the main alert, the streaks and the reminders.
 
-Reîncărcați-l când primiți SSE `dashboard.changed`, `alert.created` sau `alert.updated`.
+Reload it when you get SSE `dashboard.changed`, `alert.created` or `alert.updated`.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
-| `as_of_day` | query | număr întreg \| null | nu | Derulator: starea de la sfârșitul acestei zile. Fără parametru = acum. Trebuie să fie ≤ ziua curentă (zilele viitoare nu există încă) → altfel 422. (min 1) |
+| `as_of_day` | query | număr întreg \| null | nu | Timeline scrubber: the state at the end of this day. Without it = now. Must be ≤ the current day (future days do not exist yet) → otherwise 422. (min 1) |
 
 **Răspuns 200:** [Dashboard](#dashboard)
 
@@ -1235,90 +1239,90 @@ Răspuns `200`:
 {
   "crew": {
     "id": "cm-2",
-    "display_name": "Specialist de misiune 2",
+    "display_name": "Mission Specialist 2",
     "initials": "S2",
-    "role_title": "Specialist de misiune",
+    "role_title": "Mission Specialist",
     "is_cmo": false
   },
-  "as_of": "2027-04-15T07:42:00Z",
+  "as_of": "2027-04-15T07:02:13.487608Z",
   "mission_day": 96,
   "overall_status": "alert",
   "pillars": [
     {
       "pillar": "behavioral",
-      "name": "Tastatura",
+      "name": "Typing",
       "body_zone": "brain",
       "status": "watch",
-      "score": 71.0,
-      "headline": "Tastezi cu 18% mai lent decât de obicei",
+      "score": 27.6,
+      "headline": "Typing 18% slower than usual",
       "hazard": "isolation",
-      "active_alert_id": "al-1039"
+      "active_alert_id": "al-0006"
     },
     {
       "pillar": "cardio",
-      "name": "Inima",
+      "name": "Heart",
       "body_zone": "heart",
       "status": "ok",
-      "score": 88.0,
-      "headline": "În limitele tale din zbor",
+      "score": 99.2,
+      "headline": "Within your in-flight range",
       "hazard": "gravity",
       "active_alert_id": null
     },
     "… încă 2 elemente de același fel"
   ],
   "perception_gap": {
-    "self_reported_mood": 4,
-    "self_score": 80.0,
-    "objective_score": 52.0,
-    "gap": 28.0,
-    "status": "alert",
-    "explanation": "Spui că ești bine (4/5), dar tastezi cu 18% mai lent și pulsul de noapte a crescut.",
+    "self_reported_mood": null,
+    "self_score": null,
+    "objective_score": 53.5,
+    "gap": null,
+    "status": "unknown",
+    "explanation": "Not enough data yet to compare how you feel with your objective data.",
     "contributing_signals": [
-      "Tastare: −18% viteză",
-      "Puls de noapte: +7 bpm",
+      "Typing: -18% speed",
+      "Night pulse: +7.0 bpm",
       "… încă 1 elemente de același fel"
     ]
   },
   "cross_signals": [
     {
-      "id": "xs-1",
-      "title": "Probabil debutul unei boli",
+      "id": "xs-cm-2-96",
+      "title": "Possible onset of an illness",
       "pillars": [
-        "immune",
-        "behavioral"
+        "behavioral",
+        "immune"
       ],
       "signals": [
-        "Puls de noapte: +7 bpm",
-        "Tastare: −18% viteză",
-        "… încă 1 elemente de același fel"
+        "Night pulse: +7.0 bpm",
+        "Temperature: +0.4 °C",
+        "… încă 2 elemente de același fel"
       ],
-      "confidence": 0.72,
-      "explanation": "Trei semnale slabe, independente, arată în aceeași direcție."
+      "confidence": 0.8,
+      "explanation": "4 weak, independent signals from 2 pillars point the same way. Each one alone is not an alert; together they weigh more."
     }
   ],
   "alerts_active_count": 2,
   "top_alert": {
-    "id": "al-1042",
+    "id": "al-0005",
     "crew_id": "cm-2",
     "topic": "immune",
     "level": 2,
     "status": "alert",
     "state": "escalated",
-    "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-    "created_at": "2027-04-14T06:10:00Z"
+    "title": "Night pulse +7 bpm, 3 nights in a row",
+    "created_at": "2027-04-13T07:00:00Z"
   },
   "streaks": [
     {
       "key": "checkin",
-      "label": "Check-in zilnic",
-      "days": 12,
-      "best": 31
+      "label": "Daily check-in",
+      "days": 95,
+      "best": 95
     },
     {
       "key": "split_training",
-      "label": "Antrenament în două sesiuni",
-      "days": 5,
-      "best": 9
+      "label": "Training in two sessions",
+      "days": 33,
+      "best": 60
     },
     "… încă 1 elemente de același fel"
   ],
@@ -1326,15 +1330,15 @@ Răspuns `200`:
     {
       "id": "rm-1",
       "kind": "checkin",
-      "label": "Check-in de dimineață",
+      "label": "Morning check-in",
       "due_at": "2027-04-15T07:00:00Z",
-      "done": true,
-      "overdue": false
+      "done": false,
+      "overdue": true
     },
     {
       "id": "rm-2",
       "kind": "pvt",
-      "label": "Test de reacție (3 minute)",
+      "label": "Reaction test (3 minutes)",
       "due_at": "2027-04-15T09:00:00Z",
       "done": false,
       "overdue": false
@@ -1342,7 +1346,7 @@ Răspuns `200`:
     "… încă 1 elemente de același fel"
   ],
   "radiation_alert_active": false,
-  "checkin_done_today": true
+  "checkin_done_today": false
 }
 ```
 
@@ -1350,18 +1354,18 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/pillars/{pillar}` — Panoul unei zone a corpului
+#### `GET /api/v1/crew/{crew_id}/pillars/{pillar}` — The panel of a body zone
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Se apelează la click pe o zonă. Conține, în ordinea afișării: funcția părții corpului, pericolul spațial,
-valorile față de baseline, graficul, explicația, planul de acțiune și sursele.
+Called on a click on a zone. Holds, in display order: the function of the body part, the space hazard,
+the values against the baseline, the chart, the explanation, the action plan and the sources.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
 | `pillar` | cale | [Pillar](#pillar) | da |  |
-| `as_of_day` | query | număr întreg \| null | nu | Derulator: starea de la sfârșitul acestei zile. Fără parametru = acum. Trebuie să fie ≤ ziua curentă (zilele viitoare nu există încă) → altfel 422. (min 1) |
+| `as_of_day` | query | număr întreg \| null | nu | Timeline scrubber: the state at the end of this day. Without it = now. Must be ≤ the current day (future days do not exist yet) → otherwise 422. (min 1) |
 
 **Răspuns 200:** [PillarDetail](#pillardetail)
 
@@ -1378,61 +1382,61 @@ Răspuns `200`:
 ```json
 {
   "pillar": "immune",
-  "name": "Santinela",
+  "name": "Sentinel",
   "body_zone": "immune",
-  "function_text": "Sistemul imunitar apără corpul de virusuri, bacterii și celule anormale. În zbor, stresul, somnul perturbat și radiațiile îl dereglează.",
+  "function_text": "The immune system defends the body against viruses, bacteria and abnormal cells. In flight, stress, disrupted sleep and radiation throw it off balance.",
   "hazard": "hostile_environment",
-  "hazard_text": "Radiațiile și mediul închis: stresul și spațiul comun slăbesc apărarea organismului.",
+  "hazard_text": "Radiation and the closed environment: stress and shared space weaken the body's defences.",
   "status": "alert",
   "score": 58.0,
-  "explanation": "Pulsul tău de noapte e peste normalul tău de trei nopți la rând.",
+  "explanation": "Your night pulse has been at least 4 bpm above your personal median (53.9 bpm) for 3 nights in a row. In the NightSignal study this pattern often came before symptoms of an infection. Tell the crew medical officer.",
   "metrics": [
     {
       "key": "night_pulse_bpm",
-      "label": "Puls de noapte",
-      "value": 61.0,
+      "label": "Night pulse",
+      "value": 60.9,
       "unit": "bpm",
-      "baseline": 54.0,
+      "baseline": 53.9,
       "deviation_abs": 7.0,
       "deviation_pct": 13.0,
       "status": "alert",
       "source": "simulated",
-      "measured_at": "2027-04-15T06:00:00Z"
+      "measured_at": "2027-04-15T03:00:00Z"
     },
     {
       "key": "temperature_c",
-      "label": "Temperatura",
+      "label": "Temperature",
       "value": 37.3,
       "unit": "°C",
       "baseline": 36.9,
       "deviation_abs": 0.4,
       "deviation_pct": 1.1,
       "status": "watch",
-      "source": "manual",
-      "measured_at": "2027-04-15T07:02:00Z"
+      "source": "simulated",
+      "measured_at": "2027-04-15T07:00:00Z"
     },
     "… încă 2 elemente de același fel"
   ],
   "chart": {
     "metric_key": "night_pulse_bpm",
-    "label": "Puls de noapte",
+    "label": "Night pulse",
     "unit": "bpm",
-    "baseline": 54.0,
-    "band_low": 51.0,
-    "band_high": 57.0,
-    "threshold": 58.0,
-    "threshold_label": "+4 bpm, 2 nopți (NightSignal)",
+    "baseline": 53.9,
+    "band_low": 52.4,
+    "band_high": 55.4,
+    "threshold": 57.9,
+    "threshold_label": "+4 bpm, 2 nights (NightSignal)",
     "points": [
       {
         "day": 87,
-        "t": "2027-04-06T06:00:00Z",
-        "value": 54.0,
+        "t": "2027-04-06T03:00:00Z",
+        "value": 53.4,
         "status": "ok"
       },
       {
         "day": 88,
-        "t": "2027-04-07T06:00:00Z",
-        "value": 53.0,
+        "t": "2027-04-07T03:00:00Z",
+        "value": 53.8,
         "status": "ok"
       },
       "… încă 8 elemente de același fel"
@@ -1441,38 +1445,38 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Culcă-te cu o oră mai devreme în următoarele 3 nopți.",
-      "done": true,
-      "done_at": "2027-04-14T21:30:00Z"
+      "text": "Go to bed an hour earlier for the next 3 nights.",
+      "done": false,
+      "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Măsoară temperatura dimineața și seara.",
+      "text": "Take your temperature morning and evening.",
       "done": false,
       "done_at": null
     },
     "… încă 1 elemente de același fel"
   ],
-  "active_alert_id": "al-1042",
-  "recheck_at": "2027-04-17T07:00:00Z",
+  "active_alert_id": "al-0005",
+  "recheck_at": "2027-04-16T07:00:00Z",
   "sources": [
     {
       "citation": "Alavi et al. (2022), Real-time alerting system for COVID-19 and other stress events using wearable data, Nature Medicine 28:175–184",
       "url": "https://www.nature.com/articles/s41591-021-01593-2",
       "verification": "verified",
       "derivation": "published",
-      "evidence_strength": "moderată"
+      "evidence_strength": "moderate"
     },
     {
       "citation": "Rooney et al. (2019), Herpes Virus Reactivation in Astronauts During Spaceflight, Frontiers in Microbiology 10:16",
       "url": "https://www.frontiersin.org/articles/10.3389/fmicb.2019.00016/full",
       "verification": "verified",
       "derivation": "published",
-      "evidence_strength": "moderată"
+      "evidence_strength": "moderate"
     },
     "… încă 1 elemente de același fel"
   ],
-  "limits_text": "Algoritmul nu distinge tipul de infecție și poate da alarme false. A fost validat pe civili, nu pe astronauți.",
+  "limits_text": "The algorithm cannot tell the type of infection and can give false alarms. It was validated on civilians, not on astronauts.",
   "data_is_simulated": true
 }
 ```
@@ -1481,19 +1485,19 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/pillars/{pillar}/series` — Seria unei metrici (grafic)
+#### `GET /api/v1/crew/{crew_id}/pillars/{pillar}/series` — The series of a metric (chart)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Pentru un al doilea grafic sau pentru un interval mai lung decât cel din panou (care are ultimele 10 zile).
+For a second chart or for a longer interval than the panel's (which has the last 10 days).
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
 | `pillar` | cale | [Pillar](#pillar) | da |  |
-| `metric` | query | text | da | Cheia metricii, ex. `night_pulse_bpm`. Vezi README, „Chei de metrici”. |
+| `metric` | query | text | da | The metric key, e.g. `night_pulse_bpm`. See README, “Metric keys”. |
 | `from_day` | query | număr întreg | nu |  Implicit: `1`. (min 1) |
-| `to_day` | query | număr întreg \| null | nu | Implicit: ziua curentă. (min 1) |
+| `to_day` | query | număr întreg \| null | nu | Default: the current day. (min 1) |
 
 **Răspuns 200:** [MetricSeries](#metricseries)
 
@@ -1510,24 +1514,24 @@ Răspuns `200`:
 ```json
 {
   "metric_key": "night_pulse_bpm",
-  "label": "Puls de noapte",
+  "label": "Night pulse",
   "unit": "bpm",
-  "baseline": 54.0,
-  "band_low": 51.0,
-  "band_high": 57.0,
-  "threshold": 58.0,
-  "threshold_label": "+4 bpm, 2 nopți (NightSignal)",
+  "baseline": 53.9,
+  "band_low": 52.4,
+  "band_high": 55.4,
+  "threshold": 57.9,
+  "threshold_label": "+4 bpm, 2 nights (NightSignal)",
   "points": [
     {
       "day": 87,
-      "t": "2027-04-06T06:00:00Z",
-      "value": 54.0,
+      "t": "2027-04-06T03:00:00Z",
+      "value": 53.4,
       "status": "ok"
     },
     {
       "day": 88,
-      "t": "2027-04-07T06:00:00Z",
-      "value": 53.0,
+      "t": "2027-04-07T03:00:00Z",
+      "value": 53.8,
       "status": "ok"
     },
     "… încă 8 elemente de același fel"
@@ -1539,22 +1543,22 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/timeline` — Istoric pe zile (derulator)
+#### `GET /api/v1/crew/{crew_id}/timeline` — History by day (timeline scrubber)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Starea fiecărui pilon pe fiecare zi **care a avut loc**: de la `from_day` până la ziua curentă (misiunea
-pornește în ziua 96, deci la început sunt 96 de zile). Zilele viitoare nu apar; bara derulatorului arată restul
-până la `total_days` (din `/mission`) ca „încă nu”.
+The state of every pillar on every day **that has happened**: from `from_day` to the current day (the
+mission starts on day 96, so at first there are 96 days). Future days are not included; the scrubber shows the
+rest up to `total_days` (from `/mission`) as "not yet".
 
-Se încarcă o dată la pornire și se reîncarcă la `mission.tick` doar când se schimbă `mission_day`.
-Când utilizatorul se oprește pe o zi, reîncărcați `dashboard` și panoul deschis cu `?as_of_day=`.
+Load it once at startup and reload it on `mission.tick` only when `mission_day` changes.
+When the user stops on a day, reload `dashboard` and the open panel with `?as_of_day=`.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
 | `from_day` | query | număr întreg | nu |  Implicit: `1`. (min 1) |
-| `to_day` | query | număr întreg \| null | nu | Implicit și maximum: ziua curentă. (min 1) |
+| `to_day` | query | număr întreg \| null | nu | Default and maximum: the current day. (min 1) |
 
 **Răspuns 200:** [Timeline](#timeline)
 
@@ -1577,14 +1581,16 @@ Răspuns `200`:
     {
       "day": 94,
       "date": "2027-04-13T00:00:00Z",
-      "overall_status": "alert",
+      "overall_status": "watch",
       "pillars": {
         "behavioral": "ok",
         "cardio": "ok",
-        "immune": "alert",
+        "immune": "watch",
         "musculoskeletal": "ok"
       },
-      "events": []
+      "events": [
+        "Sentinel alert"
+      ]
     },
     {
       "day": 95,
@@ -1596,7 +1602,10 @@ Răspuns `200`:
         "immune": "alert",
         "musculoskeletal": "ok"
       },
-      "events": []
+      "events": [
+        "Typing alert",
+        "Sentinel alert escalated"
+      ]
     },
     "… încă 1 elemente de același fel"
   ]
@@ -1609,12 +1618,12 @@ Răspuns `200`:
 
 ### 4. Check-in
 
-#### `GET /api/v1/checkin/schema` — Câmpurile check-in-ului
+#### `GET /api/v1/checkin/schema` — Check-in fields
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Lista câmpurilor, cu textele „Cum se măsoară”, „Ce înseamnă” și „De ce contează în spațiu” și cu limitele de
-plauzibilitate (`min`/`max`). Frontend-ul construiește formularul din acest răspuns; nu țineți textele în cod.
+The list of fields, with the "How to measure", "What it means" and "Why it matters in space" texts and the
+plausibility limits (`min`/`max`). The frontend builds the form from this response; do not keep the texts in code.
 
 **Răspuns 200:** [CheckinSchema](#checkinschema)
 
@@ -1633,7 +1642,7 @@ Răspuns `200`:
   "indicators": [
     {
       "key": "mood",
-      "label": "Starea de spirit",
+      "label": "Mood",
       "unit": "",
       "input": "scale_1_5",
       "min": 1.0,
@@ -1641,15 +1650,21 @@ Răspuns `200`:
       "step": 1.0,
       "choices": null,
       "required": true,
-      "how_to_measure": "Alege de la 1 (foarte rău) la 5 (foarte bine).",
-      "what_it_means": "Cum te simți tu; intră în decalajul de percepție.",
-      "why_in_space": "Izolarea și distanța față de Pământ apasă pe sănătatea comportamentală.",
+      "how_to_measure": "Choose from 1 (very bad) to 5 (very good).",
+      "what_it_means": "How you feel; it feeds the perception gap.",
+      "why_in_space": "Isolation and distance from Earth weigh on behavioural health.",
       "pillar": "behavioral",
-      "source": null
+      "source": {
+        "citation": "NASA HRP — Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders",
+        "url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
+        "verification": "verified",
+        "derivation": "published",
+        "evidence_strength": "strong"
+      }
     },
     {
       "key": "systolic_mmhg",
-      "label": "Tensiunea (sistolică)",
+      "label": "Blood pressure (systolic)",
       "unit": "mmHg",
       "input": "number",
       "min": 60.0,
@@ -1657,16 +1672,16 @@ Răspuns `200`:
       "step": 1.0,
       "choices": null,
       "required": false,
-      "how_to_measure": "Cu manșeta, în repaus, după câteva minute de stat jos.",
-      "what_it_means": "Presiunea sângelui pe artere; o urmărim ca tendință față de normalul tău.",
-      "why_in_space": "În microgravitație fluidele se mută spre cap, iar tensiunea scade de obicei față de Pământ.",
+      "how_to_measure": "With the cuff, at rest, after a few minutes sitting down.",
+      "what_it_means": "The pressure of blood on the arteries; we follow it as a trend against your normal.",
+      "why_in_space": "In microgravity, fluids shift towards the head, and blood pressure is usually lower than on Earth.",
       "pillar": "cardio",
       "source": {
         "citation": "NASA HRP — Risk of Cardiovascular Adaptations",
         "url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
         "verification": "unverified",
         "derivation": "derived",
-        "evidence_strength": "slabă"
+        "evidence_strength": "weak"
       }
     },
     "… încă 6 elemente de același fel"
@@ -1678,21 +1693,21 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/crew/{crew_id}/checkins` — Trimite check-in-ul de dimineață
+#### `POST /api/v1/crew/{crew_id}/checkins` — Send the morning check-in
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Salvează check-in-ul zilei. **Un singur check-in pe zi de misiune**: al doilea îl înlocuiește pe primul.
+Saves the check-in of the day. **One check-in per mission day**: a second one replaces the first.
 
-Ce face backend-ul, în ordine:
-1. validează fiecare câmp față de `min`/`max` din schemă; câmpurile imposibile NU dau eroare 422, ci apar în
-   `rejected` și se salvează ca `null` (restul check-in-ului rămâne valid);
-2. compară valorile cu baseline-ul personal;
-3. recalculează decalajul de percepție;
-4. rulează triajul și creează alerte, dacă e cazul;
-5. actualizează seria de zile.
+What the backend does, in order:
+1. checks every field against `min`/`max` from the schema; impossible fields do NOT give a 422 error, they show
+   up in `rejected` and are saved as `null` (the rest of the check-in stays valid);
+2. compares the values with the personal baseline;
+3. recomputes the perception gap;
+4. runs triage and creates alerts, if needed;
+5. updates the streak.
 
-**SSE:** `dashboard.changed`, plus `alert.created` pentru fiecare alertă nouă.
+**SSE:** `dashboard.changed`, plus `alert.created` for every new alert.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -1730,10 +1745,10 @@ Răspuns `201`:
 ```json
 {
   "checkin": {
-    "id": "ck-0096",
+    "id": "ck-0381",
     "crew_id": "cm-2",
     "mission_day": 96,
-    "created_at": "2027-04-15T07:42:00Z",
+    "created_at": "2027-04-15T07:02:22.509458Z",
     "values": {
       "mood": 4,
       "systolic_mmhg": 112.0,
@@ -1751,30 +1766,30 @@ Răspuns `201`:
       "field": "temperature_c",
       "value": 41.9,
       "reason": "implausible",
-      "message": "Temperatura: 41.9 °C e în afara intervalului posibil (34.0–41.5). Măsoară din nou."
+      "message": "41.9 is outside the possible range (34–41.5). Measure again."
     }
   ],
   "perception_gap": {
     "self_reported_mood": 4,
     "self_score": 80.0,
-    "objective_score": 52.0,
-    "gap": 28.0,
+    "objective_score": 52.7,
+    "gap": 27.3,
     "status": "alert",
-    "explanation": "Spui că ești bine (4/5), dar tastezi cu 18% mai lent și pulsul de noapte a crescut.",
+    "explanation": "You rate yourself 4/5 (80/100), but your objective data score 53/100 only (Typing: -18% speed, Night pulse: +7.0 bpm, Sleep: -1.1 h).",
     "contributing_signals": [
-      "Tastare: −18% viteză",
-      "Puls de noapte: +7 bpm",
+      "Typing: -18% speed",
+      "Night pulse: +7.0 bpm",
       "… încă 1 elemente de același fel"
     ]
   },
   "alerts_created": [],
   "streak": {
     "key": "checkin",
-    "label": "Check-in zilnic",
-    "days": 12,
-    "best": 31
+    "label": "Daily check-in",
+    "days": 96,
+    "best": 96
   },
-  "message": "Check-in salvat. 12 zile la rând."
+  "message": "Check-in saved. 96 days in a row."
 }
 ```
 
@@ -1782,11 +1797,11 @@ Răspuns `201`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/checkins` — Istoricul check-in-urilor
+#### `GET /api/v1/crew/{crew_id}/checkins` — Check-in history
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Check-in-urile din interval, cele mai noi primele.
+The check-ins in the interval, newest first.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -1809,22 +1824,40 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": "ck-0096",
+    "id": "ck-0381",
     "crew_id": "cm-2",
     "mission_day": 96,
-    "created_at": "2027-04-15T07:02:00Z",
+    "created_at": "2027-04-15T07:02:22.509458Z",
     "values": {
       "mood": 4,
       "systolic_mmhg": 112.0,
       "diastolic_mmhg": 72.0,
       "pulse_bpm": 58.0,
       "glucose_mg_dl": 92.0,
-      "temperature_c": 37.3,
+      "temperature_c": null,
       "sleep_hours": 5.5,
       "meals_eaten": "some",
       "note": null
     }
-  }
+  },
+  {
+    "id": "ck-0378",
+    "crew_id": "cm-2",
+    "mission_day": 95,
+    "created_at": "2027-04-14T07:00:00Z",
+    "values": {
+      "mood": 4,
+      "systolic_mmhg": 107.4,
+      "diastolic_mmhg": 73.6,
+      "pulse_bpm": 57.0,
+      "glucose_mg_dl": 90.2,
+      "temperature_c": 37.3,
+      "sleep_hours": 5.3,
+      "meals_eaten": "all",
+      "note": null
+    }
+  },
+  "… încă 5 elemente de același fel"
 ]
 ```
 
@@ -1832,11 +1865,12 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/checkins/today` — Check-in-ul de azi
+#### `GET /api/v1/crew/{crew_id}/checkins/today` — Today's check-in
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Întoarce check-in-ul zilei curente sau `null` dacă nu a fost făcut. Folosiți-l ca să decideți dacă afișați formularul.
+Returns the check-in of the current day, or `null` if it has not been done. Use it to decide whether to show
+the form.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -1856,17 +1890,17 @@ Răspuns `200`:
 
 ```json
 {
-  "id": "ck-0096",
+  "id": "ck-0381",
   "crew_id": "cm-2",
   "mission_day": 96,
-  "created_at": "2027-04-15T07:02:00Z",
+  "created_at": "2027-04-15T07:02:22.509458Z",
   "values": {
     "mood": 4,
     "systolic_mmhg": 112.0,
     "diastolic_mmhg": 72.0,
     "pulse_bpm": 58.0,
     "glucose_mg_dl": 92.0,
-    "temperature_c": 37.3,
+    "temperature_c": null,
     "sleep_hours": 5.5,
     "meals_eaten": "some",
     "note": null
@@ -1878,22 +1912,23 @@ Răspuns `200`:
 
 ---
 
-### 5. Tastare și test de reacție
+### 5. Typing and reaction test
 
-#### `POST /api/v1/crew/{crew_id}/keystrokes/batches` — Trimite un lot de apăsări de taste
+#### `POST /api/v1/crew/{crew_id}/keystrokes/batches` — Send a batch of key presses
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-**Confidențialitate: trimiteți doar timpii și clasa tastei, niciodată caracterul.** Backend-ul respinge cu 422
-orice câmp în plus (ex. `key`, `code`, `text`).
+**Privacy: send only the timings and the key class, never the character.** The backend rejects with 422 any
+extra field (e.g. `key`, `code`, `text`).
 
-Frontend: adunați evenimentele `keydown`/`keyup` și trimiteți un lot la ~5 secunde sau la 200 de taste, cu
-același `session_id` cât timp utilizatorul scrie în același câmp. Răspunsul conține trăsăturile cumulate ale
-sesiunii, deci îl puteți afișa direct în barele live.
+Frontend: collect the `keydown`/`keyup` events and send a batch every ~5 seconds or every 200 keys, with the
+same `session_id` while the user keeps typing in the same field. The response holds the cumulative features of
+the session, so you can show it directly in the live bars.
 
-Primele sesiuni construiesc baseline-ul: cât timp `baseline_ready` e `false`, `status` e `unknown`.
+The first sessions build the baseline: while `baseline_ready` is `false`, `status` is `unknown`. A session is
+judged only after its first 30 keys.
 
-**SSE:** `alert.created` dacă abaterea trece pragul.
+**SSE:** `alert.created` (or `alert.updated`) and `dashboard.changed` when the deviation crosses the threshold.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -1943,33 +1978,33 @@ Răspuns `200`:
 {
   "session_id": "8b1f0c1e-6f0a-4f0e-9d53-2c1a7f1b9e10",
   "features": {
-    "hold_ms_mean": 112.0,
-    "hold_ms_sd": 27.8,
-    "flight_ms_mean": 221.5,
-    "flight_ms_sd": 88.0,
-    "backspace_rate": 0.07,
-    "keys_per_min": 176.0,
+    "hold_ms_mean": 83.3,
+    "hold_ms_sd": 4.7,
+    "flight_ms_mean": 210.4,
+    "flight_ms_sd": 32.9,
+    "backspace_rate": 0.333,
+    "keys_per_min": 285.2,
     "n_keys": 3
   },
   "baseline": {
-    "hold_ms_mean": 96.4,
-    "hold_ms_sd": 21.3,
-    "flight_ms_mean": 182.0,
-    "flight_ms_sd": 64.9,
-    "backspace_rate": 0.06,
-    "keys_per_min": 214.0,
-    "n_keys": 5200
+    "hold_ms_mean": 95.7,
+    "hold_ms_sd": 19.1,
+    "flight_ms_mean": 284.7,
+    "flight_ms_sd": 99.6,
+    "backspace_rate": 0.051,
+    "keys_per_min": 210.8,
+    "n_keys": 2620
   },
   "deviation_z": {
-    "hold_ms_mean": 1.9,
-    "flight_ms_mean": 1.5,
-    "keys_per_min": -1.6,
-    "backspace_rate": 0.3
+    "hold_ms_mean": -2.06,
+    "keys_per_min": 9.3,
+    "flight_ms_mean": -4.95,
+    "backspace_rate": 14.11
   },
-  "fatigue_index": 68.0,
-  "status": "watch",
+  "fatigue_index": null,
+  "status": "unknown",
   "baseline_ready": true,
-  "baseline_sessions": 9
+  "baseline_sessions": 7
 }
 ```
 
@@ -1977,16 +2012,17 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/keystrokes/summary` — Rezumatul tastării
+#### `GET /api/v1/crew/{crew_id}/keystrokes/summary` — Typing summary
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Baseline-ul personal, ultima sesiune și sesiunile recente. Pentru cardul „Ritmul tău” și pentru comparația din demo.
+The personal baseline, the latest session and the recent sessions. For the "Your rhythm" card and the
+comparison in the demo.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
-| `last` | query | număr întreg | nu | Câte sesiuni recente să întoarcă. Implicit: `10`. (min 1; max 100) |
+| `last` | query | număr întreg | nu | How many recent sessions to return. Implicit: `10`. (min 1; max 100) |
 
 **Răspuns 200:** [KeystrokeSummary](#keystrokesummary)
 
@@ -2003,41 +2039,41 @@ Răspuns `200`:
 ```json
 {
   "baseline": {
-    "hold_ms_mean": 96.4,
-    "hold_ms_sd": 21.3,
-    "flight_ms_mean": 182.0,
-    "flight_ms_sd": 64.9,
-    "backspace_rate": 0.06,
-    "keys_per_min": 214.0,
-    "n_keys": 5200
+    "hold_ms_mean": 95.7,
+    "hold_ms_sd": 19.1,
+    "flight_ms_mean": 284.7,
+    "flight_ms_sd": 99.6,
+    "backspace_rate": 0.051,
+    "keys_per_min": 210.8,
+    "n_keys": 2620
   },
   "current": {
-    "hold_ms_mean": 112.0,
-    "hold_ms_sd": 27.8,
-    "flight_ms_mean": 221.5,
-    "flight_ms_sd": 88.0,
-    "backspace_rate": 0.07,
-    "keys_per_min": 176.0,
-    "n_keys": 380
+    "hold_ms_mean": 83.3,
+    "hold_ms_sd": 4.7,
+    "flight_ms_mean": 210.4,
+    "flight_ms_sd": 32.9,
+    "backspace_rate": 0.333,
+    "keys_per_min": 285.2,
+    "n_keys": 3
   },
-  "fatigue_index": 68.0,
-  "status": "watch",
+  "fatigue_index": null,
+  "status": "unknown",
   "baseline_ready": true,
   "sessions": [
     {
-      "session_id": "s-0",
+      "session_id": "sim-cm-2-d091",
       "at": "2027-04-10T07:15:00Z",
-      "keys_per_min": 213.0,
-      "hold_ms_mean": 97.0,
-      "fatigue_index": 6.0,
+      "keys_per_min": 214.6,
+      "hold_ms_mean": 95.8,
+      "fatigue_index": 0.2,
       "status": "ok"
     },
     {
-      "session_id": "s-1",
+      "session_id": "sim-cm-2-d092",
       "at": "2027-04-11T07:15:00Z",
-      "keys_per_min": 205.0,
-      "hold_ms_mean": 99.0,
-      "fatigue_index": 18.0,
+      "keys_per_min": 218.5,
+      "hold_ms_mean": 94.6,
+      "fatigue_index": 0.0,
       "status": "ok"
     },
     "… încă 4 elemente de același fel"
@@ -2049,16 +2085,16 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/crew/{crew_id}/pvt` — Trimite un test de reacție (PVT-B)
+#### `POST /api/v1/crew/{crew_id}/pvt` — Send a reaction test (PVT-B)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Testul de 3 minute rulează integral în frontend; aici trimiteți toate încercările la sfârșit.
+The 3-minute test runs entirely in the frontend; send all the trials here at the end.
 
-Backend-ul calculează media 1/RT, lapsusurile (RT ≥ 355 ms) și abaterea față de baseline. Primele 2–3 teste
-sunt de antrenament și nu intră în baseline.
+The backend computes the mean 1/RT, the lapses (RT ≥ 355 ms) and the deviation from the baseline. The first
+3 tests are practice and do not enter the baseline (`status = unknown`).
 
-**SSE:** `dashboard.changed`.
+**SSE:** `dashboard.changed`, plus `alert.created` / `alert.updated` when the speed drops past the threshold.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2106,17 +2142,17 @@ Răspuns `201`:
 
 ```json
 {
-  "id": "pvt-0031",
+  "id": "pvt-0001",
   "crew_id": "cm-2",
-  "at": "2027-04-14T09:05:00Z",
-  "n_trials": 48,
-  "mean_rt_ms": 312.5,
-  "mean_speed": 3.31,
-  "lapses": 6,
+  "at": "2027-04-15T07:02:31.848009Z",
+  "n_trials": 3,
+  "mean_rt_ms": 344.5,
+  "mean_speed": 2.986,
+  "lapses": 1,
   "false_starts": 1,
-  "baseline_speed": 3.72,
-  "deviation_sd": -1.4,
-  "status": "watch"
+  "baseline_speed": null,
+  "deviation_sd": null,
+  "status": "unknown"
 }
 ```
 
@@ -2124,9 +2160,11 @@ Răspuns `201`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/pvt` — Istoricul testelor de reacție
+#### `GET /api/v1/crew/{crew_id}/pvt` — Reaction test history
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
+
+The reaction tests, newest first.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2148,17 +2186,17 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": "pvt-0031",
+    "id": "pvt-0001",
     "crew_id": "cm-2",
-    "at": "2027-04-14T09:05:00Z",
-    "n_trials": 48,
-    "mean_rt_ms": 312.5,
-    "mean_speed": 3.31,
-    "lapses": 6,
+    "at": "2027-04-15T07:02:31.848009Z",
+    "n_trials": 3,
+    "mean_rt_ms": 344.5,
+    "mean_speed": 2.986,
+    "lapses": 1,
     "false_starts": 1,
-    "baseline_speed": 3.72,
-    "deviation_sd": -1.4,
-    "status": "watch"
+    "baseline_speed": null,
+    "deviation_sd": null,
+    "status": "unknown"
   }
 ]
 ```
@@ -2167,13 +2205,14 @@ Răspuns `200`:
 
 ---
 
-### 6. Exerciții
+### 6. Exercise
 
-#### `GET /api/v1/crew/{crew_id}/exercise/today` — Planul de exerciții de azi
+#### `GET /api/v1/crew/{crew_id}/exercise/today` — Today's exercise plan
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Sesiunile planificate și făcute, scorul de încărcare, recomandarea de împărțire în două sesiuni și seria de zile.
+The planned and completed sessions, the loading score, the recommendation to split into two sessions, the
+streak and the bone projection (an estimate).
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2195,45 +2234,22 @@ Răspuns `200`:
 {
   "mission_day": 96,
   "planned_sessions": 2,
-  "completed_sessions": 1,
-  "loading_score": 38.0,
+  "completed_sessions": 0,
+  "loading_score": 0.0,
   "loading_target": 80.0,
   "split_recommended": true,
-  "recommendation_text": "Împarte antrenamentul de azi în două sesiuni, la câteva ore distanță.",
+  "recommendation_text": "Plan two sessions today, a few hours apart: it helps your bones more than one long session.",
   "streak": {
     "key": "split_training",
-    "label": "Antrenament în două sesiuni",
-    "days": 5,
-    "best": 9
+    "label": "Training in two sessions",
+    "days": 33,
+    "best": 60
   },
-  "sessions": [
-    {
-      "kind": "resistance",
-      "started_at": "2027-04-15T08:30:00Z",
-      "duration_min": 40.0,
-      "sets": [
-        {
-          "exercise": "genuflexiuni ARED",
-          "reps": 10,
-          "load_kg": 85.0
-        },
-        {
-          "exercise": "îndreptări ARED",
-          "reps": 8,
-          "load_kg": 95.0
-        }
-      ],
-      "id": "ex-0211",
-      "crew_id": "cm-2",
-      "mission_day": 96,
-      "loading_score": 38.0,
-      "source": "simulated"
-    }
-  ],
+  "sessions": [],
   "projection": {
-    "current_plan_pct_month": -0.64,
+    "current_plan_pct_month": -0.45,
     "split_plan_pct_month": -0.45,
-    "note": "Estimare. Efectul împărțirii e demonstrat doar pe animale (Robling 2002)."
+    "note": "Estimate, not a measurement: bone density cannot be measured on board. The benefit of splitting the training is shown only in animals (Robling 2002)."
   }
 }
 ```
@@ -2242,11 +2258,11 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/crew/{crew_id}/exercise/sessions` — Înregistrează o sesiune de exerciții
+#### `POST /api/v1/crew/{crew_id}/exercise/sessions` — Log an exercise session
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-În versiunea reală, jurnalul vine de la aparat. În prototip îl trimite simulatorul sau astronautul, de mână.
+In the real version the log comes from the device. In the prototype the simulator or the astronaut sends it.
 
 **SSE:** `dashboard.changed`.
 
@@ -2297,10 +2313,10 @@ Răspuns `201`:
       "load_kg": 85.0
     }
   ],
-  "id": "ex-0212",
+  "id": "ex-0757",
   "crew_id": "cm-2",
   "mission_day": 96,
-  "loading_score": 41.0,
+  "loading_score": 11.8,
   "source": "manual"
 }
 ```
@@ -2309,9 +2325,11 @@ Răspuns `201`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/exercise/sessions` — Istoricul sesiunilor
+#### `GET /api/v1/crew/{crew_id}/exercise/sessions` — Session history
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
+
+The sessions in the interval, newest first.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2335,26 +2353,45 @@ Răspuns `200`:
 [
   {
     "kind": "resistance",
-    "started_at": "2027-04-15T08:30:00Z",
-    "duration_min": 40.0,
+    "started_at": "2027-04-15T16:00:00Z",
+    "duration_min": 35.0,
     "sets": [
       {
         "exercise": "genuflexiuni ARED",
         "reps": 10,
         "load_kg": 85.0
-      },
-      {
-        "exercise": "îndreptări ARED",
-        "reps": 8,
-        "load_kg": 95.0
       }
     ],
-    "id": "ex-0211",
+    "id": "ex-0757",
     "crew_id": "cm-2",
     "mission_day": 96,
-    "loading_score": 38.0,
+    "loading_score": 11.8,
+    "source": "manual"
+  },
+  {
+    "kind": "resistance",
+    "started_at": "2027-04-14T16:00:00Z",
+    "duration_min": 40.0,
+    "sets": [
+      {
+        "exercise": "ARED squat",
+        "reps": 10,
+        "load_kg": 78.3
+      },
+      {
+        "exercise": "ARED deadlift",
+        "reps": 10,
+        "load_kg": 79.4
+      },
+      "… încă 1 elemente de același fel"
+    ],
+    "id": "ex-0752",
+    "crew_id": "cm-2",
+    "mission_day": 95,
+    "loading_score": 32.7,
     "source": "simulated"
-  }
+  },
+  "… încă 11 elemente de același fel"
 ]
 ```
 
@@ -2362,18 +2399,18 @@ Răspuns `200`:
 
 ---
 
-### 7. Alerte, triaj, catalog
+### 7. Alerts, triage, catalog
 
-#### `GET /api/v1/crew/{crew_id}/alerts` — Alertele unui membru al echipajului
+#### `GET /api/v1/crew/{crew_id}/alerts` — A crew member's alerts
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Lista scurtă, cele mai grave primele. Ofițerul medical primește aici doar alertele de nivel ≥ 2 ale altor membri.
+Short list, most severe first. The crew medical officer only gets level ≥ 2 alerts of other members here.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `crew_id` | cale | text | da |  |
-| `state` | query | [AlertState](#alertstate) \| null | nu | Filtru. Fără parametru = toate cele nerezolvate. |
+| `state` | query | [AlertState](#alertstate) \| null | nu | Filter. Without it = all unresolved alerts. |
 | `topic` | query | [AlertTopic](#alerttopic) \| null | nu |  |
 
 **Răspuns 200:** listă de [AlertBrief](#alertbrief)
@@ -2391,24 +2428,24 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": "al-1042",
+    "id": "al-0005",
     "crew_id": "cm-2",
     "topic": "immune",
     "level": 2,
     "status": "alert",
     "state": "escalated",
-    "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-    "created_at": "2027-04-14T06:10:00Z"
+    "title": "Night pulse +7 bpm, 3 nights in a row",
+    "created_at": "2027-04-13T07:00:00Z"
   },
   {
-    "id": "al-1039",
+    "id": "al-0006",
     "crew_id": "cm-2",
     "topic": "behavioral",
     "level": 1,
     "status": "watch",
     "state": "active",
-    "title": "Tastezi cu 18% mai lent decât de obicei",
-    "created_at": "2027-04-15T07:20:00Z"
+    "title": "Typing 18% slower than usual",
+    "created_at": "2027-04-14T07:17:08.050896Z"
   }
 ]
 ```
@@ -2417,11 +2454,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/cmo/queue` — Coada ofițerului medical
+#### `GET /api/v1/cmo/queue` — Crew medical officer's queue
 
 **Cine poate apela:** ofițer medical (cmo)
 
-Toate alertele de nivel 2 și 3 nerezolvate, din tot echipajul. Ecranul principal al rolului `cmo`.
+All unresolved level 2 and 3 alerts across the crew. The main screen of the `cmo` role.
 
 **Răspuns 200:** listă de [AlertBrief](#alertbrief)
 
@@ -2438,14 +2475,14 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": "al-1042",
+    "id": "al-0005",
     "crew_id": "cm-2",
     "topic": "immune",
     "level": 2,
     "status": "alert",
     "state": "escalated",
-    "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-    "created_at": "2027-04-14T06:10:00Z"
+    "title": "Night pulse +7 bpm, 3 nights in a row",
+    "created_at": "2027-04-13T07:00:00Z"
   }
 ]
 ```
@@ -2454,12 +2491,12 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/alerts/{alert_id}` — Alerta completă
+#### `GET /api/v1/alerts/{alert_id}` — Full alert
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Dovezile, cauza (individuală sau de mediu), recomandarea din catalog cu sursa ei, planul de acțiune, data
-reverificării și istoricul. Fiecare citire de către ofițerul medical se scrie în jurnalul de acces.
+The evidence, the cause (individual or environmental), the catalog recommendation with its source, the action
+plan, the recheck date and the history. Every read by the crew medical officer is written to the access log.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2472,40 +2509,40 @@ reverificării și istoricul. Fiecare citire de către ofițerul medical se scri
 <details><summary>Exemplu (autentificat ca <code>specialist2</code>)</summary>
 
 ```http
-GET /api/v1/alerts/al-1042
+GET /api/v1/alerts/al-0005
 ```
 
 Răspuns `200`:
 
 ```json
 {
-  "id": "al-1042",
+  "id": "al-0005",
   "crew_id": "cm-2",
   "topic": "immune",
   "level": 2,
   "status": "alert",
   "state": "escalated",
-  "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-  "created_at": "2027-04-14T06:10:00Z",
-  "explanation": "Pulsul tău de noapte e cu 7 bpm peste normalul tău de trei nopți. Asta apare des cu 2–3 zile înaintea unei infecții.",
+  "title": "Night pulse +7 bpm, 3 nights in a row",
+  "created_at": "2027-04-13T07:00:00Z",
+  "explanation": "Your night pulse has been at least 4 bpm above your personal median (53.9 bpm) for 3 nights in a row. In the NightSignal study this pattern often came before symptoms of an infection. Tell the crew medical officer.",
   "cause": "individual",
-  "cause_explanation": "Doar tu ai această abatere; ceilalți membri ai echipajului sunt în limite.",
+  "cause_explanation": "Only you have this deviation; the rest of the crew is within their usual range.",
   "evidence": [
     {
       "metric_key": "night_pulse_bpm",
-      "label": "Puls de noapte",
-      "value": 61.0,
+      "label": "Night pulse",
+      "value": 60.9,
       "unit": "bpm",
-      "baseline": 54.0,
-      "deviation_text": "+7 bpm peste mediana personală, 3 nopți"
+      "baseline": 53.9,
+      "deviation_text": "+7.0 bpm above your personal median, 3 nights in a row"
     },
     {
       "metric_key": "temperature_c",
-      "label": "Temperatura",
+      "label": "Temperature",
       "value": 37.3,
       "unit": "°C",
       "baseline": 36.9,
-      "deviation_text": "+0,4 °C față de normalul tău"
+      "deviation_text": "+0.4 °C vs your in-flight median"
     },
     "… încă 1 elemente de același fel"
   ],
@@ -2513,8 +2550,8 @@ Răspuns `200`:
     "id": "immune-2-1",
     "topic": "immune",
     "level": 2,
-    "trigger": "Alertă roșie NightSignal: puls mediu de noapte ≥ +4 bpm peste mediana personală două nopți la rând, mai ales dacă temperatura pielii depășește pragul SHADOW derivat sau apar simptome.",
-    "action": "Anunță ofițerul medical de la bord (CMO) cu graficul puls/temperatură vs baseline și jurnalul de simptome. Doar CMO decide evaluarea sau tratamentul simptomatic din farmacia ISS (antihistaminice, antiinflamatoare, antimicrobiene); aplicația nu recomandă medicamente.",
+    "trigger": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear.",
+    "action": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
     "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
     "source": {
@@ -2528,37 +2565,36 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Culcă-te cu o oră mai devreme în următoarele 3 nopți.",
-      "done": true,
-      "done_at": "2027-04-14T21:30:00Z"
+      "text": "Go to bed an hour earlier for the next 3 nights.",
+      "done": false,
+      "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Măsoară temperatura dimineața și seara.",
+      "text": "Take your temperature morning and evening.",
       "done": false,
       "done_at": null
     },
     "… încă 1 elemente de același fel"
   ],
-  "recheck_at": "2027-04-17T07:00:00Z",
-  "packet_id": "pk-0007",
+  "recheck_at": "2027-04-16T07:00:00Z",
+  "packet_id": null,
   "earth_reply": null,
   "history": [
     {
-      "at": "2027-04-14T06:10:00Z",
+      "at": "2027-04-13T07:00:00Z",
       "actor": "SHADOW",
       "role": null,
       "action": "created",
       "note": null
     },
     {
-      "at": "2027-04-14T07:05:00Z",
-      "actor": "Specialist de misiune 2",
-      "role": "astronaut",
-      "action": "acknowledged",
-      "note": null
-    },
-    "… încă 1 elemente de același fel"
+      "at": "2027-04-14T07:00:00Z",
+      "actor": "SHADOW",
+      "role": null,
+      "action": "escalated",
+      "note": "Escalated automatically to level 2."
+    }
   ]
 }
 ```
@@ -2567,11 +2603,12 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/alerts/{alert_id}/ack` — Confirmă că ai văzut alerta
+#### `POST /api/v1/alerts/{alert_id}/ack` — Confirm you have seen the alert
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Trece alerta din `active` în `acknowledged`. Nu se poate apela pe o alertă deja escaladată sau rezolvată (409 `invalid_state`).
+Moves the alert from `active` to `acknowledged`. Not allowed on an alert that is already escalated or
+resolved (409 `invalid_state`).
 
 **SSE:** `alert.updated`.
 
@@ -2586,44 +2623,52 @@ Trece alerta din `active` în `acknowledged`. Nu se poate apela pe o alertă dej
 <details><summary>Exemplu (autentificat ca <code>specialist2</code>)</summary>
 
 ```http
-POST /api/v1/alerts/al-1039/ack
+POST /api/v1/alerts/al-0006/ack
 ```
 
 Răspuns `200`:
 
 ```json
 {
-  "id": "al-1039",
+  "id": "al-0006",
   "crew_id": "cm-2",
   "topic": "behavioral",
   "level": 1,
   "status": "watch",
   "state": "acknowledged",
-  "title": "Tastezi cu 18% mai lent decât de obicei",
-  "created_at": "2027-04-15T07:20:00Z",
-  "explanation": "Ritmul tău de tastare s-a abătut de la normalul tău, deși la check-in ai spus că te simți bine.",
+  "title": "Typing 18% slower than usual",
+  "created_at": "2027-04-14T07:17:08.050896Z",
+  "explanation": "Your typing rhythm has drifted from your personal baseline (fatigue index 72/100). Typing rhythm can change with fatigue even when you feel rested. Only the timing of key presses is analysed, never what you type.",
   "cause": "individual",
-  "cause_explanation": "Abaterea apare doar la tine.",
+  "cause_explanation": "Only you have this deviation; the rest of the crew is within their usual range.",
   "evidence": [
     {
       "metric_key": "keys_per_min",
-      "label": "Viteză de tastare",
-      "value": 176.0,
-      "unit": "taste/min",
-      "baseline": 214.0,
-      "deviation_text": "−18%"
+      "label": "Typing speed",
+      "value": 172.9,
+      "unit": "keys/min",
+      "baseline": 210.8,
+      "deviation_text": "-18% vs your baseline"
+    },
+    {
+      "metric_key": "hold_ms_mean",
+      "label": "Key hold time",
+      "value": 115.3,
+      "unit": "ms",
+      "baseline": 95.7,
+      "deviation_text": "+21% vs your baseline"
     }
   ],
   "recommendation": {
     "id": "behavioral-1-1",
     "topic": "behavioral",
     "level": 1,
-    "trigger": "PVT-B sau tastarea arată abatere față de baseline-ul personal (ex. 1/RT sub prag), chiar dacă astronautul se simte odihnit",
-    "action": "Nu te baza pe senzația subiectivă: refă PVT-B-ul de 3 minute înaintea oricărei sarcini critice și amân-o, dacă se poate, până la normalizare.",
+    "trigger": "The PVT-B or typing shows a deviation from your personal baseline (e.g. 1/RT below threshold), even if you feel rested",
+    "action": "Don't rely on how you feel: repeat the 3-minute PVT-B before any critical task and, if possible, postpone the task until your results are back to normal.",
     "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
     "source": {
-      "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + Evidence Report NASA 2016 (secțiunea Chronic Sleep Loss)",
+      "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + NASA Evidence Report 2016 (Chronic Sleep Loss section)",
       "url": "https://pubmed.ncbi.nlm.nih.gov/12683469/",
       "verification": "verified",
       "derivation": "published",
@@ -2633,31 +2678,31 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Fă testul de reacție de 3 minute.",
+      "text": "Take the 3-minute reaction test.",
       "done": false,
       "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Amână sarcinile critice cu 2 ore, dacă se poate.",
+      "text": "Postpone critical tasks by 2 hours, if possible.",
       "done": false,
       "done_at": null
     }
   ],
-  "recheck_at": "2027-04-16T07:00:00Z",
+  "recheck_at": "2027-04-15T07:17:08.050896Z",
   "packet_id": null,
   "earth_reply": null,
   "history": [
     {
-      "at": "2027-04-15T07:20:00Z",
+      "at": "2027-04-14T07:17:08.050896Z",
       "actor": "SHADOW",
       "role": null,
       "action": "created",
       "note": null
     },
     {
-      "at": "2027-04-15T07:42:00Z",
-      "actor": "Specialist de misiune 2",
+      "at": "2027-04-15T07:02:36.993472Z",
+      "actor": "Mission Specialist 2",
       "role": "astronaut",
       "action": "acknowledged",
       "note": null
@@ -2670,11 +2715,11 @@ Răspuns `200`:
 
 ---
 
-#### `PUT /api/v1/alerts/{alert_id}/plan/steps/{step_id}` — Bifează un pas din plan
+#### `PUT /api/v1/alerts/{alert_id}/plan/steps/{step_id}` — Tick a plan step
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Bifează sau debifează un pas al planului de acțiune.
+Ticks or unticks a step of the action plan.
 
 **SSE:** `alert.updated`.
 
@@ -2692,7 +2737,7 @@ Bifează sau debifează un pas al planului de acțiune.
 <details><summary>Exemplu (autentificat ca <code>specialist2</code>)</summary>
 
 ```http
-PUT /api/v1/alerts/al-1042/plan/steps/st-2
+PUT /api/v1/alerts/al-0005/plan/steps/st-2
 ```
 
 Cerere:
@@ -2707,33 +2752,33 @@ Răspuns `200`:
 
 ```json
 {
-  "id": "al-1042",
+  "id": "al-0005",
   "crew_id": "cm-2",
   "topic": "immune",
   "level": 2,
   "status": "alert",
   "state": "escalated",
-  "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-  "created_at": "2027-04-14T06:10:00Z",
-  "explanation": "Pulsul tău de noapte e cu 7 bpm peste normalul tău de trei nopți. Asta apare des cu 2–3 zile înaintea unei infecții.",
+  "title": "Night pulse +7 bpm, 3 nights in a row",
+  "created_at": "2027-04-13T07:00:00Z",
+  "explanation": "Your night pulse has been at least 4 bpm above your personal median (53.9 bpm) for 3 nights in a row. In the NightSignal study this pattern often came before symptoms of an infection. Tell the crew medical officer.",
   "cause": "individual",
-  "cause_explanation": "Doar tu ai această abatere; ceilalți membri ai echipajului sunt în limite.",
+  "cause_explanation": "Only you have this deviation; the rest of the crew is within their usual range.",
   "evidence": [
     {
       "metric_key": "night_pulse_bpm",
-      "label": "Puls de noapte",
-      "value": 61.0,
+      "label": "Night pulse",
+      "value": 60.9,
       "unit": "bpm",
-      "baseline": 54.0,
-      "deviation_text": "+7 bpm peste mediana personală, 3 nopți"
+      "baseline": 53.9,
+      "deviation_text": "+7.0 bpm above your personal median, 3 nights in a row"
     },
     {
       "metric_key": "temperature_c",
-      "label": "Temperatura",
+      "label": "Temperature",
       "value": 37.3,
       "unit": "°C",
       "baseline": 36.9,
-      "deviation_text": "+0,4 °C față de normalul tău"
+      "deviation_text": "+0.4 °C vs your in-flight median"
     },
     "… încă 1 elemente de același fel"
   ],
@@ -2741,8 +2786,8 @@ Răspuns `200`:
     "id": "immune-2-1",
     "topic": "immune",
     "level": 2,
-    "trigger": "Alertă roșie NightSignal: puls mediu de noapte ≥ +4 bpm peste mediana personală două nopți la rând, mai ales dacă temperatura pielii depășește pragul SHADOW derivat sau apar simptome.",
-    "action": "Anunță ofițerul medical de la bord (CMO) cu graficul puls/temperatură vs baseline și jurnalul de simptome. Doar CMO decide evaluarea sau tratamentul simptomatic din farmacia ISS (antihistaminice, antiinflamatoare, antimicrobiene); aplicația nu recomandă medicamente.",
+    "trigger": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear.",
+    "action": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
     "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
     "source": {
@@ -2756,35 +2801,35 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Culcă-te cu o oră mai devreme în următoarele 3 nopți.",
-      "done": true,
-      "done_at": "2027-04-14T21:30:00Z"
+      "text": "Go to bed an hour earlier for the next 3 nights.",
+      "done": false,
+      "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Măsoară temperatura dimineața și seara.",
+      "text": "Take your temperature morning and evening.",
       "done": true,
-      "done_at": "2027-04-15T07:42:00Z"
+      "done_at": "2027-04-15T07:02:37.764087Z"
     },
     "… încă 1 elemente de același fel"
   ],
-  "recheck_at": "2027-04-17T07:00:00Z",
-  "packet_id": "pk-0007",
+  "recheck_at": "2027-04-16T07:00:00Z",
+  "packet_id": null,
   "earth_reply": null,
   "history": [
     {
-      "at": "2027-04-14T06:10:00Z",
+      "at": "2027-04-13T07:00:00Z",
       "actor": "SHADOW",
       "role": null,
       "action": "created",
       "note": null
     },
     {
-      "at": "2027-04-14T07:05:00Z",
-      "actor": "Specialist de misiune 2",
-      "role": "astronaut",
-      "action": "acknowledged",
-      "note": null
+      "at": "2027-04-14T07:00:00Z",
+      "actor": "SHADOW",
+      "role": null,
+      "action": "escalated",
+      "note": "Escalated automatically to level 2."
     },
     "… încă 1 elemente de același fel"
   ]
@@ -2795,19 +2840,20 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/alerts/{alert_id}/escalate` — Escaladează alerta
+#### `POST /api/v1/alerts/{alert_id}/escalate` — Escalate the alert
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Urcă alerta un nivel.
+Raises the alert by one level.
 
-* `to_level = 2` — astronautul o trimite ofițerului medical. Apare în `/cmo/queue`.
-* `to_level = 3` — **doar rolul `cmo`**. Backend-ul creează automat un pachet semnat și criptat în coada spre
-  Pământ și pune id-ul lui în `packet_id`. Nu mai trebuie apelat `/link/outbox`.
+* `to_level = 2` — the astronaut sends it to the crew medical officer. It shows up in `/cmo/queue`.
+* `to_level = 3` — **only the `cmo` role**. The backend automatically creates a signed and encrypted packet in
+  the queue to Earth and puts its id in `packet_id`. There is no need to call `/link/outbox`.
 
-Nivelul nu poate coborî (409 `invalid_state`). Alertele critice pot fi escaladate și automat de motorul de triaj.
+The level can never go down (409 `invalid_state`). Critical alerts can also be escalated automatically by the
+triage engine.
 
-**SSE:** `alert.updated`, iar la nivelul 3 și `packet.sent` când se deschide fereastra.
+**SSE:** `alert.updated`, and at level 3 also `packet.sent` when the window opens.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -2822,7 +2868,7 @@ Nivelul nu poate coborî (409 `invalid_state`). Alertele critice pot fi escalada
 <details><summary>Exemplu (autentificat ca <code>medic</code>)</summary>
 
 ```http
-POST /api/v1/alerts/al-1042/escalate
+POST /api/v1/alerts/al-0005/escalate
 ```
 
 Cerere:
@@ -2838,33 +2884,33 @@ Răspuns `200`:
 
 ```json
 {
-  "id": "al-1042",
+  "id": "al-0005",
   "crew_id": "cm-2",
   "topic": "immune",
   "level": 3,
   "status": "alert",
   "state": "escalated",
-  "title": "Puls de noapte +7 bpm, 3 nopți la rând",
-  "created_at": "2027-04-14T06:10:00Z",
-  "explanation": "Pulsul tău de noapte e cu 7 bpm peste normalul tău de trei nopți. Asta apare des cu 2–3 zile înaintea unei infecții.",
+  "title": "Night pulse +7 bpm, 3 nights in a row",
+  "created_at": "2027-04-13T07:00:00Z",
+  "explanation": "Your night pulse has been at least 4 bpm above your personal median (53.9 bpm) for 3 nights in a row. In the NightSignal study this pattern often came before symptoms of an infection. Tell the crew medical officer.",
   "cause": "individual",
-  "cause_explanation": "Doar tu ai această abatere; ceilalți membri ai echipajului sunt în limite.",
+  "cause_explanation": "Only you have this deviation; the rest of the crew is within their usual range.",
   "evidence": [
     {
       "metric_key": "night_pulse_bpm",
-      "label": "Puls de noapte",
-      "value": 61.0,
+      "label": "Night pulse",
+      "value": 60.9,
       "unit": "bpm",
-      "baseline": 54.0,
-      "deviation_text": "+7 bpm peste mediana personală, 3 nopți"
+      "baseline": 53.9,
+      "deviation_text": "+7.0 bpm above your personal median, 3 nights in a row"
     },
     {
       "metric_key": "temperature_c",
-      "label": "Temperatura",
+      "label": "Temperature",
       "value": 37.3,
       "unit": "°C",
       "baseline": 36.9,
-      "deviation_text": "+0,4 °C față de normalul tău"
+      "deviation_text": "+0.4 °C vs your in-flight median"
     },
     "… încă 1 elemente de același fel"
   ],
@@ -2872,8 +2918,8 @@ Răspuns `200`:
     "id": "immune-2-1",
     "topic": "immune",
     "level": 2,
-    "trigger": "Alertă roșie NightSignal: puls mediu de noapte ≥ +4 bpm peste mediana personală două nopți la rând, mai ales dacă temperatura pielii depășește pragul SHADOW derivat sau apar simptome.",
-    "action": "Anunță ofițerul medical de la bord (CMO) cu graficul puls/temperatură vs baseline și jurnalul de simptome. Doar CMO decide evaluarea sau tratamentul simptomatic din farmacia ISS (antihistaminice, antiinflamatoare, antimicrobiene); aplicația nu recomandă medicamente.",
+    "trigger": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear.",
+    "action": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
     "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
     "source": {
@@ -2887,37 +2933,37 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Culcă-te cu o oră mai devreme în următoarele 3 nopți.",
-      "done": true,
-      "done_at": "2027-04-14T21:30:00Z"
+      "text": "Go to bed an hour earlier for the next 3 nights.",
+      "done": false,
+      "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Măsoară temperatura dimineața și seara.",
+      "text": "Take your temperature morning and evening.",
       "done": true,
-      "done_at": "2027-04-15T07:42:00Z"
+      "done_at": "2027-04-15T07:02:37.764087Z"
     },
     "… încă 1 elemente de același fel"
   ],
-  "recheck_at": "2027-04-17T07:00:00Z",
-  "packet_id": "pk-0007",
+  "recheck_at": "2027-04-16T07:00:00Z",
+  "packet_id": "pk-0001",
   "earth_reply": null,
   "history": [
     {
-      "at": "2027-04-14T06:10:00Z",
+      "at": "2027-04-13T07:00:00Z",
       "actor": "SHADOW",
       "role": null,
       "action": "created",
       "note": null
     },
     {
-      "at": "2027-04-14T07:05:00Z",
-      "actor": "Specialist de misiune 2",
-      "role": "astronaut",
-      "action": "acknowledged",
-      "note": null
+      "at": "2027-04-14T07:00:00Z",
+      "actor": "SHADOW",
+      "role": null,
+      "action": "escalated",
+      "note": "Escalated automatically to level 2."
     },
-    "… încă 2 elemente de același fel"
+    "… încă 3 elemente de același fel"
   ]
 }
 ```
@@ -2926,12 +2972,12 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/alerts/{alert_id}/resolve` — Închide alerta
+#### `POST /api/v1/alerts/{alert_id}/resolve` — Close the alert
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Astronautul poate închide alertele de nivel 1; cele de nivel 2 și 3 le închide ofițerul medical.
-`outcome = monitoring` păstrează alerta deschisă și mută `recheck_at` cu încă o zi.
+An astronaut can close level 1 alerts; level 2 and 3 alerts are closed by the crew medical officer.
+`outcome = monitoring` keeps the alert open and moves `recheck_at` by one more day.
 
 **SSE:** `alert.updated`.
 
@@ -2948,7 +2994,7 @@ Astronautul poate închide alertele de nivel 1; cele de nivel 2 și 3 le închid
 <details><summary>Exemplu (autentificat ca <code>specialist2</code>)</summary>
 
 ```http
-POST /api/v1/alerts/al-1039/resolve
+POST /api/v1/alerts/al-0006/resolve
 ```
 
 Cerere:
@@ -2964,37 +3010,45 @@ Răspuns `200`:
 
 ```json
 {
-  "id": "al-1039",
+  "id": "al-0006",
   "crew_id": "cm-2",
   "topic": "behavioral",
   "level": 1,
   "status": "watch",
   "state": "resolved",
-  "title": "Tastezi cu 18% mai lent decât de obicei",
-  "created_at": "2027-04-15T07:20:00Z",
-  "explanation": "Ritmul tău de tastare s-a abătut de la normalul tău, deși la check-in ai spus că te simți bine.",
+  "title": "Typing 18% slower than usual",
+  "created_at": "2027-04-14T07:17:08.050896Z",
+  "explanation": "Your typing rhythm has drifted from your personal baseline (fatigue index 72/100). Typing rhythm can change with fatigue even when you feel rested. Only the timing of key presses is analysed, never what you type.",
   "cause": "individual",
-  "cause_explanation": "Abaterea apare doar la tine.",
+  "cause_explanation": "Only you have this deviation; the rest of the crew is within their usual range.",
   "evidence": [
     {
       "metric_key": "keys_per_min",
-      "label": "Viteză de tastare",
-      "value": 176.0,
-      "unit": "taste/min",
-      "baseline": 214.0,
-      "deviation_text": "−18%"
+      "label": "Typing speed",
+      "value": 172.9,
+      "unit": "keys/min",
+      "baseline": 210.8,
+      "deviation_text": "-18% vs your baseline"
+    },
+    {
+      "metric_key": "hold_ms_mean",
+      "label": "Key hold time",
+      "value": 115.3,
+      "unit": "ms",
+      "baseline": 95.7,
+      "deviation_text": "+21% vs your baseline"
     }
   ],
   "recommendation": {
     "id": "behavioral-1-1",
     "topic": "behavioral",
     "level": 1,
-    "trigger": "PVT-B sau tastarea arată abatere față de baseline-ul personal (ex. 1/RT sub prag), chiar dacă astronautul se simte odihnit",
-    "action": "Nu te baza pe senzația subiectivă: refă PVT-B-ul de 3 minute înaintea oricărei sarcini critice și amân-o, dacă se poate, până la normalizare.",
+    "trigger": "The PVT-B or typing shows a deviation from your personal baseline (e.g. 1/RT below threshold), even if you feel rested",
+    "action": "Don't rely on how you feel: repeat the 3-minute PVT-B before any critical task and, if possible, postpone the task until your results are back to normal.",
     "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
     "source": {
-      "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + Evidence Report NASA 2016 (secțiunea Chronic Sleep Loss)",
+      "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + NASA Evidence Report 2016 (Chronic Sleep Loss section)",
       "url": "https://pubmed.ncbi.nlm.nih.gov/12683469/",
       "verification": "verified",
       "derivation": "published",
@@ -3004,31 +3058,31 @@ Răspuns `200`:
   "plan_steps": [
     {
       "id": "st-1",
-      "text": "Fă testul de reacție de 3 minute.",
+      "text": "Take the 3-minute reaction test.",
       "done": false,
       "done_at": null
     },
     {
       "id": "st-2",
-      "text": "Amână sarcinile critice cu 2 ore, dacă se poate.",
+      "text": "Postpone critical tasks by 2 hours, if possible.",
       "done": false,
       "done_at": null
     }
   ],
-  "recheck_at": "2027-04-16T07:00:00Z",
+  "recheck_at": "2027-04-15T07:17:08.050896Z",
   "packet_id": null,
   "earth_reply": null,
   "history": [
     {
-      "at": "2027-04-15T07:20:00Z",
+      "at": "2027-04-14T07:17:08.050896Z",
       "actor": "SHADOW",
       "role": null,
       "action": "created",
       "note": null
     },
     {
-      "at": "2027-04-15T07:42:00Z",
-      "actor": "Specialist de misiune 2",
+      "at": "2027-04-15T07:02:36.993472Z",
+      "actor": "Mission Specialist 2",
       "role": "astronaut",
       "action": "acknowledged",
       "note": null
@@ -3042,11 +3096,12 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/catalog/recommendations` — Catalogul de recomandări
+#### `GET /api/v1/catalog/recommendations` — Recommendation catalog
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Recomandările scrise de echipă pe baza riscurilor NASA HRP, fiecare cu sursa ei. Medicul AI doar le reformulează.
+Recommendations written by the team based on the NASA HRP risks, each with its source. The AI doctor only
+rephrases them.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -3071,8 +3126,8 @@ Răspuns `200`:
     "id": "immune-1-1",
     "topic": "immune",
     "level": 1,
-    "trigger": "Alertă galbenă: pulsul mediu de noapte e cu +3 bpm peste mediana personală, sau o singură noapte cu ≥ +4 bpm (prag din NightSignal; folosirea lui ca nivel 1 e o alegere SHADOW).",
-    "action": "Completează în aplicație jurnalul scurt de context: simptome (tuse, febră, durere de cap, oboseală), somn scurt, stres, efort intens. Remăsoară noaptea următoare. În studiu, alertele au fost declanșate și de stres sau alte evenimente fără legătură cu o infecție, iar participanții au adnotat alertele prin chestionare.",
+    "trigger": "Yellow alert: your mean night-time heart rate is +3 bpm above your personal median, or a single night is ≥ +4 bpm (a NightSignal threshold; using it as level 1 is a SHADOW choice).",
+    "action": "Fill in the short context journal in the app: symptoms (cough, fever, headache, tiredness), short sleep, stress, hard exercise. Measure again the next night. In the study, alerts were also triggered by stress or other events unrelated to infection, and participants annotated their alerts through questionnaires.",
     "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
     "source": {
@@ -3087,8 +3142,8 @@ Răspuns `200`:
     "id": "immune-1-2",
     "topic": "immune",
     "level": 1,
-    "trigger": "Orice alertă imună activă sau somn sub baseline-ul personal.",
-    "action": "Prioritizează somnul și managementul oboselii conform programului (somnul și ritmul circadian sunt legate direct de funcția imună; pe orbită somnul e redus și ritmurile sunt dezaliniate). Folosește serviciile de suport comportamental/oboseală disponibile.",
+    "trigger": "Any active immune alert, or sleep below your personal baseline.",
+    "action": "Prioritise sleep and fatigue management according to the schedule (sleep and circadian rhythm are directly linked to immune function; in orbit, sleep is shorter and rhythms are misaligned). Use the behavioural and fatigue support services available.",
     "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
     "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
     "source": {
@@ -3107,7 +3162,7 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/catalog/recommendations/{rec_id}` — O recomandare din catalog
+#### `GET /api/v1/catalog/recommendations/{rec_id}` — One catalog recommendation
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
@@ -3132,8 +3187,8 @@ Răspuns `200`:
   "id": "immune-2-1",
   "topic": "immune",
   "level": 2,
-  "trigger": "Alertă roșie NightSignal: puls mediu de noapte ≥ +4 bpm peste mediana personală două nopți la rând, mai ales dacă temperatura pielii depășește pragul SHADOW derivat sau apar simptome.",
-  "action": "Anunță ofițerul medical de la bord (CMO) cu graficul puls/temperatură vs baseline și jurnalul de simptome. Doar CMO decide evaluarea sau tratamentul simptomatic din farmacia ISS (antihistaminice, antiinflamatoare, antimicrobiene); aplicația nu recomandă medicamente.",
+  "trigger": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear.",
+  "action": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
   "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
   "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
   "source": {
@@ -3150,13 +3205,13 @@ Răspuns `200`:
 
 ---
 
-### 8. Legătura cu Pământul
+### 8. Link with Earth
 
-#### `GET /api/v1/link/status` — Starea legăturii
+#### `GET /api/v1/link/status` — Link status
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Întârzierea curentă, dacă fereastra e deschisă și câte pachete așteaptă în fiecare sens.
+The current delay, whether the window is open and how many packets wait in each direction.
 
 **Răspuns 200:** [LinkStatus](#linkstatus)
 
@@ -3176,9 +3231,9 @@ Răspuns `200`:
   "one_way_delay_s": 700.0,
   "one_way_delay_real_s": 11.67,
   "window_open": true,
-  "window_closes_at": "2027-04-15T08:24:00Z",
+  "window_closes_at": null,
   "next_window_at": null,
-  "queued_down": 0,
+  "queued_down": 1,
   "queued_up": 0
 }
 ```
@@ -3187,14 +3242,14 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/link/packets` — Coada de pachete
+#### `GET /api/v1/link/packets` — Packet queue
 
 **Cine poate apela:** ofițer medical (cmo), Pământ (earth)
 
-Plicurile pachetelor, cele mai noi primele — tabelul din ecranul „Controlul misiunii”.
+The packet envelopes, newest first — the table on the "Mission Control" screen.
 
-Câmpul `progress` e calculat la momentul răspunsului. Pentru o bară fluidă, animați local folosind
-`eta_real_s` și reîncărcați lista doar la SSE `packet.sent` / `packet.arrived` / `packet.rejected`.
+The `progress` field is computed at response time. For a smooth bar, animate locally using `eta_real_s` and
+reload the list only on SSE `packet.sent` / `packet.arrived` / `packet.rejected`.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -3217,52 +3272,28 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": "pk-0007",
-    "seq": 7,
+    "id": "pk-0001",
+    "seq": 1,
     "direction": "down",
     "kind": "alert_l3",
-    "status": "in_transit",
-    "title": "Imunitar · puls de noapte +7 bpm, 3 nopți",
-    "sender": "Ofițer medical de bord",
+    "status": "queued",
+    "title": "Sentinel · Night pulse +7 bpm, 3 nights in a row",
+    "sender": "Crew Medical Officer",
     "level": 3,
     "alert_status": "alert",
     "crew_id": "cm-2",
-    "alert_id": "al-1042",
+    "alert_id": "al-0005",
     "in_reply_to": null,
-    "created_at": "2027-04-15T07:30:00Z",
-    "sent_at": "2027-04-15T07:35:00Z",
-    "arrives_at": "2027-04-15T07:46:40Z",
+    "created_at": "2027-04-15T07:02:38.974382Z",
+    "sent_at": null,
+    "arrives_at": null,
     "delivered_at": null,
-    "progress": 0.64,
-    "eta_real_s": 4.2,
+    "progress": 0.0,
+    "eta_real_s": null,
     "signature_valid": null,
     "reject_reason": null,
-    "size_bytes": 1840
-  },
-  {
-    "id": "pk-0006",
-    "seq": 6,
-    "direction": "down",
-    "kind": "weekly_summary",
-    "status": "delivered",
-    "title": "Rezumat săptămânal aprobat de astronaut",
-    "sender": "Specialist de misiune 2",
-    "level": null,
-    "alert_status": null,
-    "crew_id": "cm-2",
-    "alert_id": null,
-    "in_reply_to": null,
-    "created_at": "2027-04-14T09:20:00Z",
-    "sent_at": "2027-04-14T09:29:00Z",
-    "arrives_at": "2027-04-14T09:41:00Z",
-    "delivered_at": "2027-04-14T09:41:00Z",
-    "progress": 1.0,
-    "eta_real_s": 0.0,
-    "signature_valid": true,
-    "reject_reason": null,
-    "size_bytes": 2310
-  },
-  "… încă 1 elemente de același fel"
+    "size_bytes": 4285
+  }
 ]
 ```
 
@@ -3270,12 +3301,13 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/link/packets/{packet_id}` — Un pachet, cu conținutul decriptat
+#### `GET /api/v1/link/packets/{packet_id}` — One packet, with the decrypted content
 
 **Cine poate apela:** ofițer medical (cmo), Pământ (earth)
 
-`payload` apare doar pentru pachetele `delivered`. Rolul `earth` vede conținutul pachetelor `down` ajunse;
-rolul `cmo` vede conținutul pachetelor `up` ajunse și al celor trimise de el. Altfel `payload` e `null`.
+`payload` appears only for `delivered` packets. The `earth` role sees the content of `down` packets that
+arrived; the `cmo` role sees the content of `up` packets that arrived and of the ones they sent. Otherwise
+`payload` is `null`.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -3288,43 +3320,41 @@ rolul `cmo` vede conținutul pachetelor `up` ajunse și al celor trimise de el. 
 <details><summary>Exemplu (autentificat ca <code>earth</code>)</summary>
 
 ```http
-GET /api/v1/link/packets/pk-0006
+GET /api/v1/link/packets/pk-0001
 ```
 
 Răspuns `200`:
 
 ```json
 {
-  "id": "pk-0006",
-  "seq": 6,
+  "id": "pk-0001",
+  "seq": 1,
   "direction": "down",
-  "kind": "weekly_summary",
-  "status": "delivered",
-  "title": "Rezumat săptămânal aprobat de astronaut",
-  "sender": "Specialist de misiune 2",
-  "level": null,
-  "alert_status": null,
+  "kind": "alert_l3",
+  "status": "queued",
+  "title": "Sentinel · Night pulse +7 bpm, 3 nights in a row",
+  "sender": "Crew Medical Officer",
+  "level": 3,
+  "alert_status": "alert",
   "crew_id": "cm-2",
-  "alert_id": null,
+  "alert_id": "al-0005",
   "in_reply_to": null,
-  "created_at": "2027-04-14T09:20:00Z",
-  "sent_at": "2027-04-14T09:29:00Z",
-  "arrives_at": "2027-04-14T09:41:00Z",
-  "delivered_at": "2027-04-14T09:41:00Z",
-  "progress": 1.0,
-  "eta_real_s": 0.0,
-  "signature_valid": true,
+  "created_at": "2027-04-15T07:02:38.974382Z",
+  "sent_at": null,
+  "arrives_at": null,
+  "delivered_at": null,
+  "progress": 0.0,
+  "eta_real_s": null,
+  "signature_valid": null,
   "reject_reason": null,
-  "size_bytes": 2310,
-  "payload": {
-    "summary": "Săptămâna 13: somn mediu 6,1 h, 6 check-in-uri din 7, nicio alertă de nivel 3."
-  },
+  "size_bytes": 4285,
+  "payload": null,
   "crypto": {
     "cipher": "AES-256-GCM",
     "signature_alg": "Ed25519",
     "key_id": "ship-2026-01",
-    "nonce_b64": "q83vEjRWeJCrze8S",
-    "signature_b64": "MEUCIQDc...trunchiat..."
+    "nonce_b64": "Nx1ZvwgtRsxx08hx",
+    "signature_b64": "byGf1m9unhuNaCxQrTHqHPn8jyY867m3KEl3pfUpgZcqO9GXBojEqVpFhmmbd2ZUHxgcDQvR+/WcpQ57JC0OAw=="
   }
 }
 ```
@@ -3333,17 +3363,17 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/link/outbox` — Pune un mesaj în coada spre Pământ
+#### `POST /api/v1/link/outbox` — Put a message in the queue to Earth
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Pentru rezumatul săptămânal aprobat de astronaut (`weekly_summary`). Alertele de nivel 3 intră în coadă automat,
-prin `/alerts/{id}/escalate`; folosiți `alert_l3` aici doar pentru retrimitere.
+For the weekly summary approved by the astronaut (`weekly_summary`). Level 3 alerts enter the queue
+automatically, through `/alerts/{id}/escalate`; use `alert_l3` here only to send one again.
 
-Astronautul poate trimite doar despre propriul `crew_id`. Pachetul pornește `queued` și pleacă la următoarea
-fereastră de comunicare.
+An astronaut can send only about their own `crew_id`. The packet starts `queued` and leaves at the next
+communication window.
 
-**SSE:** `packet.sent` când pleacă, `packet.arrived` când ajunge.
+**SSE:** `packet.sent` when it leaves, `packet.arrived` when it arrives.
 
 **Corpul cererii:** [OutboxCreate](#outboxcreate)
 
@@ -3371,19 +3401,19 @@ Răspuns `201`:
 
 ```json
 {
-  "id": "pk-0008",
-  "seq": 8,
+  "id": "pk-0002",
+  "seq": 2,
   "direction": "down",
   "kind": "weekly_summary",
   "status": "queued",
-  "title": "Rezumat săptămânal aprobat de astronaut",
-  "sender": "Specialist de misiune 2",
+  "title": "Weekly summary · week 14",
+  "sender": "Mission Specialist 2",
   "level": null,
   "alert_status": null,
   "crew_id": "cm-2",
   "alert_id": null,
   "in_reply_to": null,
-  "created_at": "2027-04-15T07:42:00Z",
+  "created_at": "2027-04-15T07:02:43.572505Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -3391,7 +3421,7 @@ Răspuns `201`:
   "eta_real_s": null,
   "signature_valid": null,
   "reject_reason": null,
-  "size_bytes": 2048
+  "size_bytes": 305
 }
 ```
 
@@ -3399,14 +3429,14 @@ Răspuns `201`:
 
 ---
 
-#### `POST /api/v1/earth/replies` — Răspunsul medicului de pe Pământ
+#### `POST /api/v1/earth/replies` — The reply of the flight surgeon on Earth
 
 **Cine poate apela:** Pământ (earth)
 
-Butonul „Pune în coadă, criptat” din Controlul misiunii. Răspunsul pleacă la următoarea fereastră și ajunge la
-bord după `one_way_delay_s`. Când ajunge, apare în `/crew/{id}/messages` și în `earth_reply` al alertei.
+The "Queue, encrypted" button on Mission Control. The reply leaves at the next window and reaches the ship
+after `one_way_delay_s`. When it arrives, it shows up in `/crew/{id}/messages` and in the alert's `earth_reply`.
 
-**SSE:** `packet.sent`, apoi `packet.arrived` (cu `crew_id`) la sosire.
+**SSE:** `packet.sent`, then `packet.arrived` (with `crew_id`) on arrival.
 
 **Corpul cererii:** [EarthReplyCreate](#earthreplycreate)
 
@@ -3424,9 +3454,9 @@ Cerere:
 
 ```json
 {
-  "in_reply_to": "pk-0007",
+  "in_reply_to": "pk-0002",
   "crew_id": "cm-2",
-  "alert_id": "al-1042",
+  "alert_id": "al-0005",
   "body": "De acord cu odihna. Temperatura de două ori pe zi; dacă depășește 38 °C, anunțați-ne."
 }
 ```
@@ -3435,19 +3465,19 @@ Răspuns `201`:
 
 ```json
 {
-  "id": "pk-0009",
-  "seq": 9,
+  "id": "pk-0003",
+  "seq": 1,
   "direction": "up",
   "kind": "earth_reply",
   "status": "queued",
-  "title": "Răspuns: De acord cu odihna. Temperatura de două ori pe zi; dacă depă",
-  "sender": "Medicul de zbor",
+  "title": "Reply: De acord cu odihna. Temperatura de două ori pe zi; dacă depă",
+  "sender": "Flight Surgeon",
   "level": null,
   "alert_status": null,
   "crew_id": "cm-2",
-  "alert_id": "al-1042",
-  "in_reply_to": "pk-0007",
-  "created_at": "2027-04-15T07:42:00Z",
+  "alert_id": "al-0005",
+  "in_reply_to": "pk-0002",
+  "created_at": "2027-04-15T07:02:44.881726Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -3455,7 +3485,7 @@ Răspuns `201`:
   "eta_real_s": null,
   "signature_valid": null,
   "reject_reason": null,
-  "size_bytes": 605
+  "size_bytes": 353
 }
 ```
 
@@ -3463,12 +3493,12 @@ Răspuns `201`:
 
 ---
 
-#### `GET /api/v1/crew/{crew_id}/messages` — Mesaje sosite de pe Pământ
+#### `GET /api/v1/crew/{crew_id}/messages` — Messages arrived from Earth
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Răspunsurile medicului de zbor și avertizările DONKI care AU AJUNS la bord, deja decriptate și verificate.
-Cele încă pe drum nu apar aici.
+The flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
+verified. The ones still on their way do not appear here.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -3487,37 +3517,27 @@ GET /api/v1/crew/cm-2/messages
 Răspuns `200`:
 
 ```json
-[
-  {
-    "packet_id": "pk-0004",
-    "kind": "earth_reply",
-    "sender": "Medicul de zbor",
-    "body": "Am primit rezumatul. Continuați planul de somn; revenim la următoarea fereastră.",
-    "sent_at": "2027-04-13T12:00:00Z",
-    "delivered_at": "2027-04-13T12:12:00Z",
-    "alert_id": null,
-    "donki_event_id": null,
-    "read": true
-  }
-]
+[]
 ```
 
 </details>
 
 ---
 
-### 9. Radiații și furtuna solară
+### 9. Radiation and the solar storm
 
-#### `GET /api/v1/radiation/status` — Starea radiațiilor acum
+#### `GET /api/v1/radiation/status` — Radiation now
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Rata dozei la dozimetrul de la bord, media pe 24 h, dacă e alertă și dacă echipajul e în adăpost.
+The dose rate at the on-board dosimeter, the 24-h mean, whether there is an alert and whether the crew is in
+the shelter.
 
-`lead_minutes` se completează când sosește avertizarea DONKI de pe Pământ: e numărul de minute cu care SHADOW a
-fost mai rapid. Afișați-l mare; e cifra din pitch.
+`lead_minutes` is filled in when the DONKI warning from Earth arrives: the number of minutes SHADOW was faster.
+Show it big; it is the number in the pitch.
 
-Rolul `earth` NU are acces: Pământul nu vede dozimetrul navei în timp real, ci doar ce ajunge prin coadă.
+The `earth` role has NO access: Earth does not see the ship's dosimeter in real time, only what comes through
+the queue.
 
 **Răspuns 200:** [RadiationStatus](#radiationstatus)
 
@@ -3533,10 +3553,10 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:42:00Z",
-  "dose_rate_usv_h": 66.4,
-  "mean_24h_usv_h": 65.8,
-  "ratio": 1.01,
+  "at": "2027-04-15T07:02:45.967030Z",
+  "dose_rate_usv_h": 64.99,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.98,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
@@ -3555,15 +3575,15 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/radiation/series` — Curba dozei (grafic)
+#### `GET /api/v1/radiation/series` — The dose curve (chart)
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Punctele pentru graficul dozei. Reîncărcați la SSE `radiation.reading` (vine cel mult o dată la 2 secunde reale).
+The points of the dose chart. Reload on SSE `radiation.reading` (at most once every 2 real seconds).
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
-| `hours` | query | număr | nu | Câte ore de misiune în urmă. Implicit: `24`. (max 240; > 0) |
+| `hours` | query | număr | nu | How many mission hours back. Implicit: `24`. (max 240; > 0) |
 | `step_min` | query | număr întreg | nu |  Implicit: `10`. (min 1; max 120) |
 
 **Răspuns 200:** [RadiationSeries](#radiationseries)
@@ -3584,18 +3604,18 @@ Răspuns `200`:
   "threshold_ratio": 2.0,
   "points": [
     {
-      "t": "2027-04-15T06:52:00Z",
-      "dose_rate_usv_h": 65.8,
-      "mean_24h_usv_h": 66.0,
+      "t": "2027-04-15T06:11:56.475412Z",
+      "dose_rate_usv_h": 63.36,
+      "mean_24h_usv_h": 66.02,
       "sheltered": false
     },
     {
-      "t": "2027-04-15T07:02:00Z",
-      "dose_rate_usv_h": 66.2,
-      "mean_24h_usv_h": 66.0,
+      "t": "2027-04-15T06:21:56.475412Z",
+      "dose_rate_usv_h": 66.69,
+      "mean_24h_usv_h": 66.03,
       "sheltered": false
     },
-    "… încă 4 elemente de același fel"
+    "… încă 3 elemente de același fel"
   ]
 }
 ```
@@ -3604,11 +3624,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/radiation/events` — Evenimentele DONKI disponibile
+#### `GET /api/v1/radiation/events` — The available DONKI events
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Evenimentele reale NASA DONKI încărcate din fișier (offline). Momentan unul: 11 mai 2024.
+The real NASA DONKI events loaded from the file (offline). For now one: 11 May 2024.
 
 **Răspuns 200:** listă de [SepEvent](#sepevent)
 
@@ -3632,7 +3652,7 @@ Răspuns `200`:
     "flare_class": "X5.8",
     "cme_id": "2024-05-11T01:36:00-CME-001",
     "donki_url": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/30714/-1",
-    "note": "GLE 74, furtuna Gannon (mai 2024)"
+    "note": "GLE 74, Gannon storm (May 2024). The dose curve is synthetic; the event time is real."
   }
 ]
 ```
@@ -3641,12 +3661,12 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/radiation/shelter-ack` — „Sunt în adăpost”
+#### `POST /api/v1/radiation/shelter-ack` — "I am in the shelter"
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Astronautul confirmă că a ajuns în adăpost (sau că a ieșit). Din acest moment simulatorul aplică factorul de
-ecranare, iar ora se salvează pentru calculul `lead_minutes`.
+The astronaut confirms they reached the shelter (or left it). From then on the simulator applies the
+shielding factor, and the time is saved.
 
 **SSE:** `radiation.reading`.
 
@@ -3674,15 +3694,15 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:42:00Z",
-  "dose_rate_usv_h": 66.4,
-  "mean_24h_usv_h": 65.8,
-  "ratio": 1.01,
+  "at": "2027-04-15T07:02:47.759176Z",
+  "dose_rate_usv_h": 20.65,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.31,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
-  "sheltered": false,
-  "sheltered_since": null,
+  "sheltered": true,
+  "sheltered_since": "2027-04-15T07:02:47.579375Z",
   "event": null,
   "event_dose_msv": 0.0,
   "onboard_alert_at": null,
@@ -3696,13 +3716,13 @@ Răspuns `200`:
 
 ---
 
-### 10. Medicul AI
+### 10. AI doctor
 
-#### `GET /api/v1/ai/status` — Starea modelului
+#### `GET /api/v1/ai/status` — Model status
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Dacă modelul local e încărcat. Când `ready` e `false`, cardul AI afișează doar textul din catalog.
+Whether the local model is loaded. When `ready` is `false`, the AI card shows only the catalog text.
 
 **Răspuns 200:** [AiStatus](#aistatus)
 
@@ -3718,9 +3738,9 @@ Răspuns `200`:
 
 ```json
 {
-  "ready": true,
-  "model": "mock",
-  "mode": "mock"
+  "ready": false,
+  "model": null,
+  "mode": "fallback"
 }
 ```
 
@@ -3728,16 +3748,17 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/ai/chat` — Întreabă medicul AI
+#### `POST /api/v1/ai/chat` — Ask the AI doctor
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Răspuns scurt, cu surse NASA (RAG), care reformulează recomandarea din catalog. **AI-ul nu decide triajul.**
+A short answer, with NASA sources (RAG), that rephrases the catalog recommendation. **The AI does not decide
+the triage.**
 
-* Poate dura 5–15 secunde pe laptop: afișați o stare de încărcare.
-* Dacă modelul nu răspunde în 20 de secunde sau e oprit, endpoint-ul NU dă eroare: întoarce textul din catalog,
-  cu `fallback = true`. Aplicația merge și fără AI.
-* Astronautul poate întreba doar despre propriul `crew_id`.
+* It can take 5–15 seconds on a laptop: show a loading state.
+* If the model does not answer within 20 seconds or is off, the endpoint does NOT fail: it returns the catalog
+  text, with `fallback = true`. The app works without AI.
+* An astronaut can ask only about their own `crew_id`.
 
 **Corpul cererii:** [AiChatRequest](#aichatrequest)
 
@@ -3757,7 +3778,7 @@ Cerere:
 {
   "crew_id": "cm-2",
   "message": "De ce mi-a crescut pulsul de noapte?",
-  "alert_id": "al-1042",
+  "alert_id": "al-0005",
   "history": []
 }
 ```
@@ -3766,26 +3787,21 @@ Răspuns `200`:
 
 ```json
 {
-  "answer": "Pulsul tău de noapte e cu 7 bpm peste normalul tău de trei nopți. Corpul face asta des când luptă cu o infecție, înainte să apară simptome. Recomandarea e să anunți ofițerul medical, să-ți protejezi somnul și să măsori temperatura de două ori pe zi.",
+  "answer": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
   "citations": [
     {
-      "title": "Alavi et al. (2022), Nature Medicine",
+      "title": "Alavi A, Bogu GK, Wang M, Rangan ES, Brooks AW, et al., Snyder MP. 2022. Real-time alerting system for COVID-19 and other stress events using wearable data. Nature Medicine 28:175–184.",
       "url": "https://www.nature.com/articles/s41591-021-01593-2",
-      "snippet": "Alerta roșie: puls de repaus nocturn cu cel puțin 4 bpm peste baseline, două nopți consecutive."
-    },
-    {
-      "title": "NASA HRP — Risk of Altered Immune Response",
-      "url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
-      "snippet": "Stresul zborului, somnul perturbat și radiațiile dereglează sistemul imunitar."
+      "snippet": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear."
     }
   ],
   "recommendation_ids": [
     "immune-2-1"
   ],
-  "model": "gemma-3-4b-it-Q4_K_M",
-  "latency_ms": 2140,
-  "fallback": false,
-  "disclaimer": "Prototip de sprijin, nu dispozitiv medical."
+  "model": "catalog",
+  "latency_ms": 44,
+  "fallback": true,
+  "disclaimer": "Decision-support prototype, not a medical device."
 }
 ```
 
@@ -3793,18 +3809,19 @@ Răspuns `200`:
 
 ---
 
-### 11. Securitate și dovezi
+### 11. Security and evidence
 
-#### `GET /api/v1/access-log` — Jurnalul de acces
+#### `GET /api/v1/access-log` — Access log
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Cine a citit ce. Astronautul vede cine i-a accesat datele; ofițerul medical vede tot jurnalul.
-Jurnalul doar se adaugă: fiecare intrare conține hash-ul celei dinainte (`prev_hash`), deci nu poate fi modificat pe ascuns.
+Who read what, newest first. An astronaut sees who accessed their data; the crew medical officer sees the
+whole log. The log is append-only: every entry holds the hash of the previous one (`prev_hash`), so it cannot be
+changed silently.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
-| `crew_id` | query | text \| null | nu | Astronaut: se ignoră, vede mereu doar accesul la datele lui. |
+| `crew_id` | query | text \| null | nu | Astronaut: ignored, they always see only access to their own data. |
 | `limit` | query | număr întreg | nu |  Implicit: `50`. (min 1; max 500) |
 
 **Răspuns 200:** listă de [AccessLogEntry](#accesslogentry)
@@ -3822,29 +3839,30 @@ Răspuns `200`:
 ```json
 [
   {
-    "id": 1,
-    "at": "2027-04-15T06:31:00Z",
-    "actor": "Ofițer medical de bord",
+    "id": 3,
+    "at": "2027-04-15T07:02:39.428762Z",
+    "actor": "Crew Medical Officer",
     "actor_role": "cmo",
-    "action": "read_alert",
-    "resource": "alerts/al-1042",
+    "action": "escalate",
+    "resource": "alerts/al-0005",
     "crew_id": "cm-2",
     "outcome": "allowed",
-    "prev_hash": "0000000000000000",
-    "hash": "9f2c41d07ab3e5c8"
+    "prev_hash": "dcb5e6d64b2cb68b",
+    "hash": "d374bcd57619748f"
   },
   {
     "id": 2,
-    "at": "2027-04-15T06:40:00Z",
-    "actor": "Comandant",
+    "at": "2027-04-15T07:02:07.628122Z",
+    "actor": "Mission Specialist 2",
     "actor_role": "astronaut",
-    "action": "read_dashboard",
-    "resource": "crew/cm-2/dashboard",
+    "action": "logout",
+    "resource": "auth/logout",
     "crew_id": "cm-2",
-    "outcome": "denied",
-    "prev_hash": "9f2c41d07ab3e5c8",
-    "hash": "1b77e0aa52c9d4f3"
-  }
+    "outcome": "allowed",
+    "prev_hash": "47d5431a9e293085",
+    "hash": "dcb5e6d64b2cb68b"
+  },
+  "… încă 1 elemente de același fel"
 ]
 ```
 
@@ -3852,11 +3870,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/security/rejections` — Date și pachete respinse
+#### `GET /api/v1/security/rejections` — Rejected data and packets
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-Valorile imposibile, senzorii „înghețați”, semnăturile invalide și pachetele retrimise.
+Impossible values, "frozen" sensors, invalid signatures and replayed packets, newest first.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
@@ -3875,45 +3893,24 @@ GET /api/v1/security/rejections
 Răspuns `200`:
 
 ```json
-[
-  {
-    "id": "rj-0003",
-    "at": "2027-04-14T03:12:00Z",
-    "kind": "bad_signature",
-    "source": "senzor-07",
-    "crew_id": null,
-    "metric_key": "temperature_c",
-    "value": 41.9,
-    "message": "Temperatură 41,9 °C · semnătură invalidă"
-  },
-  {
-    "id": "rj-0002",
-    "at": "2027-04-12T14:00:00Z",
-    "kind": "frozen_sensor",
-    "source": "wearable-cm-4",
-    "crew_id": "cm-4",
-    "metric_key": "night_pulse_bpm",
-    "value": 57.0,
-    "message": "Aceeași valoare 240 de citiri la rând: senzor înghețat"
-  }
-]
+[]
 ```
 
 </details>
 
 ---
 
-#### `POST /api/v1/ingest/measurements` — Primește o măsurătoare de la un dispozitiv
+#### `POST /api/v1/ingest/measurements` — Receive a measurement from a device
 
 **Cine poate apela:** dispozitiv (semnătură Ed25519, fără JWT)
 
-**Nu e pentru frontend.** Îl apelează simulatorul și dispozitivele. Nu folosește JWT: autentificarea este
-semnătura Ed25519 a dispozitivului, verificată cu cheia publică înregistrată pentru `device_id`.
+**Not for the frontend.** Called by the simulator and the devices. It does not use a JWT: authentication is
+the device's Ed25519 signature, checked with the public key registered for `device_id`.
 
-Verificări, în ordine: semnătura → plauzibilitatea valorii → senzor înghețat (aceeași valoare de prea multe ori).
-O măsurătoare respinsă întoarce tot 200, cu `accepted = false`, și apare în `/security/rejections`.
+Checks, in order: signature → plausibility of the value → frozen sensor (the same value too many times).
+A rejected measurement still returns 200, with `accepted = false`, and shows up in `/security/rejections`.
 
-**SSE:** `measurement.rejected` la respingere.
+**SSE:** `measurement.rejected` on rejection.
 
 **Corpul cererii:** [MeasurementIngest](#measurementingest)
 
@@ -3945,8 +3942,17 @@ Răspuns `200`:
 
 ```json
 {
-  "accepted": true,
-  "rejection": null
+  "accepted": false,
+  "rejection": {
+    "id": "rj-0001",
+    "at": "2027-04-15T07:02:57.296711Z",
+    "kind": "bad_signature",
+    "source": "wearable-cm-2",
+    "crew_id": "cm-2",
+    "metric_key": "night_pulse_bpm",
+    "value": 61.0,
+    "message": "Invalid signature from wearable-cm-2: the measurement was discarded."
+  }
 }
 ```
 
@@ -3954,11 +3960,11 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/evidence/tests` — Rezultatele testelor automate
+#### `GET /api/v1/evidence/tests` — Automated test results
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Ultimul raport pytest pe motorul de protocoale, pentru ecranul Evidence.
+The latest pytest report on the protocol engine, for the Evidence screen (run once at server start).
 
 **Răspuns 200:** [TestReport](#testreport)
 
@@ -3974,26 +3980,12 @@ Răspuns `200`:
 
 ```json
 {
-  "ran_at": "2027-04-15T00:05:00Z",
-  "passed": 3,
+  "ran_at": "2027-04-15T07:02:57.702104Z",
+  "passed": 0,
   "failed": 0,
   "skipped": 0,
-  "duration_s": 1.42,
-  "tests": [
-    {
-      "name": "test_nightsignal_red_after_two_nights",
-      "module": "tests/test_immune.py",
-      "outcome": "passed",
-      "duration_ms": 12.1
-    },
-    {
-      "name": "test_sep_alert_at_2x_mean",
-      "module": "tests/test_radiation.py",
-      "outcome": "passed",
-      "duration_ms": 8.4
-    },
-    "… încă 1 elemente de același fel"
-  ]
+  "duration_s": 0.0,
+  "tests": []
 }
 ```
 
@@ -4001,16 +3993,17 @@ Răspuns `200`:
 
 ---
 
-#### `GET /api/v1/evidence/parameters` — Pragurile și sursele lor
+#### `GET /api/v1/evidence/parameters` — Thresholds and their sources
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Conținutul `parameters.json`: fiecare prag cu valoare, unitate, explicație și sursă, marcat verificat/neverificat și publicat/derivat.
+The content of `parameters.json`: every threshold with value, unit, explanation and source, marked
+verified/unverified and published/derived.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |
 |---|---|---|---|---|
 | `topic` | query | text \| null | nu | comportamental / cardiovascular / imunitar / oase_muschi / radiatii / comunicare |
-| `key_only` | query | true/false | nu | Doar pragurile folosite direct de motorul de triaj. Implicit: `False`. |
+| `key_only` | query | true/false | nu | Only the thresholds used directly by the triage engine. Implicit: `False`. |
 
 **Răspuns 200:** listă de [Parameter](#parameter)
 
@@ -4029,33 +4022,33 @@ Răspuns `200`:
   {
     "id": "acien_sessions_for_detection",
     "topic": "comportamental",
-    "name": "Sesiuni consecutive necesare pentru detecție continuă",
+    "name": "Consecutive sessions needed for continuous detection",
     "value": 4,
-    "unit": "sesiuni de tastare",
-    "explanation": "În modul de detecție continuă (quick change detection), modelul detectează oboseala după 4 sesiuni cu AUC 80% (EER 20%). Sugerează ca alerta să ceară o abatere susținută pe mai multe sesiuni, nu una izolată.",
+    "unit": "typing sessions",
+    "explanation": "In continuous detection mode (quick change detection), the model detects fatigue after 4 sessions with AUC 80% (EER 20%). This suggests an alert should require a sustained deviation over several sessions, not a single one.",
     "is_key_threshold": true,
     "source": {
-      "citation": "Acien A, Morales A, Vera-Rodriguez R, Fierrez J, Mondesire-Crump I, Arroyo-Gallego T. (2022). Detection of Mental Fatigue in the General Population: Feasibility Study of Keystroke Dynamics as a Real-world Biomarker. JMIR Biomedical Engineering 7(2):e41003 (publicat 21.11.2022).",
+      "citation": "Acien A, Morales A, Vera-Rodriguez R, Fierrez J, Mondesire-Crump I, Arroyo-Gallego T. (2022). Detection of Mental Fatigue in the General Population: Feasibility Study of Keystroke Dynamics as a Real-world Biomarker. JMIR Biomedical Engineering 7(2):e41003 (published 21 Nov 2022).",
       "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11041424/",
       "verification": "verified",
       "derivation": "published",
-      "evidence_strength": "slabă"
+      "evidence_strength": "weak"
     }
   },
   {
     "id": "keystroke_baseline_duration",
     "topic": "comportamental",
-    "name": "Durata minimă a baseline-ului de tastare",
+    "name": "Minimum length of the typing baseline",
     "value": 7,
-    "unit": "zile",
-    "explanation": "Nicio sursă citită nu stabilește un număr minim de zile/sesiuni pentru un baseline stabil de tastare. Propunere de lucru: ≥7 zile care acoperă toate momentele zilei (viteza are ritm diurn), cu normalizare pe intervalul orar.",
+    "unit": "days",
+    "explanation": "None of the sources read sets a minimum number of days or sessions for a stable typing baseline. Working proposal: ≥7 days covering every time of day (speed has a daily rhythm), normalised by time slot.",
     "is_key_threshold": true,
     "source": {
       "citation": "Fang Y, Yang P, Frank E, Goldstein C, Wright AGC, Bohnert ASB, et al. (2026). Patterns of smartphone typing performance by time awake: implications for unobtrusive ambulatory mental fatigue assessment. PLOS Digital Health 5(3):e0001281.",
       "url": "https://journals.plos.org/digitalhealth/article?id=10.1371/journal.pdig.0001281",
       "verification": "unverified",
       "derivation": "derived",
-      "evidence_strength": "slabă"
+      "evidence_strength": "weak"
     }
   },
   "… încă 31 elemente de același fel"
@@ -4066,19 +4059,21 @@ Răspuns `200`:
 
 ---
 
-### 12. Demo și simulator
+### 12. Demo and simulator
 
-#### `POST /api/v1/sim/sep/start` — Pornește furtuna solară
+#### `POST /api/v1/sim/sep/start` — Start the solar storm
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Butonul de demo. Simulatorul redă evenimentul real din DONKI:
+The demo button. The simulator replays the real event from DONKI:
 
-1. rata dozei la dozimetru urcă → la 3 citiri peste 2× media, SHADOW dă alerta de nivel 1 (`radiation.alert`);
-2. avertizarea de pe Pământ pleacă în coadă ca pachet `donki_alert`, direcția `up`, și ajunge după întârzierea legăturii;
-3. la sosire se completează `lead_minutes` în `/radiation/status`.
+1. the dose rate at the dosimeter rises → after 3 readings above 2× the mean, SHADOW gives the level 1 alert
+   (`radiation.alert`);
+2. Earth's warning leaves the queue as a `donki_alert` packet, direction `up`, at the time of NASA's alert
+   (20 minutes after the onset), and arrives after the link delay;
+3. on arrival, `lead_minutes` is filled in in `/radiation/status`.
 
-**SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, apoi `packet.arrived`.
+**SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, then `packet.arrived`.
 
 **Corpul cererii:** [SepStart](#sepstart)
 
@@ -4105,27 +4100,27 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:42:00Z",
-  "dose_rate_usv_h": 412.0,
-  "mean_24h_usv_h": 66.0,
-  "ratio": 6.24,
+  "at": "2027-04-15T07:02:58.530806Z",
+  "dose_rate_usv_h": 20.66,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.31,
   "threshold_ratio": 2.0,
-  "alert_active": true,
-  "alert_id": "al-1050",
-  "sheltered": false,
-  "sheltered_since": null,
+  "alert_active": false,
+  "alert_id": null,
+  "sheltered": true,
+  "sheltered_since": "2027-04-15T07:02:47.579375Z",
   "event": {
     "donki_id": "2024-05-11T02:10:00-SEP-001",
     "event_time": "2024-05-11T02:10:00Z",
-    "sim_onset_at": "2027-04-15T07:33:00Z",
+    "sim_onset_at": "2027-04-15T07:02:58.363085Z",
     "instrument": "GOES-P: SEISS >100 MeV",
     "flare_class": "X5.8",
     "cme_id": "2024-05-11T01:36:00-CME-001",
     "donki_url": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/30714/-1",
-    "note": "GLE 74, furtuna Gannon (mai 2024)"
+    "note": "GLE 74, Gannon storm (May 2024). The dose curve is synthetic; the event time is real."
   },
-  "event_dose_msv": 0.05,
-  "onboard_alert_at": "2027-04-15T07:35:00Z",
+  "event_dose_msv": 0.0,
+  "onboard_alert_at": null,
   "earth_warning_arrived_at": null,
   "lead_minutes": null,
   "profile_is_synthetic": true
@@ -4136,11 +4131,11 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/sim/sep/stop` — Oprește furtuna solară
+#### `POST /api/v1/sim/sep/stop` — Stop the solar storm
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Readuce rata dozei la fond. **SSE:** `radiation.cleared`.
+Brings the dose rate back to the background. **SSE:** `radiation.cleared`.
 
 **Răspuns 200:** [RadiationStatus](#radiationstatus)
 
@@ -4156,15 +4151,15 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:42:00Z",
-  "dose_rate_usv_h": 66.4,
-  "mean_24h_usv_h": 65.8,
-  "ratio": 1.01,
+  "at": "2027-04-15T07:02:59.528754Z",
+  "dose_rate_usv_h": 20.65,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.31,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
-  "sheltered": false,
-  "sheltered_since": null,
+  "sheltered": true,
+  "sheltered_since": "2027-04-15T07:02:47.579375Z",
   "event": null,
   "event_dose_msv": 0.0,
   "onboard_alert_at": null,
@@ -4178,14 +4173,14 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/demo/inject-spoof` — Injectează un pachet falsificat
+#### `POST /api/v1/demo/inject-spoof` — Inject a forged packet
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Demo de securitate: pune în coadă un pachet semnat cu o cheie greșită. La sosire e respins și apare cu
-`status = rejected`, `signature_valid = false`, în jurnal și în `/security/rejections`.
+Security demo: puts in the queue a packet signed with a wrong key. On arrival it is rejected and shows up with
+`status = rejected`, `signature_valid = false`, in the log and in `/security/rejections`.
 
-**SSE:** `packet.rejected`.
+**SSE:** `packet.sent`, then `packet.rejected` on arrival.
 
 **Răspuns 200:** [Packet](#packet)
 
@@ -4201,27 +4196,27 @@ Răspuns `200`:
 
 ```json
 {
-  "id": "pk-0005",
-  "seq": 5,
+  "id": "pk-0004",
+  "seq": 3,
   "direction": "down",
-  "kind": "alert_l3",
-  "status": "rejected",
-  "title": "Temperatură 41,9 °C · senzor 07",
-  "sender": "necunoscut",
+  "kind": "weekly_summary",
+  "status": "queued",
+  "title": "Weekly summary · week 14",
+  "sender": "Unknown sender",
   "level": null,
   "alert_status": null,
   "crew_id": null,
   "alert_id": null,
   "in_reply_to": null,
-  "created_at": "2027-04-14T03:12:00Z",
-  "sent_at": "2027-04-14T03:12:00Z",
-  "arrives_at": "2027-04-14T03:24:00Z",
+  "created_at": "2027-04-15T07:03:00.324721Z",
+  "sent_at": null,
+  "arrives_at": null,
   "delivered_at": null,
-  "progress": 1.0,
-  "eta_real_s": 0.0,
-  "signature_valid": false,
-  "reject_reason": "bad_signature",
-  "size_bytes": 612
+  "progress": 0.0,
+  "eta_real_s": null,
+  "signature_valid": null,
+  "reject_reason": null,
+  "size_bytes": 301
 }
 ```
 
@@ -4229,11 +4224,11 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/demo/frozen-sensor` — Simulează un senzor înghețat
+#### `POST /api/v1/demo/frozen-sensor` — Simulate a frozen sensor
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Demo de securitate: simulatorul trimite aceeași valoare de multe ori; stratul de validare o respinge.
+Security demo: a device sends the same value 20 times in a row; the validation layer rejects the last one.
 
 **SSE:** `measurement.rejected`.
 
@@ -4252,13 +4247,13 @@ Răspuns `200`:
 ```json
 {
   "id": "rj-0002",
-  "at": "2027-04-12T14:00:00Z",
+  "at": "2027-04-15T07:03:14.771922Z",
   "kind": "frozen_sensor",
   "source": "wearable-cm-4",
   "crew_id": "cm-4",
-  "metric_key": "night_pulse_bpm",
-  "value": 57.0,
-  "message": "Aceeași valoare 240 de citiri la rând: senzor înghețat"
+  "metric_key": "temperature_c",
+  "value": 36.6,
+  "message": "The same value (36.6) 20 times in a row: frozen sensor."
 }
 ```
 
@@ -4266,17 +4261,17 @@ Răspuns `200`:
 
 ---
 
-#### `POST /api/v1/sim/reset` — Readuce demo-ul la starea inițială
+#### `POST /api/v1/sim/reset` — Bring the demo back to the start
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Șterge tot ce s-a schimbat în timpul demo-ului și reîncarcă scenariul: baza se recreează, istoricul se
-regenerează (același seed, deci aceleași date), ceasul repornește la ziua 96, ora 07:00, iar blocările de
-cont se șterg. Durează câteva secunde. Folosiți-l între repetiții.
+Removes everything changed during the demo and reloads the scenario: the database is recreated, the history is
+regenerated (same seed, so the same data), the clock restarts on day 96 at 07:00, and the account lockouts are
+cleared. It takes a few seconds. Use it between rehearsals.
 
-După reset, frontend-ul trebuie să reîncarce tot (ca după o reconectare). Tokenurile rămân valabile.
+After a reset the frontend must reload everything (as after a reconnect). Tokens stay valid.
 
-**SSE:** `mission.tick` cu ziua 96, apoi `dashboard.changed`.
+**SSE:** `mission.tick` with day 96, then `dashboard.changed`.
 
 **Răspuns 200:** [Ok](#ok)
 
@@ -4300,22 +4295,23 @@ Răspuns `200`:
 
 ---
 
-### 13. Evenimente live (SSE)
+### 13. Live events (SSE)
 
-#### `GET /api/v1/events` — Fluxul de evenimente live
+#### `GET /api/v1/events` — Live event stream
 
 **Cine poate apela:** astronaut, ofițer medical (cmo), Pământ (earth)
 
-Conexiune Server-Sent Events, ținută deschisă cât e aplicația pornită. **Înlocuiește polling-ul.**
+A Server-Sent Events connection, kept open while the app runs. **It replaces polling.**
 
-* Autentificare cu același antet `Authorization`. `EventSource` din browser nu poate trimite antete, deci folosiți
-  `@microsoft/fetch-event-source` (exemplu în README).
-* Fiecare utilizator primește doar evenimentele la care are dreptul: astronautul doar pe ale lui și pe cele
-  generale; `earth` doar `mission.tick`, `environment.changed` și `packet.*`.
-* La 15 secunde fără evenimente vine un comentariu `: ping`, ca să nu se închidă conexiunea.
-* La reconectare, reîncărcați datele ecranului curent; evenimentele pierdute nu se retrimit.
+* Authentication with the same `Authorization` header. The browser's `EventSource` cannot send headers, so use
+  `@microsoft/fetch-event-source` (example in the README).
+* Every user gets only the events they are allowed to see: an astronaut only their own and the general ones;
+  `earth` only `mission.tick`, `environment.changed` and `packet.*`.
+* `mission.tick` comes every real second; after 15 seconds without events a `: ping` comment keeps the
+  connection open.
+* On reconnect, reload the data of the current screen; missed events are not sent again.
 
-Lista tipurilor și forma câmpului `data` pentru fiecare: README, secțiunea „Evenimente live”.
+The list of types and the shape of `data` for each: README, section "Live events".
 
 **Răspuns 200:** flux `text/event-stream`
 
@@ -4525,8 +4521,8 @@ Un cont afișat pe ecranul de autentificare (fără nicio dată medicală).
 
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
-| `username` | text | da |  Ex.: `"specialist2"` |
-| `password` | text | da | Parola PERSONALĂ a contului. Fiecare cont are altă parolă. (lungime min 1) Ex.: `"<parola din seed>"` |
+| `username` | text | da |  (lungime min 1; lungime max 40) Ex.: `"specialist2"` |
+| `password` | text | da | Parola PERSONALĂ a contului. Fiecare cont are altă parolă. (lungime min 1; lungime max 256) Ex.: `"<parola din seed>"` |
 
 #### LoginResponse
 
@@ -4970,8 +4966,8 @@ Pentru barele live de tastare și comparația „ora 2 vs ora 18” din demo.
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
 | `started_at` | dată-oră (ISO 8601) | da |  |
-| `duration_s` | număr întreg | nu | PVT-B durează 3 minute. |
-| `trials` | listă de [PvtTrial](#pvttrial) | da |  (min elemente 1) |
+| `duration_s` | număr întreg | nu | PVT-B durează 3 minute. (min 1.0; max 3600.0) |
+| `trials` | listă de [PvtTrial](#pvttrial) | da |  (min elemente 1; max elemente 1000) |
 
 #### PvtResult
 
@@ -4993,9 +4989,9 @@ Pentru barele live de tastare și comparația „ora 2 vs ora 18” din demo.
 
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
-| `exercise` | text | da |  Ex.: `"genuflexiuni ARED"` |
-| `reps` | număr întreg | da |  (min 1.0) Ex.: `10` |
-| `load_kg` | număr | da |  (min 0.0) Ex.: `85` |
+| `exercise` | text | da |  (lungime max 80) Ex.: `"genuflexiuni ARED"` |
+| `reps` | număr întreg | da |  (min 1.0; max 1000.0) Ex.: `10` |
+| `load_kg` | număr | da |  (min 0.0; max 2000.0) Ex.: `85` |
 
 #### ExerciseSessionCreate
 
@@ -5003,8 +4999,8 @@ Pentru barele live de tastare și comparația „ora 2 vs ora 18” din demo.
 |---|---|---|---|
 | `kind` | `"resistance"` \| `"aerobic"` | da |  |
 | `started_at` | dată-oră (ISO 8601) | da |  |
-| `duration_min` | număr | da |  (> 0.0) Ex.: `40` |
-| `sets` | listă de [ExerciseSet](#exerciseset) | nu | Gol pentru sesiuni aerobe. |
+| `duration_min` | număr | da |  (max 1440.0; > 0.0) Ex.: `40` |
+| `sets` | listă de [ExerciseSet](#exerciseset) | nu | Gol pentru sesiuni aerobe. (max elemente 200) |
 
 #### ExerciseSession
 
@@ -5012,8 +5008,8 @@ Pentru barele live de tastare și comparația „ora 2 vs ora 18” din demo.
 |---|---|---|---|
 | `kind` | `"resistance"` \| `"aerobic"` | da |  |
 | `started_at` | dată-oră (ISO 8601) | da |  |
-| `duration_min` | număr | da |  (> 0.0) Ex.: `40` |
-| `sets` | listă de [ExerciseSet](#exerciseset) | nu | Gol pentru sesiuni aerobe. |
+| `duration_min` | număr | da |  (max 1440.0; > 0.0) Ex.: `40` |
+| `sets` | listă de [ExerciseSet](#exerciseset) | nu | Gol pentru sesiuni aerobe. (max elemente 200) |
 | `id` | text | da |  Ex.: `"ex-0211"` |
 | `crew_id` | text | da |  |
 | `mission_day` | număr întreg | da |  |
@@ -5292,15 +5288,15 @@ Starea radiațiilor acum (pasul 4). Prototipul afișează totul în Sv, simplifi
 
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
-| `event_id` | text | nu |  |
-| `starts_in_min` | număr | nu | Peste câte minute de MISIUNE începe furtuna. (min 0.0) |
+| `event_id` | text | nu |  (lungime max 80) |
+| `starts_in_min` | număr | nu | Peste câte minute de MISIUNE începe furtuna. (min 0.0; max 100000.0) |
 
 #### ChatMessage
 
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
 | `role` | `"user"` \| `"assistant"` | da |  |
-| `content` | text | da |  |
+| `content` | text | da |  (lungime max 2000) |
 
 #### AiChatRequest
 
@@ -5309,7 +5305,7 @@ Starea radiațiilor acum (pasul 4). Prototipul afișează totul în Sv, simplifi
 | `crew_id` | text | da |  Ex.: `"cm-2"` |
 | `message` | text | da |  (lungime min 1; lungime max 1000) Ex.: `"De ce mi-a crescut pulsul de noapte?"` |
 | `alert_id` | text \| null | nu | Dacă întrebarea e despre o alertă anume. Ex.: `"al-1042"` |
-| `history` | listă de [ChatMessage](#chatmessage) | nu | Ultimele max. 6 mesaje. |
+| `history` | listă de [ChatMessage](#chatmessage) | nu | Ultimele max. 6 mesaje sunt folosite. (max elemente 20) |
 
 #### Citation
 
@@ -5377,13 +5373,13 @@ O măsurătoare trimisă de un dispozitiv (sau de simulator), semnată Ed25519.
 
 | Câmp | Tip | Obligatoriu | Descriere |
 |---|---|---|---|
-| `device_id` | text | da |  Ex.: `"wearable-cm-2"` |
-| `crew_id` | text | da |  Ex.: `"cm-2"` |
-| `metric_key` | text | da |  Ex.: `"night_pulse_bpm"` |
+| `device_id` | text | da |  (lungime min 1; lungime max 40) Ex.: `"wearable-cm-2"` |
+| `crew_id` | text | da |  (lungime min 1; lungime max 16) Ex.: `"cm-2"` |
+| `metric_key` | text | da |  (lungime min 1; lungime max 40) Ex.: `"night_pulse_bpm"` |
 | `value` | număr | da |  Ex.: `61` |
-| `unit` | text | da |  Ex.: `"bpm"` |
+| `unit` | text | da |  (lungime max 16) Ex.: `"bpm"` |
 | `measured_at` | dată-oră (ISO 8601) | da |  |
-| `signature_b64` | text | da | Ed25519 peste JSON-ul canonic al celorlalte câmpuri (chei sortate, fără spații). |
+| `signature_b64` | text | da | Ed25519 peste JSON-ul canonic al celorlalte câmpuri (chei sortate, fără spații). (lungime max 200) |
 
 #### IngestResult
 

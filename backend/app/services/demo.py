@@ -6,15 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..clock import clock
 from ..datafiles import DataBundle
+from ..db import session as db
 from ..db.seed import write_days
 from ..link import queue
-from ..schemas import MeasurementIngest, Packet, Rejection
+from ..schemas import MeasurementIngest, Packet, Rejection, User
 from ..security import lockout, sealing, validation
 from ..security.keys import Keys
 from ..simulator.devices import signed_measurement
+from . import access, pipeline, security_log
 from . import exercise as exercise_service
 from . import mission as mission_service
-from . import pipeline, security_log
 from .events import Event
 from .link import to_packet
 
@@ -35,6 +36,13 @@ async def reset(app: FastAPI) -> tuple[float, list[Event]]:
         Event("mission.tick", mission_service.tick_data()),
         Event("dashboard.changed", {"reason": "reset"}),
     ]
+
+
+async def log_reset(user: User) -> None:
+    """The access log survives a reset; the reset itself is written to it, with who asked for it."""
+    async with db.SessionLocal() as s:
+        await access.record(s, user, action="reset", resource="sim/reset", crew_id=None, outcome="allowed")
+        await s.commit()
 
 
 async def jump_to_day(session: AsyncSession, data: DataBundle, day: int) -> None:
@@ -74,8 +82,10 @@ async def frozen_sensor(session: AsyncSession, data: DataBundle, keys: Keys) -> 
     events: list[Event] = []
     for i in range(validation.FROZEN_REPEATS):
         at = now - timedelta(minutes=validation.FROZEN_REPEATS - i)
-        body = MeasurementIngest(**signed_measurement(device_id, crew_id, metric, value, unit, at.isoformat(), b""))
-        result, step_events = await security_log.ingest(session, data, keys, body)
+        signed = signed_measurement(
+            device_id, crew_id, metric, value, unit, at.isoformat(), keys.device_private[device_id]
+        )
+        result, step_events = await security_log.ingest(session, data, keys, MeasurementIngest(**signed), signed)
         events += step_events
         if result.rejection is not None:
             return result.rejection, events

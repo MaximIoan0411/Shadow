@@ -39,6 +39,7 @@ from .routers import (
     security,
 )
 from .security import keys as security_keys
+from .security import sealing
 from .services import access, pipeline, security_log
 from .services import alerts as alerts_service
 from .services import exercise as exercise_service
@@ -101,9 +102,14 @@ async def bootstrap(app: FastAPI) -> None:
         await s.commit()
 
 
+# the audit trail and the signed-out tokens survive POST /sim/reset: a demo button must not erase them
+KEPT_ON_RESET = ("access_log", "revoked_tokens")
+
+
 async def wipe(app: FastAPI) -> None:
+    tables = [t for t in Base.metadata.sorted_tables if t.name not in KEPT_ON_RESET]
     async with db.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(lambda sync_conn: Base.metadata.drop_all(sync_conn, tables=tables))
 
 
 def start_tasks(app: FastAPI) -> None:
@@ -136,8 +142,9 @@ async def lifespan(app: FastAPI):
     engine = db.init_engine(settings.database_url)
     try:
         app.state.data = load_all(resolve_data_dir(settings.data_dir))
-        app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
+        app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64, keys_dir=settings.keys_dir)
         link_queue.configure(app.state.keys)
+        sealing.configure(app.state.keys)
         app.state.bootstrap, app.state.wipe = bootstrap, wipe
         app.state.start_tasks, app.state.stop_tasks = start_tasks, stop_tasks
         await bootstrap(app)
@@ -207,7 +214,9 @@ async def http_error(_: Request, e: StarletteHTTPException):
     return _err(e.status_code, code, str(e.detail))
 
 
-async def unexpected(_: Request, e: Exception):
+async def unexpected(request: Request, e: Exception):
+    # the client gets no details; the server log gets all of them
+    log.error("unhandled error on %s %s", request.method, request.url.path, exc_info=e)
     return _err(500, "internal_error", "Unexpected server error.")
 
 

@@ -83,7 +83,7 @@ export function MissionTimeline({ days, totalDays, currentDay, selectedDay, onSe
         aria-valuemin={1}
         aria-valuemax={currentDay}
         aria-valuenow={shown}
-        aria-valuetext={`Day ${shown} din ${totalDays}`}
+        aria-valuetext={`Day ${shown} of ${totalDays}`}
         onKeyDown={onKeyDown}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);

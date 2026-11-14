@@ -28,6 +28,9 @@ GENERAL_ANSWER = (
     "recommendation from the NASA-based catalog."
 )
 STATUS_TIMEOUT_S = 3.0
+CATALOG_MODEL = "catalog"
+"""The model name when the text shown is the catalog's: our own fallback, or the AI service after its guard
+rejected the model's answer (a medicine, a dose, a diagnosis)."""
 
 # httpx transport used for the AI service; tests replace it with httpx.MockTransport
 transport: httpx.AsyncBaseTransport | None = None
@@ -72,7 +75,7 @@ def _fallback(entries: list, started: float) -> AiChatResponse:
             answer=GENERAL_ANSWER,
             citations=[],
             recommendation_ids=[],
-            model="catalog",
+            model=CATALOG_MODEL,
             latency_ms=latency,
             fallback=True,
             disclaimer=DISCLAIMER,
@@ -82,7 +85,7 @@ def _fallback(entries: list, started: float) -> AiChatResponse:
         answer=entry.action,
         citations=[Citation(title=entry.source.citation, url=entry.source.url, snippet=entry.trigger)],
         recommendation_ids=[entry.id],
-        model="catalog",
+        model=CATALOG_MODEL,
         latency_ms=latency,
         fallback=True,
         disclaimer=DISCLAIMER,
@@ -118,7 +121,7 @@ async def chat(
         recommendation_ids=answer.recommendation_ids,
         model=answer.model,
         latency_ms=int((time.perf_counter() - started) * 1000),
-        fallback=False,
+        fallback=answer.model == CATALOG_MODEL,
         disclaimer=DISCLAIMER,
     )
 

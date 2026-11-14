@@ -1,6 +1,6 @@
 # SHADOW — contractul backend ↔ securitate
 
-**20 funcții** în `backend/app/security/` · **13 încă provizorii**
+**21 funcții** în `backend/app/security/` · **0 încă provizorii**
 
 Codul de securitate rulează în același proces cu backend-ul. Contractul dintre cele două echipe sunt **numele,
 parametrii, tipurile întoarse și excepțiile** funcțiilor de mai jos. Backend-ul le apelează; echipa de securitate
@@ -18,12 +18,11 @@ le scrie.
 
 ## 1. Cum lucrăm
 
-- Toate funcțiile **există deja**, cu semnăturile finale. Multe au corp **provizoriu**: suficient ca backend-ul să
-  lucreze, fără criptografie reală. Fiecare modul le listează în constanta `PROVIZORIU`, iar referința de mai jos
-  le marchează. Când termină o funcție, echipa de securitate îi scoate numele din listă.
-- Backend-ul le apelează de la început. Echipa de securitate înlocuiește corpul cu varianta reală (argon2id, PyJWT,
-  Ed25519 și AES-GCM din `cryptography`), **fără să schimbe semnăturile**, deci fără să atingă codul backend-ului.
-- **Până la ora 12** nu mai rămâne niciun `# PROVIZORIU`. Ce rămâne provizoriu **nu se prezintă juriului ca real**.
+- Toate funcțiile au corpul **real**: argon2id (`argon2-cffi`), HS256 (`PyJWT`), Ed25519 și AES-256-GCM
+  (`cryptography`). Semnăturile lor au rămas cele stabilite de la început, deci codul backend-ului nu s-a schimbat.
+- Dacă o funcție redevine provizorie, modulul o trece în constanta `PROVIZORIU`, iar referința de mai jos o
+  marchează. Ce e provizoriu **nu se prezintă juriului ca real**.
+- La pornire, backend-ul încarcă cheile (`keys.load_keys`) și le dă sigilării (`sealing.configure`).
 - Modelul de amenințări și arhitectura sunt în `security/threat-model.md` și `security/architecture.md`.
 
 ## 2. Regulile pentru backend
@@ -51,6 +50,10 @@ le scrie.
    `tokens.issue` → `access_log.write`.
 7. **Ordinea la fiecare cerere autentificată:** `tokens.decode` → `tokens.is_revoked` → încărcarea contului.
    `role` și `crew_id` se citesc **doar din token**.
+8. **Măsurătorile de la dispozitive** (`POST /ingest/measurements`): semnătura se verifică peste JSON-ul exact
+   cum a sosit, nu peste modelul validat; un dispozitiv poate trimite doar pentru membrul lui de echipaj
+   (`keys.DEVICE_CREW`); aceeași măsurătoare (dispozitiv + metrică + oră) primită a doua oară e respinsă ca `replay`.
+9. **Jurnalul de acces și tokenurile revocate nu se șterg la `POST /sim/reset`**; resetarea se scrie în jurnal.
 
 ## 3. Cine apelează ce
 
@@ -108,8 +111,10 @@ ATENȚIE, backend: ambele funcții sunt LENTE intenționat. Din cod asincron se 
 
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
-| `hash(password: str) -> str` | sync | **da** | Întoarce hash-ul parolei, cu sare aleatoare inclusă, gata de salvat în `users.password_hash`. |
-| `verify(password: str, stored: str) -> bool` | sync | **da** | True dacă parola corespunde hash-ului. Durează la fel indiferent unde diferă (comparare în timp constant). |
+| `hash(password: str) -> str` | sync | nu | Întoarce hash-ul parolei, cu sare aleatoare inclusă, gata de salvat în `users.password_hash`. |
+| `verify(password: str, stored: str) -> bool` | sync | nu | True dacă parola corespunde hash-ului. Durează la fel indiferent unde diferă (comparare în timp constant). |
+
+Constante: `MAX_PASSWORD_CHARS = 256`
 
 ### `security/tokens.py`
 
@@ -118,12 +123,12 @@ Tokenurile de acces (JWT, HS256). Fiecare token e legat de un singur cont și un
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
 | clasa `Claims` | — | — | Claims(sub: str, role: str, crew_id: str \| None, jti: str, exp: int) Câmpuri: `sub`, `role`, `crew_id`, `jti`, `exp` |
-| `issue(*, user_id: str, role: str, crew_id: str \| None, secret: str, ttl_s: int = 43200) -> tuple[str, app.security.tokens.Claims]` | sync | **da** | Emite un token nou. Întoarce tokenul (text) și conținutul lui (pentru jurnal și pentru `expires_in`). |
-| `decode(token: str, *, secret: str) -> app.security.tokens.Claims` | sync | **da** | Verifică semnătura, algoritmul (doar HS256) și expirarea. Aruncă InvalidToken. NU verifică revocarea: aceea cere baza de date, vezi `is_revoked`. |
-| `revoke(session: Any, jti: str, expires_at: datetime.datetime) -> None` | **async** | **da** | Trece tokenul pe lista de revocări până la expirare (la `logout`). Se apelează în tranzacția cererii. |
-| `is_revoked(session: Any, jti: str) -> bool` | **async** | **da** | True dacă tokenul a fost revocat. Backend-ul o apelează după `decode`, la fiecare cerere. |
+| `issue(*, user_id: str, role: str, crew_id: str \| None, secret: str, ttl_s: int = 43200) -> tuple[str, app.security.tokens.Claims]` | sync | nu | Emite un token nou. Întoarce tokenul (text) și conținutul lui (pentru jurnal și pentru `expires_in`). |
+| `decode(token: str, *, secret: str) -> app.security.tokens.Claims` | sync | nu | Verifică semnătura, algoritmul (doar HS256) și expirarea. Aruncă InvalidToken. NU verifică revocarea: aceea cere baza de date, vezi `is_revoked`. |
+| `revoke(session: Any, jti: str, expires_at: datetime.datetime) -> None` | **async** | nu | Trece tokenul pe lista de revocări până la expirare (la `logout`). Se apelează în tranzacția cererii. |
+| `is_revoked(session: Any, jti: str) -> bool` | **async** | nu | True dacă tokenul a fost revocat. Backend-ul o apelează după `decode`, la fiecare cerere. |
 
-Constante: `TTL_S = 43200`
+Constante: `TTL_S = 43200`, `ALGORITHM = 'HS256'`, `REQUIRED_CLAIMS = ('exp', 'sub', 'role', 'jti')`
 
 ### `security/lockout.py`
 
@@ -139,7 +144,7 @@ repornire, ceea ce e acceptabil pentru prototip). Timpul e cel REAL, nu cel al m
 | `clear(username: str) -> None` | sync | nu | Autentificare reușită: șterge încercările greșite ale contului. |
 | `reset_all() -> None` | sync | nu | Pentru `POST /sim/reset`: șterge toate blocările. |
 
-Constante: `MAX_ATTEMPTS = 5`, `WINDOW_S = 300`, `LOCK_S = 60`
+Constante: `MAX_ATTEMPTS = 5`, `WINDOW_S = 300`, `LOCK_S = 60`, `MAX_TRACKED = 10000`
 
 ### `security/keys.py`
 
@@ -152,10 +157,18 @@ Cheile. Se generează cu security/keys/generate_keys.py și NU intră în git.
 | a legăturii           | AES-256 (32 B)   | criptează pachetele                 |
 | a tokenurilor         | secret HS256     | semnează JWT-urile (din JWT_SECRET) |
 
+Fișierele stau în `<keys_dir>/keys_files/` (`private/` și `public/`), sau în folderul din variabila de mediu
+`SHADOW_KEYS_DIR` (folosită de teste, ca să nu atingă cheile reale). La pornire, cheile care lipsesc sunt create
+cu `<keys_dir>/generate_keys.py`; o cheie existentă nu e niciodată înlocuită. Dacă o cheie nu poate fi nici citită,
+nici creată, pornirea se oprește cu un mesaj clar.
+
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
-| clasa `Keys` | — | — | Keys(ship_key_id: str, earth_key_id: str, ship_private: bytes, earth_private: bytes, link_aes_key: bytes, device_public: dict[str, bytes] = <factory>) Câmpuri: `ship_key_id`, `earth_key_id`, `ship_private`, `earth_private`, `link_aes_key`, `device_public` |
-| `load_keys(*, link_aes_key_b64: str = '', keys_dir: str = '../security/keys') -> app.security.keys.Keys` | sync | **da** | Încarcă toate cheile la pornire (din lifespan). Rezultatul se ține în `app.state.keys`. |
+| clasa `KeysError` | — | — | O cheie lipsește sau e stricată. Pornirea se oprește. |
+| clasa `Keys` | — | — | Keys(ship_key_id: str, earth_key_id: str, ship_private: bytes, earth_private: bytes, link_aes_key: bytes, device_public: dict[str, bytes] = <factory>, device_private: dict[str, bytes] = <factory>, device_crew: dict[str, str] = <factory>) Câmpuri: `ship_key_id`, `earth_key_id`, `ship_private`, `earth_private`, `link_aes_key`, `device_public`, `device_private`, `device_crew` |
+| `load_keys(*, link_aes_key_b64: str = '', keys_dir: str = '../security/keys') -> app.security.keys.Keys` | sync | nu | Încarcă toate cheile la pornire (din lifespan). Rezultatul se ține în `app.state.keys`. |
+
+Constante: `KEYS_DIR_ENV = 'SHADOW_KEYS_DIR'`, `GENERATOR = 'generate_keys.py'`, `SHIP_KEY_ID = 'ship-2026-01'`, `EARTH_KEY_ID = 'earth-2026-01'`, `LINK_KEY_FILE = 'earthlink.key'`, `AES_KEY_BYTES = 32`
 
 ### `security/signing.py`
 
@@ -164,11 +177,14 @@ Semnăturile Ed25519 ale măsurătorilor venite de la dispozitive (POST /ingest/
 CE SE SEMNEAZĂ (fixat în contract, folosit identic de simulator, de backend și de scripturile de atac):
 JSON-ul canonic al tuturor câmpurilor măsurătorii, în afară de `signature_b64`, produs de `canonical()`.
 
+Backend-ul verifică semnătura peste obiectul JSON EXACT cum a sosit, nu peste modelul validat: după validare `61`
+devine `61.0`, iar ora își schimbă scrierea, deci forma canonică n-ar mai fi cea semnată de dispozitiv.
+
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
 | `canonical(obj: dict[str, typing.Any]) -> bytes` | sync | nu | JSON canonic: chei sortate, fără spații, UTF-8, fără câmpul `signature_b64`. NU e provizoriu. |
-| `sign(obj: dict[str, typing.Any], private_key: bytes) -> str` | sync | **da** | Semnează măsurătoarea; întoarce semnătura în Base64. Folosită de simulatorul de dispozitive. |
-| `verify(obj: dict[str, typing.Any], signature_b64: str, public_key: bytes \| None) -> bool` | sync | **da** | True dacă semnătura e validă pentru `obj` cu cheia publică a dispozitivului. Dispozitiv necunoscut (`public_key is None`) → False. Nu aruncă excepții: orice problemă înseamnă False. |
+| `sign(obj: dict[str, typing.Any], private_key: bytes) -> str` | sync | nu | Semnează măsurătoarea; întoarce semnătura în Base64. Folosită de simulatorul de dispozitive. |
+| `verify(obj: dict[str, typing.Any], signature_b64: str, public_key: bytes \| None) -> bool` | sync | nu | True dacă semnătura e validă pentru `obj` cu cheia publică a dispozitivului. Dispozitiv necunoscut (`public_key is None`) → False. Nu aruncă excepții: orice problemă înseamnă False. |
 
 ### `security/sealing.py`
 
@@ -178,14 +194,22 @@ Sigilarea pachetelor dintre navă și Pământ: semnătură Ed25519 + criptare A
 asociate (AAD): dacă cineva îl modifică, deschiderea eșuează. `payload` = conținutul (secțiunea 7.6 din
 contract/api/README.md descrie ce conține, după `kind`).
 
+Cum e făcut un pachet sigilat (JSON, cu câmpurile în Base64):
+    ciphertext = AES-256-GCM(cheia legăturii, nonce nou de 12 octeți, payload canonic, AAD = antetul canonic)
+    signature  = Ed25519(cheia expeditorului, "shadow-packet-v1" + antet canonic + nonce + ciphertext)
+Semnătura se verifică ÎNAINTE de decriptare, cu cheia publică a celui care are voie să trimită în acea direcție
+(`down` = nava, `up` = Pământul). Cine are doar cheia legăturii nu poate fabrica un pachet: îi lipsește cheia
+de semnare. Cine schimbă antetul, nonce-ul sau conținutul strică semnătura.
+
 Retrimiterea aceluiași pachet (replay) NU se verifică aici, ci de backend: (direction, seq) e unic în tabel.
 
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
-| `seal(payload: dict[str, typing.Any], header: dict[str, typing.Any], *, sender: str = 'ship') -> bytes` | sync | **da** | Semnează (cheia lui `sender`: "ship" sau "earth") și criptează. Întoarce octeții de salvat în `packets.sealed`. |
-| `open(blob: bytes, header: dict[str, typing.Any]) -> dict[str, typing.Any]` | sync | **da** | Decriptează și verifică semnătura expeditorului. Întoarce `payload`. Aruncă SealError("bad_signature") la orice problemă: cheie greșită, antet modificat, conținut modificat. |
+| `configure(keys: app.security.keys.Keys) -> None` | sync | nu | Apelată o dată, la pornire (din lifespan), cu cheile încărcate de `keys.load_keys`. |
+| `seal(payload: dict[str, typing.Any], header: dict[str, typing.Any], *, sender: str = 'ship') -> bytes` | sync | nu | Semnează (cheia lui `sender`: "ship" sau "earth") și criptează. Întoarce octeții de salvat în `packets.sealed`. |
+| `open(blob: bytes, header: dict[str, typing.Any]) -> dict[str, typing.Any]` | sync | nu | Decriptează și verifică semnătura expeditorului. Întoarce `payload`. Aruncă SealError("bad_signature") la orice problemă: cheie greșită, antet modificat, conținut modificat. |
 
-Constante: `HEADER_FIELDS = ('id', 'seq', 'direction', 'kind', 'key_id', 'created_at')`
+Constante: `HEADER_FIELDS = ('id', 'seq', 'direction', 'kind', 'key_id', 'created_at')`, `DOMAIN = b'shadow-packet-v1'`, `NONCE_BYTES = 12`, `SENDER_OF_DIRECTION = {'down': 'ship', 'up': 'earth'}`, `ATTACKER = 'attacker'`
 
 ### `security/validation.py`
 
@@ -211,12 +235,15 @@ afișate. Prima intrare are prev_hash = "0" * 16.
 Acțiuni: login, login_failed, logout, read_dashboard, read_pillar, read_alert, escalate, read_packet,
 access_denied, reset.
 
+Jurnalul stă în tabelul `access_log` și NU se șterge la `POST /sim/reset`. Lanțul arată o intrare modificată sau
+ștearsă din mijloc; ștergerea ultimelor intrări se vede doar dacă ultimul hash e păstrat și în altă parte.
+
 | Nume și semnătură | Tip | Provizoriu | Ce face |
 |---|---|---|---|
 | clasa `Entry` | — | — | Entry(id: int, at: datetime.datetime, actor: str, actor_role: str, action: str, resource: str, crew_id: str \| None, outcome: Literal['allowed', 'denied'], prev_hash: str, hash: str) Câmpuri: `id`, `at`, `actor`, `actor_role`, `action`, `resource`, `crew_id`, `outcome`, `prev_hash`, `hash` |
 | `entry_hash(prev_hash: str, fields: dict[str, typing.Any]) -> str` | sync | nu | NU e provizoriu: formula lanțului, folosită și de `verify_chain`. |
-| `write(session: Any, *, at: datetime.datetime, actor: str, actor_role: str, action: str, resource: str, crew_id: str \| None, outcome: Literal['allowed', 'denied']) -> app.security.access_log.Entry` | **async** | **da** | Adaugă o intrare. Se apelează în tranzacția cererii; nu face commit. |
-| `verify_chain(session: Any) -> bool` | **async** | **da** | True dacă niciun rând nu a fost modificat sau șters (lanțul de hash-uri e întreg). |
+| `write(session: Any, *, at: datetime.datetime, actor: str, actor_role: str, action: str, resource: str, crew_id: str \| None, outcome: Literal['allowed', 'denied']) -> app.security.access_log.Entry` | **async** | nu | Adaugă o intrare. Se apelează în tranzacția cererii; nu face commit. |
+| `verify_chain(session: Any) -> bool` | **async** | nu | True dacă niciun rând nu a fost modificat sau șters (lanțul de hash-uri e întreg). |
 
-Constante: `GENESIS = '0000000000000000'`
+Constante: `GENESIS = '0000000000000000'`, `FIELDS = ('id', 'at', 'actor', 'actor_role', 'action', 'resource', 'crew_id', 'outcome')`
 

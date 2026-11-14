@@ -7,7 +7,7 @@
 | File                         | Type     | Used for                                |
 | auth.pem                     | Ed25519  | signs the login tokens                  |
 | ship.pem, earth.pem          | Ed25519  | sign the ship <-> Earth packets         |
-| sensor-*.pem                 | Ed25519  | sign the measurements                   |
+| sensor-*.pem, wearable-*.pem | Ed25519  | sign the measurements, one per device   |
 | storage.key                  | AES-256  | encrypts the records in the database    |
 | earthlink.key                | AES-256  | encrypts the ship <-> Earth packets     |
 """
@@ -23,6 +23,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 KEYS_DIR = Path(os.environ.get("SHADOW_KEYS_DIR") or Path(__file__).resolve().parent / "keys_files")
 
 SIGNING_KEYS = ["auth", "ship", "earth", "sensor-keyboard", "sensor-checkin", "sensor-sim"]
+# one key per wearable: the backend accepts a wearable's measurements only for its own crew member
+DEVICE_KEYS = ["wearable-cm-1", "wearable-cm-2", "wearable-cm-3", "wearable-cm-4"]
 AES_KEYS = ["storage", "earthlink"]
 LINK_KEY = "earthlink"
 
@@ -35,17 +37,23 @@ def write_secret(path, data):
         f.write(data)
 
 
-def generate(keys_dir=KEYS_DIR, force=False):
+def generate(keys_dir=KEYS_DIR, force=False, device_keys=DEVICE_KEYS):
     """Create the missing keys (all of them with force). Returns the names of the keys it created."""
+    keys_dir = Path(keys_dir)
     private_dir, public_dir = keys_dir / "private", keys_dir / "public"
     private_dir.mkdir(parents=True, exist_ok=True)
     public_dir.mkdir(parents=True, exist_ok=True)
     os.chmod(private_dir, 0o700)
     created = []
 
-    for name in SIGNING_KEYS:
+    for name in [*SIGNING_KEYS, *device_keys]:
         private_path, public_path = private_dir / f"{name}.pem", public_dir / f"{name}.pem"
-        if private_path.exists() and public_path.exists() and not force:
+        if private_path.exists() and not force:
+            if not public_path.exists():  # an existing private key is never replaced: its public half is rebuilt
+                key = serialization.load_pem_private_key(private_path.read_bytes(), password=None)
+                public_path.write_bytes(key.public_key().public_bytes(
+                    serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
+                created.append(name + " (public half)")
             continue
         key = Ed25519PrivateKey.generate()
         write_secret(private_path, key.private_bytes(

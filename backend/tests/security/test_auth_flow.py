@@ -1,8 +1,11 @@
 import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
-from app.security import access_log, lockout, tokens
+from app.db import session as db
+from app.db.models.security import AccessLog
+from app.security import lockout, tokens
 from tests.conftest import auth
 
 LOGIN = "/api/v1/auth/login"
@@ -84,11 +87,11 @@ async def test_tampered_token_is_rejected(client):
 
 
 async def test_login_and_failures_are_written_to_access_log(client):
-    before = len(access_log._entries)
     await sign_in(client, "specialist2", "wrong")
     await sign_in(client)
-    actions = [(e.action, e.outcome) for e in access_log._entries[before:]]
-    assert actions == [("login_failed", "denied"), ("login", "allowed")]
+    async with db.SessionLocal() as s:
+        rows = (await s.scalars(select(AccessLog).order_by(AccessLog.id))).all()
+    assert [(e.action, e.outcome) for e in rows] == [("login_failed", "denied"), ("login", "allowed")]
 
 
 async def test_accounts_come_from_database(client):

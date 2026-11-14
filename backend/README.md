@@ -2,9 +2,9 @@
 
 **Cine lucrează aici:** backend (2) + securitate (în `app/security/`)
 
-Acum rulează ca **server mock**: toate endpoint-urile din contract există și răspund, iar textele, mediile,
-catalogul și pragurile vin deja din `data/`. Fiecare endpoint se înlocuiește pe rând cu logica reală, fără să i
-se schimbe calea, parametrii sau modelul.
+Serverul real: toate endpoint-urile din contract lucrează cu baza de date, motorul de triaj, coada spre Pământ și
+codul de securitate din `app/security/` (semnături Ed25519, pachete AES-256-GCM, tokenuri HS256, parole argon2id,
+jurnal de acces cu lanț de hash-uri). Textele, mediile, catalogul și pragurile vin din `data/`.
 
 ```bash
 uv sync                                              # instalează exact ce e în uv.lock
@@ -12,6 +12,18 @@ uv run uvicorn app.main:app --reload --port 8000     # http://localhost:8000/doc
 uv run pytest                                        # testele
 uv run ruff format && uv run ruff check --fix        # stilul
 ```
+
+## Setări și chei
+
+Pornește fără nicio pregătire. Setările se pot schimba dintr-un `.env` (în rădăcina repo-ului sau aici), după
+modelul `../.env.example`.
+
+| Ce | Cum |
+|---|---|
+| cheile (navă, Pământ, dispozitive, legătură) | la prima pornire, cele care lipsesc sunt create în `../security/keys/keys_files/` (nu intră în git); o cheie existentă nu e înlocuită niciodată |
+| secretul tokenurilor | `JWT_SECRET`, minimum 32 de caractere; lăsat gol, se alege unul aleator la fiecare pornire |
+| tokenurile `mock-<utilizator>` | oprite; doar testele le pornesc (`ALLOW_MOCK_TOKENS=true`). Cu ele se intră FĂRĂ parolă |
+| medicul AI | serviciul din `../ai/`, la `AI_URL` (implicit `http://127.0.0.1:8001`); dacă nu răspunde în `AI_TIMEOUT_S`, răspunsul e textul din catalog |
 
 | Citește | Pentru |
 |---|---|

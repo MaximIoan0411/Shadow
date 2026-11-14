@@ -164,8 +164,8 @@ class LoginAccount(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(examples=["specialist2"])
-    password: str = Field(min_length=1, description="Parola PERSONALĂ a contului. Fiecare cont are altă parolă.", examples=["<parola din seed>"])
+    username: str = Field(min_length=1, max_length=40, examples=["specialist2"])
+    password: str = Field(min_length=1, max_length=256, description="Parola PERSONALĂ a contului. Fiecare cont are altă parolă.", examples=["<parola din seed>"])
 
 
 class LoginResponse(BaseModel):
@@ -212,6 +212,7 @@ class MissionState(BaseModel):
 
 class ClockUpdate(BaseModel):
     """Trimiteți doar câmpul pe care vreți să-l schimbați."""
+    model_config = ConfigDict(allow_inf_nan=False)  # NaN și infinit nu sunt măsurători
     time_scale: float | None = Field(default=None, ge=1, le=86400, examples=[60])
     mission_day: int | None = Field(default=None, ge=1, description="Sare ceasul la începutul acestei zile (doar pentru demo).", examples=[96])
 
@@ -439,6 +440,7 @@ class CheckinSchema(BaseModel):
 
 class CheckinCreate(BaseModel):
     """Check-in-ul de dimineață. Doar `mood` e obligatoriu; restul pot lipsi."""
+    model_config = ConfigDict(allow_inf_nan=False)  # NaN și infinit nu sunt măsurători
     mood: int = Field(ge=1, le=5, description="Starea de spirit, 1 (foarte rău) – 5 (foarte bine).", examples=[4])
     systolic_mmhg: float | None = Field(default=None, examples=[112])
     diastolic_mmhg: float | None = Field(default=None, examples=[72])
@@ -479,7 +481,7 @@ class CheckinResult(BaseModel):
 
 class KeyEvent(BaseModel):
     """O apăsare de tastă. NU conține litera, doar timpii și clasa tastei."""
-    model_config = ConfigDict(extra="forbid")  # orice câmp în plus (ex. litera) → 422
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)  # orice câmp în plus (ex. litera) → 422
     t_down_ms: float = Field(description="`performance.now()` la keydown, ms.", examples=[10234.5])
     t_up_ms: float = Field(description="`performance.now()` la keyup, ms.", examples=[10321.1])
     key_class: Literal["char", "space", "backspace", "enter", "other"] = Field(description="Clasa tastei. NICIODATĂ caracterul propriu-zis.")
@@ -533,6 +535,7 @@ class KeystrokeSummary(BaseModel):
 
 
 class PvtTrial(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)  # NaN și infinit nu sunt măsurători
     stimulus_at_ms: float = Field(description="Când a apărut stimulul, ms de la începutul testului.")
     rt_ms: float | None = Field(default=None, description="Timpul de reacție. `null` = nu a răspuns.", examples=[287])
     false_start: bool = Field(default=False, description="A apăsat înainte de stimul.")
@@ -540,8 +543,8 @@ class PvtTrial(BaseModel):
 
 class PvtSubmit(BaseModel):
     started_at: datetime
-    duration_s: int = Field(default=180, description="PVT-B durează 3 minute.")
-    trials: list[PvtTrial] = Field(min_length=1)
+    duration_s: int = Field(default=180, ge=1, le=3600, description="PVT-B durează 3 minute.")
+    trials: list[PvtTrial] = Field(min_length=1, max_length=1000)
 
 
 class PvtResult(BaseModel):
@@ -562,16 +565,17 @@ class PvtResult(BaseModel):
 
 
 class ExerciseSet(BaseModel):
-    exercise: str = Field(examples=["genuflexiuni ARED"])
-    reps: int = Field(ge=1, examples=[10])
-    load_kg: float = Field(ge=0, examples=[85])
+    model_config = ConfigDict(allow_inf_nan=False)  # NaN și infinit nu sunt măsurători
+    exercise: str = Field(max_length=80, examples=["genuflexiuni ARED"])
+    reps: int = Field(ge=1, le=1000, examples=[10])
+    load_kg: float = Field(ge=0, le=2000, examples=[85])
 
 
 class ExerciseSessionCreate(BaseModel):
     kind: Literal["resistance", "aerobic"]
     started_at: datetime
-    duration_min: float = Field(gt=0, examples=[40])
-    sets: list[ExerciseSet] = Field(default_factory=list, description="Gol pentru sesiuni aerobe.")
+    duration_min: float = Field(gt=0, le=1440, allow_inf_nan=False, examples=[40])
+    sets: list[ExerciseSet] = Field(default_factory=list, max_length=200, description="Gol pentru sesiuni aerobe.")
 
 
 class ExerciseSession(ExerciseSessionCreate):
@@ -783,8 +787,8 @@ class ShelterAck(BaseModel):
 
 
 class SepStart(BaseModel):
-    event_id: str = Field(default="2024-05-11T02:10:00-SEP-001")
-    starts_in_min: float = Field(default=0, ge=0, description="Peste câte minute de MISIUNE începe furtuna.")
+    event_id: str = Field(default="2024-05-11T02:10:00-SEP-001", max_length=80)
+    starts_in_min: float = Field(default=0, ge=0, le=100_000, allow_inf_nan=False, description="Peste câte minute de MISIUNE începe furtuna.")
 
 
 # --------------------------------------------------------------------------- medicul AI
@@ -792,14 +796,14 @@ class SepStart(BaseModel):
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(max_length=2000)
 
 
 class AiChatRequest(BaseModel):
     crew_id: str = Field(examples=["cm-2"])
     message: str = Field(min_length=1, max_length=1000, examples=["De ce mi-a crescut pulsul de noapte?"])
     alert_id: str | None = Field(default=None, description="Dacă întrebarea e despre o alertă anume.", examples=["al-1042"])
-    history: list[ChatMessage] = Field(default_factory=list, description="Ultimele max. 6 mesaje.")
+    history: list[ChatMessage] = Field(default_factory=list, max_length=20, description="Ultimele max. 6 mesaje sunt folosite.")
 
 
 class Citation(BaseModel):
@@ -855,13 +859,14 @@ class Rejection(BaseModel):
 
 class MeasurementIngest(BaseModel):
     """O măsurătoare trimisă de un dispozitiv (sau de simulator), semnată Ed25519."""
-    device_id: str = Field(examples=["wearable-cm-2"])
-    crew_id: str = Field(examples=["cm-2"])
-    metric_key: str = Field(examples=["night_pulse_bpm"])
+    model_config = ConfigDict(allow_inf_nan=False)  # NaN și infinit nu sunt măsurători
+    device_id: str = Field(min_length=1, max_length=40, examples=["wearable-cm-2"])
+    crew_id: str = Field(min_length=1, max_length=16, examples=["cm-2"])
+    metric_key: str = Field(min_length=1, max_length=40, examples=["night_pulse_bpm"])
     value: float = Field(examples=[61])
-    unit: str = Field(examples=["bpm"])
+    unit: str = Field(max_length=16, examples=["bpm"])
     measured_at: datetime
-    signature_b64: str = Field(description="Ed25519 peste JSON-ul canonic al celorlalte câmpuri (chei sortate, fără spații).")
+    signature_b64: str = Field(max_length=200, description="Ed25519 peste JSON-ul canonic al celorlalte câmpuri (chei sortate, fără spații).")
 
 
 class IngestResult(BaseModel):

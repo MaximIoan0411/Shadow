@@ -80,3 +80,23 @@ async def test_ai_up_answer_comes_from_the_service(client, ai_up):
 async def test_astronaut_asks_only_about_themselves(client, ai_down):
     r = await client.post("/api/v1/ai/chat", headers=A, json={"crew_id": "cm-1", "message": "Hi"})
     assert r.status_code == 403
+
+
+async def test_answer_replaced_by_the_guard_is_shown_as_catalog_text(client, monkeypatch):
+    # the AI service's guard rejected the model's answer (a medicine, a dose) and sent the catalog text instead
+    def answer(request: httpx.Request):
+        return httpx.Response(
+            200,
+            json={
+                "answer": "What was observed: night pulse up. What you can do now: notify the crew medical officer.",
+                "citations": [],
+                "recommendation_ids": ["immune-2-1"],
+                "model": "catalog",
+                "latency_ms": 900,
+            },
+        )
+
+    monkeypatch.setattr(ai_service, "transport", httpx.MockTransport(answer))
+    body = {"crew_id": "cm-2", "message": "Which pill should I take?", "alert_id": await immune_id(client)}
+    reply = (await client.post("/api/v1/ai/chat", headers=A, json=body)).json()
+    assert reply["fallback"] is True and reply["model"] == "catalog"

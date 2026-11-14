@@ -13,6 +13,8 @@ PROVIZORIU: tuple[str, ...] = ()
 MAX_ATTEMPTS = 5
 WINDOW_S = 300
 LOCK_S = 60
+MAX_TRACKED = 10_000
+"""Câte nume ținem minte cel mult: numele inventate la autentificare nu pot umple memoria."""
 
 _failed: dict[str, list[float]] = {}
 _locked_until: dict[str, float] = {}
@@ -32,8 +34,21 @@ def record_failure(username: str) -> None:
     tries = [t for t in _failed.get(username, []) if now - t < WINDOW_S] + [now]
     if len(tries) >= MAX_ATTEMPTS:
         _locked_until[username] = now + LOCK_S
-        tries = []
-    _failed[username] = tries
+        _failed.pop(username, None)
+    else:
+        _failed[username] = tries
+    if len(_failed) + len(_locked_until) > MAX_TRACKED:
+        _forget_old(now)
+
+
+def _forget_old(now: float) -> None:
+    """Uită încercările și blocările expirate; dacă tot sunt prea multe, cele mai vechi încercări (niciodată o blocare)."""
+    for name in [name for name, tries in _failed.items() if now - tries[-1] >= WINDOW_S]:
+        del _failed[name]
+    for name in [name for name, until in _locked_until.items() if until <= now]:
+        del _locked_until[name]
+    while _failed and len(_failed) + len(_locked_until) > MAX_TRACKED:
+        del _failed[next(iter(_failed))]
 
 
 def clear(username: str) -> None:

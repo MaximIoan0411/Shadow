@@ -47,7 +47,7 @@ def types(chunks: list[str]) -> list[str]:
 @pytest.fixture
 def events():
     return [
-        ("alert.created", {"id": "al-x"}, "cm-1"),
+        ("alert.created", {"id": "al-x", "level": 2}, "cm-1"),
         ("dashboard.changed", {"reason": "checkin"}, "cm-2"),
         ("mission.tick", mission_service.tick_data(), None),
         ("packet.sent", {"id": "pk-x"}, "cm-1"),
@@ -110,3 +110,31 @@ async def test_clock_change_sends_a_tick(client):
 
 async def test_events_endpoint_requires_auth(client):
     assert (await client.get("/api/v1/events")).status_code == 401
+
+
+def test_cmo_gets_a_colleagues_alert_live_only_from_level_2():
+    from app.deps import visible_to
+    from app.schemas import Role, User
+
+    cmo = User(id="u-cm-3", username="medic", display_name="CMO", initials="OM", role=Role.cmo, crew_id="cm-3")
+
+    def alert(level: int, crew_id: str) -> dict:
+        return {"type": "alert.created", "crew_id": crew_id, "data": {"level": level, "title": "Typing slower"}}
+
+    assert not visible_to(cmo, alert(1, "cm-2"))
+    assert visible_to(cmo, alert(2, "cm-2")) and visible_to(cmo, alert(3, "cm-2"))
+    assert visible_to(cmo, alert(1, "cm-3"))  # their own
+    assert visible_to(cmo, {"type": "dashboard.changed", "crew_id": "cm-2", "data": {"reason": "checkin"}})
+
+
+def test_a_client_that_stops_reading_does_not_grow_without_limit():
+    from app import deps
+
+    q = deps.subscribe()
+    try:
+        for i in range(deps.SUBSCRIBER_QUEUE_MAX + 50):
+            deps.publish("mission.tick", {"n": i})
+        assert q.qsize() == deps.SUBSCRIBER_QUEUE_MAX
+        assert q.get_nowait()["data"] == {"n": 50}  # the oldest ones were dropped
+    finally:
+        deps.unsubscribe(q)

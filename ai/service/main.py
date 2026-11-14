@@ -24,6 +24,9 @@ from .prompting import build_messages
 from .schemas import AiServiceChatRequest, AiServiceChatResponse, AiServiceError, AiServiceStatus
 
 log = logging.getLogger("shadow.ai")
+
+CATALOG_MODEL = "catalog"
+"""Numele de model întors când răspunsul modelului a fost respins de gardă și s-a afișat textul din catalog."""
 SETTINGS = load_settings()
 STATE: dict = {"llm": None}
 
@@ -101,10 +104,12 @@ async def chat(body: AiServiceChatRequest):
     if not raw:
         return unavailable("Modelul a întors un răspuns gol.")
 
+    answered_by = client.model_name or model
     if guard.violates_rules(raw):
         log.warning("Răspuns respins (medicament, doză, diagnostic sau raționament scăpat): %s", raw[:200])
         answer, citations = guard.fallback(rec, evidence, passages, body.message)
+        answered_by = CATALOG_MODEL  # textul afișat e al catalogului, nu al modelului: se spune deschis
     else:
         answer, citations = guard.attach_citations(guard.clip(raw), passages, rec)
     return AiServiceChatResponse(answer=answer, citations=citations, recommendation_ids=[rec.id] if rec else [],
-                                 model=client.model_name or model, latency_ms=ms_since(started))
+                                 model=answered_by, latency_ms=ms_since(started))

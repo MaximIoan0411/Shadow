@@ -158,7 +158,7 @@ function AssistantAnswer({ answer }: { readonly answer: AiAnswer }): ReactElemen
           ) : (
             <Tag>no source</Tag>
           )}
-          {answer.fallback && <Tag>catalog text, the model did not respond</Tag>}
+          {answer.fallback && <Tag>catalog text, not the model</Tag>}
           <span className="num ml-1 text-caption text-fg-4">
             {answer.model}, {formatDuration(answer.latency_ms / MS_PER_SECOND)}
           </span>

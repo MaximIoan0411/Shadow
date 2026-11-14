@@ -9,7 +9,8 @@ CORPUS_DIR = AI_ROOT / "corpus"
 DOCS_DIR = CORPUS_DIR / "docs"
 CATALOG_FILE = CORPUS_DIR / "catalog.json"
 SOURCES_FILE = CORPUS_DIR / "sources.json"
-INDEX_DIR = AI_ROOT / "index"
+# SHADOW_INDEX_DIR: alt folder pentru index (verificările de contract îl trimit spre unul gol)
+INDEX_DIR = Path(os.environ.get("SHADOW_INDEX_DIR") or AI_ROOT / "index")
 EMBED_CACHE = AI_ROOT / "models" / "embeddings"
 
 # Model mic, rulat local pe procesor (≈65 MB). Textele și interfața sunt în engleză.

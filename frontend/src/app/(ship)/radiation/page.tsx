@@ -25,7 +25,7 @@ function toSeries(series: RadiationSeries): readonly ChartSeries[] {
   const at = (iso: string): number => new Date(iso).getTime();
   return [
     { key: "dose", label: "Dose rate", points: series.points.map((point) => ({ x: at(point.t), xLabel: formatDateTime(point.t), value: point.dose_rate_usv_h })) },
-    { key: "mean", label: "Media pe 24 h", quiet: true, points: series.points.map((point) => ({ x: at(point.t), xLabel: formatDateTime(point.t), value: point.mean_24h_usv_h })) },
+    { key: "mean", label: "24 h mean", quiet: true, points: series.points.map((point) => ({ x: at(point.t), xLabel: formatDateTime(point.t), value: point.mean_24h_usv_h })) },
   ];
 }
 
