@@ -23,14 +23,16 @@ Fără model (`ai/.env` lipsă sau gol) serviciul rulează ca **mock**: reformul
 ## Modelul pe Colab
 
 1. Deschideți `colab/shadow_llm.ipynb` în Google Colab (`File → Upload notebook`), din browserul de pe laptopul pe
-   care rulează serviciul. `Runtime → Change runtime type → T4 GPU`.
+   care rulează serviciul. `Runtime → Change runtime type → A100` sau `L4` (merge și pe T4, dar prima compilare
+   durează 40+ minute, fiindcă mașina are doar 2 nuclee).
 2. În Colab, la **Secrets** (cheia din bara din stânga), adăugați și dați acces notebook-ului:
    | Secret | Ce e |
    |---|---|
    | `SHADOW_LLM_API_KEY` | o parolă lungă, inventată de voi (dacă lipsește, notebook-ul generează una) |
    | `NGROK_AUTHTOKEN` | opțional; fără el tunelul e cloudflared, fără cont |
    | `NGROK_DOMAIN` | opțional; domeniul fix gratuit din ngrok, ca adresa să nu se schimbe la fiecare pornire |
-3. `Runtime → Run all`. Prima rulare durează ≈10 min (compilarea llama.cpp se păstrează apoi în Drive).
+3. `Runtime → Run all`. Prima rulare pe o placă nouă compilează llama.cpp (≈10 min pe A100/L4); compilarea se
+   păstrează în Drive, separat pentru fiecare tip de placă, iar pornirile următoare durează ≈1 minut.
 4. Copiați cele trei rânduri afișate la final în `ai/.env` (model: `.env.example`; nu intră în git).
 5. Reporniți serviciul. `GET /status` trebuie să arate `ready: true`, `mode: colab_simulation`; în aplicație, chatul
    arată „Colab simulation”.
