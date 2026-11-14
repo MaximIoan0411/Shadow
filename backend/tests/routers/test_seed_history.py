@@ -14,9 +14,9 @@ async def scalar(stmt):
         return await s.scalar(stmt)
 
 
-async def test_cm2_has_96_checkins_and_night_pulse_every_day(client):
+async def test_cm2_has_95_checkins_and_night_pulse_every_day(client):
     n = await scalar(select(func.count()).select_from(Checkin).where(Checkin.crew_id == "cm-2"))
-    assert n == 96
+    assert n == 95  # day 96's check-in is done live
     async with db.SessionLocal() as s:
         days = (
             await s.scalars(
@@ -44,7 +44,7 @@ async def test_ids_and_counters(client):
         assert (await s.get(SimState, "id:ck")).value == {"n": n_ck}
         assert (await s.get(SimState, "id:ex")).value == {"n": n_ex}
     assert first is not None and first.mission_day == 1
-    assert n_ck == 96 * 4
+    assert n_ck == 95 * 4
 
 
 async def test_nothing_after_mission_start(client):

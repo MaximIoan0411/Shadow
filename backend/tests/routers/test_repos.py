@@ -19,8 +19,8 @@ async def test_night_pulse_of_cm2_days_90_to_96(client):
 async def test_checkin_only_metric(client):
     async with db.SessionLocal() as s:
         mood = await repos.series(s, "cm-2", "mood", 1, 96)
-    assert len(mood) == 96 and {p.value for p in mood} <= {1, 2, 3, 4, 5}
-    assert mood[95].value == 4
+    assert len(mood) == 95 and {p.value for p in mood} <= {1, 2, 3, 4, 5}
+    assert mood[94].value == 4
 
 
 async def test_checkin_fills_days_without_measurement(client):

@@ -103,7 +103,8 @@ async def seed_history(
     def due(at: datetime) -> bool:
         return not_after is None or at <= not_after
 
-    checkins = [d for d in days if d.checkin and due(d.checkin["created_at"])]
+    # the check-in of the start day is done live by the astronaut, so the history stops the day before
+    checkins = [d for d in days if d.checkin and d.day < until_day and due(d.checkin["created_at"])]
     sessions = [(d, s) for d in days for s in d.exercise if due(s["started_at"])]
     ck_ids = await next_ids(session, "ck", len(checkins))
     ex_ids = await next_ids(session, "ex", len(sessions))

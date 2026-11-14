@@ -10,6 +10,8 @@ from ..derived import (
     KEYSTROKE_WEIGHTS,
     KEYSTROKE_Z_CAP,
     MIN_SPREAD,
+    PVT_MIN_BASELINE_TESTS,
+    PVT_MIN_SPEED_SD,
     PVT_SCORE_PENALTY_PER_SD,
 )
 from ..types import EvidenceItem, Finding, PillarScore, Status
@@ -164,13 +166,61 @@ def typing_finding(crew_id: str, features: dict, baseline: dict, fatigue: float 
 
 
 def pvt_summary(trials: list[dict], *, lapse_ms: float) -> dict:
-    raise NotImplementedError("T20")
+    """mean_rt_ms, mean_speed (mean of 1000/RT, in 1/s), lapses (no answer or RT >= lapse_ms), false_starts,
+    n_trials. False starts do not count as reaction times."""
+    false_starts = sum(1 for t in trials if t.get("false_start"))
+    answered = [t for t in trials if not t.get("false_start")]
+    rts = [t["rt_ms"] for t in answered if t.get("rt_ms") is not None and t["rt_ms"] > 0]
+    lapses = sum(1 for t in answered if t.get("rt_ms") is None or t["rt_ms"] >= lapse_ms)
+    return {
+        "n_trials": len(trials),
+        "mean_rt_ms": round(sum(rts) / len(rts), 1) if rts else 0.0,
+        "mean_speed": round(sum(1000 / rt for rt in rts) / len(rts), 3) if rts else 0.0,
+        "lapses": lapses,
+        "false_starts": false_starts,
+    }
+
+
+def pvt_baseline(speeds: list[float]) -> tuple[float, float] | None:
+    """(mean speed, spread) of the non-practice tests so far, or None while there are too few."""
+    if len(speeds) < PVT_MIN_BASELINE_TESTS:
+        return None
+    return sum(speeds) / len(speeds), max(pstdev(speeds), PVT_MIN_SPEED_SD)
 
 
 def pvt_finding(
     crew_id: str, speed: float, base_speed: float, base_sd: float, *, reliable_change_sd: float, day: int
 ) -> Finding | None:
-    raise NotImplementedError("T20")
+    """Watch (level 1, behavioral-1-1) when the reaction speed drops by at least `reliable_change_sd` personal
+    spreads (the reliable change threshold from parameters.json)."""
+    dev = (speed - base_speed) / base_sd
+    if dev > -reliable_change_sd:
+        return None
+    pct = _pct(speed, base_speed)
+    return Finding(
+        crew_id=crew_id,
+        topic=TOPIC,
+        level=1,
+        status="watch",
+        title=f"Reaction speed {abs(pct):.0f}% below your baseline",
+        explanation=(
+            f"Your reaction test was {abs(dev):.1f} personal spreads slower than your baseline. "
+            "Reaction speed can drop with fatigue even when you feel rested."
+        ),
+        evidence=(
+            EvidenceItem(
+                metric_key="pvt_mean_speed",
+                label="Reaction speed (PVT-B)",
+                value=round(speed, 2),
+                unit="1/s",
+                baseline=round(base_speed, 2),
+                deviation_text=f"{pct:+.0f}% ({dev:+.1f} SD) vs your baseline",
+            ),
+        ),
+        recommendation_id=TYPING_RECOMMENDATION,
+        day=day,
+        extra={"deviation_sd": round(dev, 2)},
+    )
 
 
 def score(fatigue: float | None, pvt_dev_sd: float | None) -> PillarScore:

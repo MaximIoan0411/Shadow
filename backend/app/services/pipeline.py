@@ -23,6 +23,7 @@ from .events import Event
 SHADOW_ACTOR = "SHADOW"
 
 IMMUNE_METRICS = ("night_pulse_bpm", "temperature_c", "sleep_hours")
+TYPING_METRICS = {"keys_per_min", "hold_ms_mean", "flight_ms_mean"}
 PILLAR_OF_METRIC = {
     **dict.fromkeys(IMMUNE_METRICS, "immune"),
     **dict.fromkeys(("keys_per_min", "hold_ms_mean", "flight_ms_mean", "pvt_mean_speed"), "behavioral"),
@@ -249,6 +250,7 @@ async def process(
     reason: str | None = None,
     _series: dict[str, list[Point]] | None = None,
     _typing: tuple[KeystrokeSession, dict] | None = None,
+    extra_findings: list[Finding] | None = None,
 ) -> PipelineResult:
     """Runs only the rules of the pillars touched by `changed`, then triage, then writes the alerts.
     Returns the events to publish AFTER commit. Does not commit."""
@@ -257,14 +259,14 @@ async def process(
     pillars = {PILLAR_OF_METRIC[m] for m in changed if m in PILLAR_OF_METRIC}
     open_alerts = await _open_alerts(session, crew_id)
 
-    findings: list[Finding] = []
+    findings: list[Finding] = list(extra_findings or [])
     if "immune" in pillars:
         series = _series or await _load_immune_series(session, crew_id, day)
         open_immune = open_alerts.get((crew_id, "immune"))
         finding = _immune_finding(crew_id, day, series, data, open_immune.mission_day if open_immune else None)
         if finding:
             findings.append(finding)
-    if "behavioral" in pillars:
+    if changed & TYPING_METRICS:
         finding = await _typing_finding(session, crew_id, day, data, _typing)
         if finding:
             findings.append(finding)

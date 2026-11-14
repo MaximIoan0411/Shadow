@@ -115,7 +115,10 @@ async def test_simulated_history_does_not_count_as_frozen(client):
 
 async def test_history_newest_first(client):
     rows = (await client.get(f"{URL}?from_day=90&to_day=96", headers=A)).json()
-    assert [r["mission_day"] for r in rows] == [96, 95, 94, 93, 92, 91, 90]
+    assert [r["mission_day"] for r in rows] == [95, 94, 93, 92, 91, 90]  # day 96 is done live
+    await client.post(URL, headers=A, json=BODY)
+    rows = (await client.get(f"{URL}?from_day=95", headers=A)).json()
+    assert [r["mission_day"] for r in rows] == [96, 95]
 
 
 async def test_other_crew_forbidden(client):

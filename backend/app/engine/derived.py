@@ -30,6 +30,9 @@ KEYSTROKE_Z_CAP = 6.0
 KEYSTROKE_MIN_KEYS = 30
 # behavioral pillar score: points lost per personal spread below the baseline reaction speed (PVT, T20)
 PVT_SCORE_PENALTY_PER_SD = 20.0
+# PVT baseline (T20): non-practice tests needed, and the minimum spread of the reaction speed (1/s)
+PVT_MIN_BASELINE_TESTS = 2
+PVT_MIN_SPEED_SD = 0.15
 
 # Cross signals (T29): window in days
 CROSS_SIGNAL_WINDOW_DAYS = 3

@@ -131,8 +131,9 @@ async def _save(
 
 async def streak(session: AsyncSession, crew_id: str, day: int) -> Streak:
     days = set((await session.scalars(select(CheckinRow.mission_day).where(CheckinRow.crew_id == crew_id))).all())
+    start = day if day in days else day - 1  # today's check-in may still be to come
     current = 0
-    while day - current in days:
+    while start - current in days:
         current += 1
     best = run = 0
     for d in range(1, day + 1):
@@ -166,9 +167,11 @@ async def gap_for(
     snapshot = await pipeline.immune_snapshot(session, crew_id, day, data)
     sleep, sleep_delta = await _sleep_score(session, data, crew_id, day, sleep_hours)
     typing, typing_text = await behavioral_service.typing_snapshot(session, data, crew_id, day)
-    scores = {"night_pulse": snapshot.score.score, "sleep": sleep, "keystrokes": typing}
-    # TODO T20: add the "pvt" score
+    pvt, _, pvt_text = await behavioral_service.pvt_snapshot(session, crew_id, day)
+    scores = {"night_pulse": snapshot.score.score, "sleep": sleep, "keystrokes": typing, "pvt": pvt}
     details = {}
+    if pvt_text is not None:
+        details["pvt"] = pvt_text
     if typing_text is not None:
         details["keystrokes"] = typing_text
     if snapshot.night_delta_bpm is not None:

@@ -3,7 +3,8 @@
 Se aplică la fiecare task din `handoff/tasks/`. Au prioritate față de `CUM_LUCRAM.MD` și `handoff/` acolo unde diferă.
 
 ## Lucrul
-- Un singur task pe rând, în ordinea din `handoff/00_CITESTE_INTAI.md`. După un task te oprești și aștepți să ți se spună să începi următorul.
+- Câte **două taskuri o dată**, în ordinea din `handoff/00_CITESTE_INTAI.md`. După ele te oprești și aștepți să ți se spună să începi următoarele.
+- Fiecare task are jurnalul lui (`jurnal_task_Txx.md`), dar mesajul de commit e unul singur pentru ambele: `backend: T20, T21 <ce s-a făcut la fiecare, scurt>`.
 - Lucrezi doar în `backend/`. Nu modifici `frontend/`, `ai/`, `security/`, `contract/`, `data/`, nici altceva din afara `backend/`.
 - Lucrăm pe `main`. Nu creezi ramuri, nu faci `git commit`, nu faci `git push`.
 - Contractul nu se schimbă: căile, parametrii, `response_model`, `app/schemas.py`, `app/ai_schemas.py`, `app/datafiles.py`, semnăturile din `app/security/`.

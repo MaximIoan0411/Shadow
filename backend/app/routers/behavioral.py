@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
 from ..datafiles import DataBundle
 from ..db.session import get_session
 from ..deps import CREW, ERRORS, crew_access, get_data, roles
@@ -70,14 +69,22 @@ async def keystroke_summary(
     responses=E,
     openapi_extra=roles(*CREW),
 )
-async def post_pvt(crew_id: str, body: PvtSubmit, user: User = Depends(crew_access)):
+async def post_pvt(
+    crew_id: str,
+    body: PvtSubmit,
+    user: User = Depends(crew_access),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """The 3-minute test runs entirely in the frontend; send all the trials here at the end.
 
     The backend computes the mean 1/RT, the lapses (RT ≥ 355 ms) and the deviation from the baseline. The first
-    2–3 tests are practice and do not enter the baseline.
+    3 tests are practice and do not enter the baseline (`status = unknown`).
 
-    **SSE:** `dashboard.changed`."""
-    return ex.PVT.model_copy(update={"crew_id": crew_id})
+    **SSE:** `dashboard.changed`, plus `alert.created` / `alert.updated` when the speed drops past the threshold."""
+    result, events = await behavioral_service.add_pvt(session, data, crew_id, body)
+    publish_all(events)
+    return result
 
 
 @router.get(
@@ -87,5 +94,11 @@ async def post_pvt(crew_id: str, body: PvtSubmit, user: User = Depends(crew_acce
     responses=E,
     openapi_extra=roles(*CREW),
 )
-async def list_pvt(crew_id: str, limit: int = Query(default=20, ge=1, le=200), user: User = Depends(crew_access)):
-    return [ex.PVT.model_copy(update={"crew_id": crew_id})]
+async def list_pvt(
+    crew_id: str,
+    limit: int = Query(default=20, ge=1, le=200),
+    user: User = Depends(crew_access),
+    session: AsyncSession = Depends(get_session),
+):
+    """The reaction tests, newest first."""
+    return await behavioral_service.pvt_history(session, crew_id, limit)

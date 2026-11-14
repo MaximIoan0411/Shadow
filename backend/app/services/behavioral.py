@@ -1,18 +1,23 @@
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..clock import clock
 from ..datafiles import DataBundle
 from ..db import repos
 from ..db.models.measurements import KeystrokeSession
+from ..db.models.measurements import PvtResult as PvtRow
 from ..deps import ApiError
 from ..engine.derived import KEYSTROKE_MIN_KEYS
 from ..engine.pillars import behavioral
+from ..ids import next_id
 from ..schemas import (
     KeystrokeBatch,
     KeystrokeFeatures,
     KeystrokeResult,
     KeystrokeSessionPoint,
     KeystrokeSummary,
+    PvtResult,
+    PvtSubmit,
 )
 from . import pipeline
 from .events import Event
@@ -146,3 +151,100 @@ async def typing_snapshot(
     usual = base["mean"]["keys_per_min"]
     speed_pct = (row.keys_per_min - usual) / usual * 100 if usual else 0.0
     return behavioral.score(row.fatigue_index, None).score, f"Typing: {speed_pct:+.0f}% speed"
+
+
+def pvt_to_schema(row: PvtRow) -> PvtResult:
+    return PvtResult(
+        id=row.id,
+        crew_id=row.crew_id,
+        at=row.at,
+        n_trials=row.n_trials,
+        mean_rt_ms=row.mean_rt_ms,
+        mean_speed=row.mean_speed,
+        lapses=row.lapses,
+        false_starts=row.false_starts,
+        baseline_speed=row.baseline_speed,
+        deviation_sd=row.deviation_sd,
+        status=row.status,
+    )
+
+
+async def _pvt_rows(session: AsyncSession, crew_id: str) -> list[PvtRow]:
+    stmt = select(PvtRow).where(PvtRow.crew_id == crew_id).order_by(PvtRow.at, PvtRow.id)
+    return list((await session.scalars(stmt)).all())
+
+
+async def add_pvt(
+    session: AsyncSession, data: DataBundle, crew_id: str, body: PvtSubmit
+) -> tuple[PvtResult, list[Event]]:
+    v = data.params.value
+    practice_runs = int(v("pvt_practice_runs")[-1])
+    summary = behavioral.pvt_summary([t.model_dump() for t in body.trials], lapse_ms=v("pvtb_lapse_threshold"))
+    previous = await _pvt_rows(session, crew_id)
+    is_practice = len(previous) < practice_runs
+    base = behavioral.pvt_baseline([r.mean_speed for r in previous if not r.is_practice and r.mean_speed > 0])
+
+    day = clock.mission_day()
+    deviation, status, finding = None, "unknown", None
+    if not is_practice and base is not None and summary["mean_speed"] > 0:
+        base_speed, base_sd = base
+        deviation = round((summary["mean_speed"] - base_speed) / base_sd, 2)
+        finding = behavioral.pvt_finding(
+            crew_id,
+            summary["mean_speed"],
+            base_speed,
+            base_sd,
+            reliable_change_sd=v("pvt_reliable_change_derived"),
+            day=day,
+        )
+        status = finding.status if finding else "ok"
+
+    row = PvtRow(
+        id=await next_id(session, "pvt"),
+        crew_id=crew_id,
+        at=clock.now(),
+        mission_day=day,
+        is_practice=is_practice,
+        baseline_speed=round(base[0], 3) if base and not is_practice else None,
+        deviation_sd=deviation,
+        status=status,
+        **summary,
+    )
+    session.add(row)
+    await session.flush()
+
+    result = await pipeline.process(
+        session,
+        crew_id,
+        {"pvt_mean_speed"},
+        day=day,
+        data=data,
+        reason="pvt",
+        extra_findings=[finding] if finding else None,
+    )
+    await session.commit()
+    return pvt_to_schema(row), result.events
+
+
+async def pvt_history(session: AsyncSession, crew_id: str, limit: int) -> list[PvtResult]:
+    rows = await _pvt_rows(session, crew_id)
+    return [pvt_to_schema(r) for r in reversed(rows[-limit:])]
+
+
+async def pvt_snapshot(session: AsyncSession, crew_id: str, day: int) -> tuple[float | None, float | None, str | None]:
+    """(score 0..100, deviation in SD, short text) from the latest judged test of today or yesterday."""
+    stmt = (
+        select(PvtRow)
+        .where(PvtRow.crew_id == crew_id, PvtRow.mission_day.between(day - 1, day), PvtRow.deviation_sd.is_not(None))
+        .order_by(PvtRow.at.desc())
+        .limit(1)
+    )
+    row = await session.scalar(stmt)
+    if row is None:
+        return None, None, None
+    pct = (row.mean_speed - row.baseline_speed) / row.baseline_speed * 100 if row.baseline_speed else 0.0
+    return behavioral.score(None, row.deviation_sd).score, row.deviation_sd, f"Reaction speed: {pct:+.0f}%"
+
+
+async def pvt_count(session: AsyncSession, crew_id: str) -> int:
+    return await session.scalar(select(func.count()).select_from(PvtRow).where(PvtRow.crew_id == crew_id)) or 0
