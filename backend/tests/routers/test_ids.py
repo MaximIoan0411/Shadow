@@ -5,16 +5,16 @@ from app.ids import next_id, next_ids, next_seq
 
 async def test_next_id_counts_up_with_padding(client):
     async with db.SessionLocal() as s:
-        ids = [await next_id(s, "al") for _ in range(3)]
+        ids = [await next_id(s, "ta") for _ in range(3)]
         await s.commit()
-    assert ids == ["al-0001", "al-0002", "al-0003"]
+    assert ids == ["ta-0001", "ta-0002", "ta-0003"]
 
 
 async def test_prefixes_have_separate_counters(client):
     async with db.SessionLocal() as s:
-        assert await next_id(s, "al") == "al-0001"
-        assert await next_id(s, "pk") == "pk-0001"
-        assert await next_id(s, "al") == "al-0002"
+        assert await next_id(s, "ta") == "ta-0001"
+        assert await next_id(s, "tb") == "tb-0001"
+        assert await next_id(s, "ta") == "ta-0002"
         await s.commit()
 
 
@@ -32,13 +32,13 @@ async def test_counter_persists_across_sessions(client):
 
 async def test_rollback_does_not_advance_counter(client):
     async with db.SessionLocal() as s:
-        await next_id(s, "al")
+        await next_id(s, "ta")
         await s.commit()
     async with db.SessionLocal() as s:
-        assert await next_id(s, "al") == "al-0002"
+        assert await next_id(s, "ta") == "ta-0002"
         await s.rollback()
     async with db.SessionLocal() as s:
-        assert await next_id(s, "al") == "al-0002"
+        assert await next_id(s, "ta") == "ta-0002"
         await s.commit()
 
 

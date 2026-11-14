@@ -36,7 +36,7 @@ from .routers import (
     security,
 )
 from .security import keys as security_keys
-from .services import access
+from .services import access, pipeline
 from .services import mission as mission_service
 
 API_PREFIX = "/api/v1"
@@ -97,6 +97,7 @@ async def lifespan(app: FastAPI):
             await seed_crew_and_users(s, str(USERS_SEED))
             await mission_service.init_environment(s, app.state.data)
             await seed_history(s, app.state.data, until_day=scenario.start_day, not_after=clock.now())
+            await pipeline.replay_history(s, until_day=scenario.start_day, data=app.state.data)
             await s.commit()
         startup_log.info("SHADOW startup finished in %.2f s", time.perf_counter() - started)
         yield

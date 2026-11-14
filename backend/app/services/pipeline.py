@@ -1,29 +1,253 @@
-"""Drumul oricărei date noi: salvare → motor → triaj → alerte → (nivel 3) pachet → evenimente. TASK T16.
-
-Vezi backend/handoff/tasks/T16-*.md pentru pași, fișiere și criteriile de acceptare.
-"""
+import re
 from dataclasses import dataclass, field
+from datetime import datetime, time, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from ..clock import clock
+from ..datafiles import DataBundle
+from ..db import repos
+from ..db.models.alerts import Alert, AlertHistory, PlanStep
+from ..db.models.users import Crew
+from ..engine import triage
+from ..engine.derived import MIN_SPREAD
+from ..engine.pillars import immune
+from ..engine.types import Finding, Point, TriageDecision
+from ..ids import next_id
+from ..schemas import AlertBrief
 from .events import Event
+
+SHADOW_ACTOR = "SHADOW"
+
+IMMUNE_METRICS = ("night_pulse_bpm", "temperature_c", "sleep_hours")
+PILLAR_OF_METRIC = {
+    **dict.fromkeys(IMMUNE_METRICS, "immune"),
+    **dict.fromkeys(("keys_per_min", "hold_ms_mean", "flight_ms_mean", "pvt_mean_speed"), "behavioral"),
+    **dict.fromkeys(("resting_pulse_bpm", "hrv_lnrmssd", "systolic_mmhg", "diastolic_mmhg"), "cardio"),
+    **dict.fromkeys(("loading_score",), "musculoskeletal"),
+}
+
+REVIEW_TIME = time(7, 0)
 
 
 @dataclass
 class PipelineResult:
     alerts_created: list[str] = field(default_factory=list)
     alerts_updated: list[str] = field(default_factory=list)
-    events: list[Event] = field(default_factory=list)      # de publicat DUPĂ commit
+    events: list[Event] = field(default_factory=list)
 
 
-async def process(session: AsyncSession, crew_id: str, changed: set[str], *, day: int) -> PipelineResult:
-    """`changed` = cheile de metrici atinse (ex. {"night_pulse_bpm"}). Rulează doar regulile pilonilor afectați,
-    apoi engine.triage.decide, apoi scrie alertele (cu pașii din catalog și istoricul). Nivel 3 → link.queue.enqueue.
-    Nu face commit."""
-    raise NotImplementedError("T16")
+def review_time(data: DataBundle, day: int) -> datetime:
+    start = data.scenario.start + timedelta(days=day - 1)
+    return start + timedelta(hours=REVIEW_TIME.hour, minutes=REVIEW_TIME.minute)
 
 
-async def replay_history(session: AsyncSession, *, until_day: int) -> None:
-    """La pornire: rulează process() zi cu zi pentru 1..until_day, ca alertele din istoric să le producă motorul
-    (alerta lui cm-2 apare în ziua 95 pentru că NightSignal o declanșează, nu pentru că e scrisă de mână)."""
-    raise NotImplementedError("T16")
+async def _load_immune_series(session: AsyncSession, crew_id: str, to_day: int) -> dict[str, list[Point]]:
+    return {m: await repos.series(session, crew_id, m, 1, to_day) for m in IMMUNE_METRICS}
+
+
+def _up_to(points: list[Point], day: int) -> list[Point]:
+    return [p for p in points if p.day <= day]
+
+
+def _immune_finding(
+    crew_id: str, day: int, series: dict[str, list[Point]], data: DataBundle, alert_since: int | None
+) -> Finding | None:
+    v = data.params.value
+    min_n = v("nightsignal_min_nights_baseline")
+    excluded = set(range(alert_since, day + 1)) if alert_since is not None else set()
+
+    def base(metric: str):
+        return immune.baseline_before(
+            series[metric], day, min_n=min_n, min_spread=MIN_SPREAD.get(metric, 0.0), exclude_days=excluded
+        )
+
+    def today(metric: str) -> Point | None:
+        return next((p for p in reversed(series[metric]) if p.day == day), None)
+
+    return immune.night_signal(
+        crew_id,
+        series["night_pulse_bpm"],
+        base("night_pulse_bpm"),
+        yellow_delta=v("nightsignal_yellow_delta"),
+        red_delta=v("nightsignal_red_delta_bpm"),
+        red_nights=v("nightsignal_red_consecutive_nights"),
+        day=day,
+        temperature=today("temperature_c"),
+        temperature_base=base("temperature_c"),
+        sleep=today("sleep_hours"),
+        sleep_base=base("sleep_hours"),
+    )
+
+
+async def _open_alerts(session: AsyncSession, crew_id: str) -> dict[tuple[str, str], Alert]:
+    stmt = (
+        select(Alert)
+        .where(Alert.crew_id == crew_id, Alert.state != "resolved")
+        .options(selectinload(Alert.steps), selectinload(Alert.history))
+    )
+    return {(a.crew_id, a.topic): a for a in (await session.scalars(stmt)).all()}
+
+
+def _steps_text(data: DataBundle, recommendation_id: str) -> list[str]:
+    entry = data.catalog.by_id()[recommendation_id]
+    if entry.steps:
+        return list(entry.steps)
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", entry.action) if s.strip()]
+
+
+def _evidence(finding: Finding) -> list[dict]:
+    return [
+        {
+            "metric_key": e.metric_key,
+            "label": e.label,
+            "value": e.value,
+            "unit": e.unit,
+            "baseline": e.baseline,
+            "deviation_text": e.deviation_text,
+        }
+        for e in finding.evidence
+    ]
+
+
+def brief(alert: Alert) -> dict:
+    return AlertBrief(
+        id=alert.id,
+        crew_id=alert.crew_id,
+        topic=alert.topic,
+        level=alert.level,
+        status=alert.status,
+        state=alert.state,
+        title=alert.title,
+        created_at=alert.created_at,
+    ).model_dump(mode="json")
+
+
+async def _create(session: AsyncSession, finding: Finding, data: DataBundle, at: datetime) -> Alert:
+    entry = data.catalog.by_id()[finding.recommendation_id]
+    alert = Alert(
+        id=await next_id(session, "al"),
+        crew_id=finding.crew_id,
+        topic=finding.topic,
+        level=finding.level,
+        status=finding.status,
+        state="active",
+        title=finding.title,
+        explanation=finding.explanation,
+        cause="unknown",
+        cause_explanation="",
+        evidence=_evidence(finding),
+        recommendation_id=finding.recommendation_id,
+        recheck_at=at + timedelta(days=entry.recheck_days),
+        created_at=at,
+        updated_at=at,
+        mission_day=finding.day,
+    )
+    alert.steps = _plan(data, finding.recommendation_id)
+    alert.history = [AlertHistory(at=at, actor=SHADOW_ACTOR, role=None, action="created")]
+    session.add(alert)
+    await session.flush()
+    return alert
+
+
+def _plan(data: DataBundle, recommendation_id: str) -> list[PlanStep]:
+    return [
+        PlanStep(step_id=f"st-{i}", position=i, text=text, done=False)
+        for i, text in enumerate(_steps_text(data, recommendation_id), 1)
+    ]
+
+
+async def _update(
+    session: AsyncSession, alert: Alert, decision: TriageDecision, data: DataBundle, at: datetime
+) -> None:
+    f = decision.finding
+    alert.title = f.title
+    alert.explanation = f.explanation
+    alert.evidence = _evidence(f)
+    alert.updated_at = at
+    if decision.action == "escalate":
+        alert.level = decision.new_level
+        alert.status = f.status
+        alert.state = "escalated"
+        if alert.recommendation_id != f.recommendation_id:
+            alert.recommendation_id = f.recommendation_id
+            alert.steps.clear()
+            await session.flush()
+            alert.steps.extend(_plan(data, f.recommendation_id))
+            alert.recheck_at = at + timedelta(days=data.catalog.by_id()[f.recommendation_id].recheck_days)
+        alert.history.append(
+            AlertHistory(
+                at=at,
+                actor=SHADOW_ACTOR,
+                role=None,
+                action="escalated",
+                note=f"Escalated automatically to level {decision.new_level}.",
+            )
+        )
+    # TODO T23: level 3 → link.queue.enqueue (packet to Earth)
+
+
+async def process(
+    session: AsyncSession,
+    crew_id: str,
+    changed: set[str],
+    *,
+    day: int,
+    data: DataBundle,
+    at: datetime | None = None,
+    reason: str | None = None,
+    _series: dict[str, list[Point]] | None = None,
+) -> PipelineResult:
+    """Runs only the rules of the pillars touched by `changed`, then triage, then writes the alerts.
+    Returns the events to publish AFTER commit. Does not commit."""
+    at = at or clock.now()
+    result = PipelineResult()
+    pillars = {PILLAR_OF_METRIC[m] for m in changed if m in PILLAR_OF_METRIC}
+    open_alerts = await _open_alerts(session, crew_id)
+
+    findings: list[Finding] = []
+    if "immune" in pillars:
+        series = _series or await _load_immune_series(session, crew_id, day)
+        open_immune = open_alerts.get((crew_id, "immune"))
+        finding = _immune_finding(crew_id, day, series, data, open_immune.mission_day if open_immune else None)
+        if finding:
+            findings.append(finding)
+
+    open_levels = {key: (a.id, a.level) for key, a in open_alerts.items()}
+    for decision in triage.decide(findings, open_levels):
+        if decision.action == "create":
+            alert = await _create(session, decision.finding, data, at)
+            result.alerts_created.append(alert.id)
+            result.events.append(Event("alert.created", brief(alert), crew_id))
+        elif decision.action in ("update", "escalate"):
+            alert = open_alerts[(decision.finding.crew_id, decision.finding.topic)]
+            await _update(session, alert, decision, data, at)
+            result.alerts_updated.append(alert.id)
+            result.events.append(Event("alert.updated", brief(alert), crew_id))
+    await session.flush()
+
+    if reason is not None:
+        result.events.append(Event("dashboard.changed", {"reason": reason}, crew_id))
+    return result
+
+
+async def replay_history(session: AsyncSession, *, until_day: int, data: DataBundle) -> None:
+    """At startup: process() day by day for 1..until_day, so the alerts in the history are produced by the engine.
+    "Now" is the replayed day (given as `at`), the clock is not moved. No events are published."""
+    if await session.scalar(select(Alert.id).limit(1)) is not None:
+        return
+    crew_ids = (await session.scalars(select(Crew.id).order_by(Crew.id))).all()
+    for crew_id in crew_ids:
+        series = await _load_immune_series(session, crew_id, until_day)
+        for day in range(1, until_day + 1):
+            await process(
+                session,
+                crew_id,
+                set(IMMUNE_METRICS),
+                day=day,
+                data=data,
+                at=review_time(data, day),
+                _series={m: _up_to(points, day) for m, points in series.items()},
+            )
