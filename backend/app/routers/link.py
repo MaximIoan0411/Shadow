@@ -83,7 +83,7 @@ async def get_packet(
     response_model=Packet,
     status_code=201,
     summary="Put a message in the queue to Earth",
-    responses=E,
+    responses={**E, 409: ERRORS[409]},
     openapi_extra=roles(*CREW),
 )
 async def create_outbox(
@@ -92,11 +92,14 @@ async def create_outbox(
     session: AsyncSession = Depends(get_session),
     data: DataBundle = Depends(get_data),
 ):
-    """For the weekly summary approved by the astronaut (`weekly_summary`). Level 3 alerts enter the queue
-    automatically, through `/alerts/{id}/escalate`; use `alert_l3` here only to send one again.
+    """For the weekly summary approved by the astronaut (`weekly_summary`). An astronaut can send only about
+    their own `crew_id`.
 
-    An astronaut can send only about their own `crew_id`. The packet starts `queued` and leaves at the next
-    communication window.
+    Level 3 alerts enter the queue automatically, through `/alerts/{id}/escalate`. `alert_l3` here only sends one
+    **again**: crew medical officer only (`403` otherwise), and only for an alert already at level 3 (`409`
+    otherwise).
+
+    The packet starts `queued` and leaves at the next communication window.
 
     **SSE:** `packet.sent` when it leaves, `packet.arrived` when it arrives."""
     return await link_service.outbox(session, data, body, user)

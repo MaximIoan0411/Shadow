@@ -8,7 +8,7 @@ from ..clock import clock
 from ..datafiles import DataBundle
 from ..db.models.alerts import Alert as AlertRow
 from ..db.models.alerts import AlertHistory
-from ..deps import ApiError
+from ..deps import EARTH_LEVEL, ONLY_CMO_SENDS_ALERTS, ApiError
 from ..schemas import (
     Alert,
     AlertBrief,
@@ -151,8 +151,8 @@ async def escalate(
     session: AsyncSession, data: DataBundle, alert_id: str, to_level: int, note: str | None, user: User
 ) -> tuple[Alert, list[Event]]:
     a = await get_row(session, alert_id, user)
-    if to_level == 3 and user.role != Role.cmo:
-        raise ApiError(403, "forbidden", "Only the crew medical officer can send an alert to Earth.")
+    if to_level == EARTH_LEVEL and user.role != Role.cmo:
+        raise ApiError(403, "forbidden", ONLY_CMO_SENDS_ALERTS)
     if a.state == AlertState.resolved.value:
         raise ApiError(409, "invalid_state", "The alert is already resolved.")
     if to_level < a.level or (to_level == a.level and a.state == AlertState.escalated.value):
@@ -161,7 +161,7 @@ async def escalate(
     a.status = "alert"
     a.state = AlertState.escalated.value
     _history(a, user, "escalated", note)
-    if to_level == 3:
+    if to_level == EARTH_LEVEL:
         from . import link as link_service
 
         await link_service.send_alert_to_earth(session, data, a, sender=user.display_name, note=note)

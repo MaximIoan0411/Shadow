@@ -4,7 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..datafiles import DataBundle
 from ..db.session import get_session
 from ..deps import ALL, CREW, ERRORS, current_user, get_data, require_roles, roles
-from ..schemas import AccessLogEntry, IngestResult, MeasurementIngest, Parameter, Rejection, TestReport, User
+from ..schemas import (
+    AccessLogEntry,
+    AccessLogIntegrity,
+    IngestResult,
+    MeasurementIngest,
+    Parameter,
+    Rejection,
+    TestReport,
+    User,
+)
 from ..services import access, security_log
 from ..services.events import publish_all
 
@@ -30,6 +39,26 @@ async def access_log(
     whole log. The log is append-only: every entry holds the hash of the previous one (`prev_hash`), so it cannot be
     changed silently."""
     return await access.entries(session, user, crew_id, limit)
+
+
+@router.get(
+    "/access-log/integrity",
+    response_model=AccessLogIntegrity,
+    summary="Is the access log intact",
+    responses={k: ERRORS[k] for k in (401, 403)},
+    openapi_extra=roles(*CREW),
+)
+async def access_log_integrity(
+    user: User = Depends(require_roles(*CREW)), session: AsyncSession = Depends(get_session)
+):
+    """Recomputes the hash chain of the **whole** log, from the first entry to the last, and says whether it still
+    holds. `intact = false` means an entry was changed or removed directly in the database.
+
+    What the chain cannot show: the newest entries removed from the end. That needs the last hash kept somewhere
+    outside the log.
+
+    Frontend: show the result above the access log; on `false`, show it as an alert."""
+    return await access.integrity(session)
 
 
 @router.get(

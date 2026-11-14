@@ -2401,14 +2401,20 @@ paths:
       description: '**Roluri permise:** `astronaut`, `cmo`
 
 
-        For the weekly summary approved by the astronaut (`weekly_summary`). Level 3 alerts enter the queue
+        For the weekly summary approved by the astronaut (`weekly_summary`). An astronaut can send only about
 
-        automatically, through `/alerts/{id}/escalate`; use `alert_l3` here only to send one again.
+        their own `crew_id`.
 
 
-        An astronaut can send only about their own `crew_id`. The packet starts `queued` and leaves at the next
+        Level 3 alerts enter the queue automatically, through `/alerts/{id}/escalate`. `alert_l3` here only sends
+        one
 
-        communication window.
+        **again**: crew medical officer only (`403` otherwise), and only for an alert already at level 3 (`409`
+
+        otherwise).
+
+
+        The packet starts `queued` and leaves at the next communication window.
 
 
         **SSE:** `packet.sent` when it leaves, `packet.arrived` when it arrives.'
@@ -2455,6 +2461,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '422':
           description: Invalid data (`validation_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The action is not allowed in the current state (`invalid_state`).
           content:
             application/json:
               schema:
@@ -2986,6 +2998,65 @@ paths:
                 items:
                   $ref: '#/components/schemas/AccessLogEntry'
                 title: Response Access Log Api V1 Access Log Get
+        '401':
+          description: Missing or invalid token (`unauthorized`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: This role is not allowed (`forbidden`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      x-roles:
+      - astronaut
+      - cmo
+      security:
+      - bearerAuth: []
+  /api/v1/access-log/integrity:
+    get:
+      tags:
+      - 11. Security and evidence
+      summary: Is the access log intact
+      description: '**Roluri permise:** `astronaut`, `cmo`
+
+
+        Recomputes the hash chain of the **whole** log, from the first entry to the last, and says whether it still
+
+        holds. `intact = false` means an entry was changed or removed directly in the database.
+
+
+        What the chain cannot show: the newest entries removed from the end. That needs the last hash kept somewhere
+
+        outside the log.
+
+
+        Frontend: show the result above the access log; on `false`, show it as an alert.'
+      operationId: access_log_integrity_api_v1_access_log_integrity_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLogIntegrity'
         '401':
           description: Missing or invalid token (`unauthorized`).
           content:
@@ -3626,6 +3697,30 @@ components:
       - hash
       title: AccessLogEntry
       description: 'Jurnalul de acces: doar se adaugă, fiecare intrare conține hash-ul celei dinainte.'
+    AccessLogIntegrity:
+      properties:
+        intact:
+          type: boolean
+          title: Intact
+          description: '`false` = o intrare a fost modificată sau ștearsă în afara aplicației.'
+        entries:
+          type: integer
+          title: Entries
+          description: Câte intrări are tot jurnalul (nu doar cele pe care le vede contul).
+          examples:
+          - 42
+        checked_at:
+          type: string
+          format: date-time
+          title: Checked At
+          description: Când s-a făcut verificarea (timpul misiunii).
+      type: object
+      required:
+      - intact
+      - entries
+      - checked_at
+      title: AccessLogIntegrity
+      description: Rezultatul verificării lanțului de hash-uri al jurnalului de acces, făcută la cerere.
     AiChatRequest:
       properties:
         crew_id:
@@ -5515,6 +5610,7 @@ components:
           - weekly_summary
           - alert_l3
           title: Kind
+          description: '`alert_l3`: doar ofițerul medical, doar pentru o alertă deja escaladată la nivelul 3.'
         crew_id:
           type: string
           title: Crew Id

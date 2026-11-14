@@ -47,6 +47,7 @@ export const keys = {
   aiStatus: ["ai-status"],
   security: ["security"],
   accessLog: ["security", "access-log"],
+  accessLogIntegrity: ["security", "access-log-integrity"],
   rejections: ["security", "rejections"],
   tests: ["evidence", "tests"],
   parameters: ["evidence", "parameters"],
@@ -156,6 +157,10 @@ export const useAiStatus = (enabled: boolean): Query<Schemas["AiStatus"]> =>
 
 export const useAccessLog = (enabled: boolean): Query<Schemas["AccessLogEntry"][]> =>
   useQuery({ queryKey: keys.accessLog, queryFn: api.listAccessLog, enabled });
+
+/** Lanțul de hash-uri al întregului jurnal, recalculat de backend la fiecare cerere. */
+export const useAccessLogIntegrity = (enabled: boolean): Query<Schemas["AccessLogIntegrity"]> =>
+  useQuery({ queryKey: keys.accessLogIntegrity, queryFn: api.getAccessLogIntegrity, enabled });
 
 export const useRejections = (enabled: boolean): Query<Schemas["Rejection"][]> =>
   useQuery({ queryKey: keys.rejections, queryFn: api.listRejections, enabled });

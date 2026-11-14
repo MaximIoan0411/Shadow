@@ -1,13 +1,14 @@
 # SHADOW — auditul de securitate
 
-Ce am verificat, ce am găsit, ce am reparat și ce a rămas deschis. Starea de la 15 noiembrie 2026 (`main` la `e8af19a`).
+Ce am verificat, ce am găsit, ce am reparat și ce a rămas deschis. Starea de la 15 noiembrie 2026.
 
 Auditul l-a făcut Mihai, cu Claude (Mythos). Fiecare slăbiciune de mai jos a fost întâi reprodusă pe codul care
 rula, apoi reparată, apoi acoperită de un test care pică pe codul vechi.
 
 ## 1. Găsite și reparate în aplicație
 
-`backend/app/`, PR #9. Testele din tabel sunt din `backend/`.
+`backend/app/`. Testele din tabel sunt din `backend/`. Primele treisprezece au fost reparate în PR #9; ultimele două,
+după ce au apărut la scrierea acestui raport.
 
 | Ce se putea face | Reparația | Test |
 |---|---|---|
@@ -24,6 +25,8 @@ rula, apoi reparată, apoi acoperită de un test care pică pe codul vechi.
 | jurnalul de acces și tokenurile revocate erau în memorie; escaladarea și citirea unui pachet nu se scriau | în baza de date, cu lanț corect și la cereri paralele; nu se șterg la resetare | `tests/security/test_access_log_wiring.py` |
 | numele inventate la autentificare rămâneau în memorie | cel mult 10.000 de nume | `tests/security/test_tokens_and_keys.py` |
 | erorile 500 nu apăreau nicăieri | se scriu în jurnalul serverului; clientul nu primește detalii | — |
+| un astronaut își trimitea propria alertă pe Pământ prin `POST /link/outbox` (`201`), deși escaladarea îi răspundea `403` | o singură regulă: doar ofițerul medical, și doar pentru o alertă ajunsă deja la nivelul 3 | `tests/link/test_enqueue.py` |
+| aplicația pornită nu verifica niciodată lanțul jurnalului: o intrare modificată în baza de date nu era semnalată nimănui | lanțul e verificat la pornire și la `GET /access-log/integrity`; rezultatul apare în *Evidence*, deasupra jurnalului | `tests/security/test_access_log_wiring.py` |
 
 ## 2. Găsite și reparate în prototipurile din `security/`
 
@@ -53,7 +56,7 @@ nume greșite), iar un test picat nu oprea scriptul.
 | niciun secret în git | Am căutat în toate commit-urile din `main` chei private, tokenuri, adrese de tunel și fișiere `.env`: nimic. Vezi observația de mai jos. |
 | CORS deschis doar pentru interfață | `http://localhost:3000` și `http://127.0.0.1:3000` (`backend/app/config.py`) |
 | niciun endpoint `/crew/…` fără `crew_access` | 16 căi, toate răspund `403` altui astronaut |
-| niciun endpoint fără token | din 56 verificate, 52 răspund `401`; publice sunt `/health`, lista de conturi, autentificarea și primirea măsurătorilor (semnate). Al 57-lea, fluxul live `/events`, are testul lui (`tests/routers/test_events.py`). |
+| niciun endpoint fără token | din 57 verificate, 53 răspund `401`; publice sunt `/health`, lista de conturi, autentificarea și primirea măsurătorilor (semnate). Al 58-lea, fluxul live `/events`, are testul lui (`tests/routers/test_events.py`). |
 | mesajele de eroare nu arată detalii interne | eroarea 500 întoarce doar „Unexpected server error.”; validarea întoarce doar câmpul și problema |
 | tastarea: în baza de date nu sunt caractere | tabelul `keystroke_sessions` ține doar numărători și medii; o cerere care conține litera primește `422` (`tests/routers/test_keystrokes_api.py`) |
 
@@ -70,15 +73,14 @@ conturilor de test, în formatul vechi. Parolele de test sunt oricum publice, î
 
 ## 4. Deschise
 
-Nereparate. Primele două merită făcute înainte de prezentare.
+Nereparate.
 
 | Ce | De ce contează |
 |---|---|
+| la fiecare pornire, baza de date e ștearsă (`RESET_DB_ON_START=true`, implicit), cu tot cu jurnalul de acces și cu lista tokenurilor revocate | reprodus: cu un `JWT_SECRET` fix, un token revocat la deconectare răspunde din nou `200` după repornire, până expiră; jurnalul pornește gol. Fără `JWT_SECRET` (implicit), toate tokenurile mor la repornire |
 | nicio limită de cereri pe `/auth/login` și `/ingest/measurements` | cineva din rețea poate bloca un cont câte 60 s, la nesfârșit, sau poate umple lista de respingeri |
-| aplicația pornită nu rulează `verify_chain` | lanțul jurnalului e verificat doar de teste; o intrare modificată în baza de date nu e semnalată nimănui |
-| un astronaut poate trimite propria alertă pe Pământ prin `POST /link/outbox` (`kind = alert_l3`) | regula „doar ofițerul medical trimite o alertă pe Pământ” e aplicată la escaladare (`403`), nu și aici; sunt datele lui, deci nu e o scurgere, dar regula nu e una singură |
-| retrimiterea unui pachet nu are test | `(direction, seq)` e unic în tabel, dar motivul de respingere `replay` nu e produs nicăieri pentru pachete |
-| ultimele intrări din jurnal pot fi șterse fără urmă | lipsește un hash păstrat în afara jurnalului |
+| ultimele intrări din jurnal pot fi șterse fără urmă | lanțul arată doar modificările și ștergerile din mijloc; lipsește un hash păstrat în afara jurnalului |
+| retrimiterea unui pachet e oprită doar de baza de date | `(direction, seq)` e unic în tabel (cu test), dar nu există o cale de primire din afară pe care s-o încerce un atac, iar motivul de respingere `replay` nu e produs pentru pachete |
 | `/sim/*` și `/demo/*` merg cu orice cont | oricine autentificat poate reseta simularea |
 | baza de date și cheile private nu sunt criptate pe disc | cine are discul are tot |
 | nu există deconectare automată | o sesiune lăsată deschisă pe stația comună rămâne deschisă până la 12 ore |

@@ -863,11 +863,14 @@ export interface paths {
          * Put a message in the queue to Earth
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     For the weekly summary approved by the astronaut (`weekly_summary`). Level 3 alerts enter the queue
-         *     automatically, through `/alerts/{id}/escalate`; use `alert_l3` here only to send one again.
+         *     For the weekly summary approved by the astronaut (`weekly_summary`). An astronaut can send only about
+         *     their own `crew_id`.
          *
-         *     An astronaut can send only about their own `crew_id`. The packet starts `queued` and leaves at the next
-         *     communication window.
+         *     Level 3 alerts enter the queue automatically, through `/alerts/{id}/escalate`. `alert_l3` here only sends one
+         *     **again**: crew medical officer only (`403` otherwise), and only for an alert already at level 3 (`409`
+         *     otherwise).
+         *
+         *     The packet starts `queued` and leaves at the next communication window.
          *
          *     **SSE:** `packet.sent` when it leaves, `packet.arrived` when it arrives.
          */
@@ -1090,6 +1093,34 @@ export interface paths {
          *     changed silently.
          */
         get: operations["access_log_api_v1_access_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access-log/integrity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Is the access log intact
+         * @description **Roluri permise:** `astronaut`, `cmo`
+         *
+         *     Recomputes the hash chain of the **whole** log, from the first entry to the last, and says whether it still
+         *     holds. `intact = false` means an entry was changed or removed directly in the database.
+         *
+         *     What the chain cannot show: the newest entries removed from the end. That needs the last hash kept somewhere
+         *     outside the log.
+         *
+         *     Frontend: show the result above the access log; on `false`, show it as an alert.
+         */
+        get: operations["access_log_integrity_api_v1_access_log_integrity_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1420,6 +1451,29 @@ export interface components {
             prev_hash: string;
             /** Hash */
             hash: string;
+        };
+        /**
+         * AccessLogIntegrity
+         * @description Rezultatul verificării lanțului de hash-uri al jurnalului de acces, făcută la cerere.
+         */
+        AccessLogIntegrity: {
+            /**
+             * Intact
+             * @description `false` = o intrare a fost modificată sau ștearsă în afara aplicației.
+             */
+            intact: boolean;
+            /**
+             * Entries
+             * @description Câte intrări are tot jurnalul (nu doar cele pe care le vede contul).
+             * @example 42
+             */
+            entries: number;
+            /**
+             * Checked At
+             * Format: date-time
+             * @description Când s-a făcut verificarea (timpul misiunii).
+             */
+            checked_at: string;
         };
         /** AiChatRequest */
         AiChatRequest: {
@@ -2728,6 +2782,7 @@ export interface components {
         OutboxCreate: {
             /**
              * Kind
+             * @description `alert_l3`: doar ofițerul medical, doar pentru o alertă deja escaladată la nivelul 3.
              * @enum {string}
              */
             kind: "weekly_summary" | "alert_l3";
@@ -5846,6 +5901,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description The action is not allowed in the current state (`invalid_state`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
@@ -6289,6 +6353,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccessLogEntry"][];
+                };
+            };
+            /** @description Missing or invalid token (`unauthorized`). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description This role is not allowed (`forbidden`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    access_log_integrity_api_v1_access_log_integrity_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLogIntegrity"];
                 };
             };
             /** @description Missing or invalid token (`unauthorized`). */

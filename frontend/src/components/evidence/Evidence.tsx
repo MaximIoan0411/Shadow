@@ -5,11 +5,11 @@
  */
 import { useState, type ReactElement, type ReactNode } from "react";
 import { SourceLine } from "@/components/body/ZonePanel";
-import { Card, EmptyState, Input, LevelTag, ProblemCard, Skeleton, StatusBadge, Switch, Tag } from "@/components/ui";
+import { Card, EmptyState, Input, LevelTag, Notice, ProblemCard, Skeleton, StatusBadge, StatusMark, Switch, Tag } from "@/components/ui";
 import { Tabs, type TabItem } from "@/components/ui/overlays";
 import { errorMessage, type ApiError, type Schemas } from "@/lib/api";
 import { formatDateTime, formatNumber } from "@/lib/format";
-import { useAccessLog, useCatalog, useParameters, useRejections, useTestReport } from "@/lib/queries";
+import { useAccessLog, useAccessLogIntegrity, useCatalog, useParameters, useRejections, useTestReport } from "@/lib/queries";
 import { ROLE_LABEL, TOPIC_META } from "@/lib/status";
 
 type Role = Schemas["Role"];
@@ -17,6 +17,7 @@ type View = "tests" | "parameters" | "catalog" | "access" | "rejections";
 
 const SHIP_ROLES: readonly Role[] = ["astronaut", "cmo"];
 const TWO_DECIMALS = 2;
+const NO_DECIMALS = 0;
 const SEARCH_FIELD_ID = "parameter-search";
 
 const ACTION_LABEL: Readonly<Record<string, string>> = {
@@ -29,6 +30,7 @@ const ACTION_LABEL: Readonly<Record<string, string>> = {
   read_packet: "Read a packet",
   escalate: "Escalated an alert",
   access_denied: "Access denied",
+  reset: "Reset the simulation",
 };
 
 const REJECTION_LABEL = {
@@ -201,6 +203,37 @@ function Catalog(): ReactElement {
   );
 }
 
+/**
+ * Verificarea jurnalului: backend-ul recalculează amprentele tuturor intrărilor (nu doar ale celor afișate aici) și
+ * spune dacă lanțul mai ține. Un lanț rupt înseamnă o intrare modificată sau ștearsă direct în baza de date.
+ */
+function LogIntegrity(): ReactElement | null {
+  const integrity = useAccessLogIntegrity(true);
+  if (integrity.error) {
+    return <Notice tone="watch" title="The log could not be verified" className="mb-4">{errorMessage(integrity.error)}</Notice>;
+  }
+  if (!integrity.data) return null;
+  const { intact, entries, checked_at: checkedAt } = integrity.data;
+  if (!intact) {
+    return (
+      <Notice tone="alert" title="The access log was changed outside the application" className="mb-4">
+        At least one entry was edited or removed directly in the database, so the fingerprints no longer match.
+      </Notice>
+    );
+  }
+  return (
+    <p className="mb-4 flex items-start gap-2 text-small text-fg-2">
+      {/* propoziția spune deja rezultatul; eticheta implicită a semnului („Within limits”) e despre sănătate */}
+      <span aria-hidden="true" className="mt-[3px] inline-flex">
+        <StatusMark status="ok" />
+      </span>
+      <span>
+        Verified {formatDateTime(checkedAt)}: the whole log ({formatNumber(entries, NO_DECIMALS)} entries) is intact.
+      </span>
+    </p>
+  );
+}
+
 function AccessLog(): ReactElement {
   const log = useAccessLog(true);
   return (
@@ -210,6 +243,7 @@ function AccessLog(): ReactElement {
           <p className="mb-4 max-w-[80ch] text-body leading-relaxed text-fg-3">
             Who read your data and which attempts were refused. The log only grows: every row carries the fingerprint of the one before it, so it cannot be rewritten in secret.
           </p>
+          <LogIntegrity />
           {!data.length && <EmptyState title="Nobody has read your data" />}
           <ul className="flex flex-col">
             {data.map((entry) => (
