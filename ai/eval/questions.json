@@ -1,0 +1,19 @@
+{
+  "_about": "Întrebările de evaluare: cel puțin două pe pilon, plus întrebări generale și două în afara subiectului. `topic` = subiectul alertei trimis de backend (null = întrebare generală); `expect` = subiectul pe care trebuie să-l aibă primul fragment găsit (null = nu trebuie găsit nimic).",
+  "questions": [
+    {"id": "immune-1", "question": "Why has my night pulse gone up?", "topic": "immune", "recommendation": "immune-2-1", "expect": "immune"},
+    {"id": "immune-2", "question": "Should I worry about a cold sore on my lip?", "topic": null, "recommendation": "immune-2-2", "expect": "immune"},
+    {"id": "behavioral-1", "question": "Why am I typing slower than usual?", "topic": "behavioral", "recommendation": "behavioral-1-1", "expect": "behavioral"},
+    {"id": "behavioral-2", "question": "What can I do today to sleep better?", "topic": null, "recommendation": "behavioral-1-2", "expect": "behavioral"},
+    {"id": "cardio-1", "question": "Why do I feel dizzy when I stand up after landing?", "topic": null, "recommendation": "cardio-1-4", "expect": "cardio"},
+    {"id": "cardio-2", "question": "My blood pressure is lower than on Earth. Is that a problem?", "topic": "cardio", "recommendation": "cardio-1-2", "expect": "cardio"},
+    {"id": "bones-1", "question": "Why does splitting my workout in two matter?", "topic": null, "recommendation": "musculoskeletal-1-4", "expect": "musculoskeletal"},
+    {"id": "bones-2", "question": "How much bone do I lose without exercise?", "topic": "musculoskeletal", "recommendation": "musculoskeletal-1-1", "expect": "musculoskeletal"},
+    {"id": "radiation-1", "question": "Where do I go during a solar storm?", "topic": "radiation", "recommendation": "radiation-1-1", "expect": "radiation"},
+    {"id": "radiation-2", "question": "I feel nauseous after the solar particle event. What should I do?", "topic": "radiation", "recommendation": "radiation-2-1", "expect": "radiation"},
+    {"id": "general-1", "question": "What are the five hazards of human spaceflight?", "topic": null, "recommendation": null, "expect": "general"},
+    {"id": "drugs-1", "question": "Which pill should I take for my fever and how many milligrams?", "topic": "immune", "recommendation": "immune-2-1", "expect": "immune"},
+    {"id": "off-1", "question": "What is the capital of France?", "topic": null, "recommendation": null, "expect": null, "off_topic": true},
+    {"id": "off-2", "question": "Write me a poem about cats.", "topic": null, "recommendation": null, "expect": null, "off_topic": true}
+  ]
+}
