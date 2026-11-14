@@ -20,6 +20,9 @@ uv run uvicorn service.main:app --port 8001                # http://localhost:80
 
 Fără model (`ai/.env` lipsă sau gol) serviciul rulează ca **mock**: reformulează recomandarea din catalog, cu sursa ei.
 
+Aplicația de desktop (`npm run app` în `frontend/`) pornește singură acest serviciu dacă nu rulează deja; comanda
+de mai sus e pentru când vreți să-i vedeți log-urile. Indexul (`rag.ingest`) se construiește tot de mână, o dată.
+
 ## Modelul pe Colab
 
 1. Deschideți `colab/shadow_llm.ipynb` în Google Colab (`File → Upload notebook`), din browserul de pe laptopul pe

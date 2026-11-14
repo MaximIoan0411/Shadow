@@ -13,41 +13,24 @@ import os
 import pathlib
 import sys
 
-os.environ.setdefault("BACKGROUND_TASKS", "false")  # the contract check needs no live loops
-os.environ["ALLOW_MOCK_TOKENS"] = "true"  # smoke signs in with mock-<user> tokens
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "ai"))
 sys.path.insert(0, str(ROOT / "scripts"))
+from request_examples import AI_REQUESTS, REQUESTS, id_resolver, mock_headers, use_scratch_environment  # noqa: E402
+
+use_scratch_environment()  # before the app is imported: it reads its settings at import
+
 from fastapi.testclient import TestClient  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from app.datafiles import load_all  # noqa: E402
 from app.main import app  # noqa: E402
-from request_examples import AI_REQUESTS, REQUESTS  # noqa: E402
 
 c = TestClient(app).__enter__()   # runs the app's startup (database, seed, history replay)
-H = lambda r: {"Authorization": f"Bearer mock-{r}"} if r else {}
-
-
-def real_alert_ids():
-    """The mock ids in request_examples.py -> the real alerts the engine produces at startup:
-    al-1042 = cm-2's immune alert (level 2), al-1039 = cm-2's typing alert (level 1, active)."""
-    mine = {a["topic"]: a["id"] for a in c.get("/api/v1/crew/cm-2/alerts", headers=H("specialist2")).json()}
-    return {"al-1042": mine["immune"], "al-1039": mine["behavioral"]}
-
-
-IDS = real_alert_ids()
-
-
-def real(v):
-    """Replaces the mock ids with real ones; pk-0006 / pk-0007 = the newest real packet to Earth (created by the
-    level 3 escalation example, which runs before the packet examples)."""
-    if isinstance(v, dict):
-        return {k: real(x) for k, x in v.items()}
-    if v in ("pk-0006", "pk-0007"):
-        return c.get("/api/v1/link/packets?direction=down", headers=H("earth")).json()[0]["id"]
-    return IDS.get(v, v) if isinstance(v, str) else v
+H = mock_headers
+real = id_resolver(c)
+IDS = real.ids
 ops = {(m.upper(), p) for p, v in app.openapi()["paths"].items() for m in v}
 missing = ops - set(REQUESTS) - {("GET", "/api/v1/events")}
 assert not missing, f"fără exemplu: {missing}"

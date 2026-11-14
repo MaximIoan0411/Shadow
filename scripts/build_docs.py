@@ -20,13 +20,16 @@ sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "ai"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from request_examples import AI_REQUESTS, REQUESTS, id_resolver, mock_headers, use_scratch_environment  # noqa: E402
+
+use_scratch_environment()  # înainte de importul aplicației: își citește setările la import
+
 import yaml  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from app import datafiles, schemas  # noqa: E402
 from app.main import app  # noqa: E402
-from request_examples import AI_REQUESTS, REQUESTS  # noqa: E402
 from service import main as ai_main  # noqa: E402
 from service import schemas as ai_schemas  # noqa: E402
 
@@ -44,7 +47,8 @@ def shorten(o, keep=2):
             out.append(f"… încă {len(o) - keep} elemente de același fel")
         return out
     if isinstance(o, dict):
-        return {k: shorten(v, keep) for k, v in o.items()}
+        # tokenul din exemplu e real (semnat la rularea aceasta): în documentație rămâne doar începutul lui
+        return {k: v[:20] + "…" if k == "access_token" and isinstance(v, str) else shorten(v, keep) for k, v in o.items()}
     return o
 
 
@@ -139,7 +143,7 @@ def render_models(defs: dict, order_module=None, skip=("HTTPValidationError", "V
     return "\n".join(out), len(enums), len(objs)
 
 
-def render_reference(spec: dict, client: TestClient, requests: dict, auth: bool) -> tuple[str, str, int]:
+def render_reference(spec: dict, client: TestClient, requests: dict, auth: bool, real=lambda v: v) -> tuple[str, str, int]:
     ref, toc, by_tag = [], [], {}
     for path, ops in spec["paths"].items():
         for method, op in ops.items():
@@ -186,17 +190,17 @@ def render_reference(spec: dict, client: TestClient, requests: dict, auth: bool)
                            else "**Erori posibile:** " + ", ".join(errs) + "\n")
             ex = requests.get((method, path))
             if ex:
-                url = path.format(**ex.get("path", {}))
+                url = path.format(**real(ex.get("path", {})))
                 q = ex.get("query")
-                headers = {"Authorization": f"Bearer mock-{ex['as_']}"} if ex.get("as_") else {}
-                res = client.request(method, url, params=q, json=ex.get("json"), headers=headers)
+                body_sent = real(ex.get("json"))
+                res = client.request(method, url, params=q, json=body_sent, headers=mock_headers(ex.get("as_")))
                 assert res.status_code < 300, (method, url, res.status_code, res.text[:200])
                 shown = url + ("?" + "&".join(f"{k}={str(v).lower() if isinstance(v, bool) else v}" for k, v in q.items()) if q else "")
                 who = f" (autentificat ca <code>{ex['as_'] or 'nimeni'}</code>)" if auth else ""
                 ref.append(f"<details><summary>Exemplu{who}</summary>\n")
                 ref.append(f"```http\n{method} {shown}\n```\n")
-                if ex.get("json") is not None:
-                    ref.append("Cerere:\n\n" + jblock(ex["json"]) + "\n")
+                if body_sent is not None:
+                    ref.append("Cerere:\n\n" + jblock(body_sent) + "\n")
                 ref.append(f"Răspuns `{res.status_code}`:\n\n" + jblock(shorten(res.json())) + "\n")
                 ref.append("</details>\n")
             ref.append("---\n")
@@ -220,8 +224,9 @@ def fill(guide_path: pathlib.Path, **parts) -> str:
 # ===================================================================== 1. API: frontend ↔ backend
 api_spec = app.openapi()
 write_spec(CONTRACT / "api", api_spec)
-api_client = TestClient(app)
-ref, toc, n_ops = render_reference(api_spec, api_client, REQUESTS, auth=True)
+api_client = TestClient(app).__enter__()   # pornește aplicația reală: baza de date, conturile, istoricul
+ref, toc, n_ops = render_reference(api_spec, api_client, REQUESTS, auth=True, real=id_resolver(api_client))
+api_client.__exit__(None, None, None)
 models, n_en, n_ob = render_models(api_spec["components"]["schemas"], schemas)
 (CONTRACT / "api" / "README.md").write_text(
     fill(CONTRACT / "api" / "guide.md", N_OPS=n_ops, N_MODELS=n_en + n_ob, VERSION=api_spec["info"]["version"],

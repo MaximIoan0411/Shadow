@@ -3,9 +3,8 @@
 **NASA Space Apps 2026 · versiunea {{VERSION}} · {{N_OPS}} endpoint-uri · {{N_MODELS}} modele**
 
 Acest document este **înțelegerea dintre frontend și backend**. Dacă amândouă părțile îl respectă, se pot construi
-separat și se potrivesc la integrare. Tot ce e aici rulează deja: scheletul din `backend/` este un **server mock**
-care răspunde la toate endpoint-urile cu date de exemplu valide, iar textele, mediile, catalogul și pragurile vin
-deja din `data/`.
+separat și se potrivesc la integrare. Tot ce e aici rulează: `backend/` este **serverul real** (bază de date,
+motor de triaj, coadă spre Pământ, securitate), iar textele, mediile, catalogul și pragurile vin din `data/`.
 
 Contractele cu restul aplicației sunt în același folder: `contract/ai/` (backend ↔ serviciul AI),
 `contract/security/` (backend ↔ codul de securitate) și `contract/data/` (backend ↔ fișierele din `data/`).
@@ -25,13 +24,13 @@ Contractele cu restul aplicației sunt în același folder: `contract/ai/` (back
 > **Nou în 1.1 — autentificare separată pentru fiecare astronaut.** Nu mai există contul comun `astronaut`: fiecare
 > membru al echipajului are contul și parola lui. Au apărut `GET /auth/accounts` și `POST /auth/logout`, eroarea
 > `429 too_many_attempts` și câmpul `initials` pe `User`. Utilizatorii de test s-au schimbat (secțiunea 1), iar
-> tokenurile mock sunt acum `mock-specialist2`, `mock-medic` etc. Detalii: secțiunea 4.
+> tokenurile de test (doar cu `ALLOW_MOCK_TOKENS=true`) sunt `mock-specialist2`, `mock-medic` etc. Detalii: secțiunea 4.
 
 ## Ce citești, în funcție de ce faci
 
 | Dacă lucrezi la… | Citește | Apoi |
 |---|---|---|
-| **Frontend** | secțiunile 1–7 și 10 | pornește mock-ul, generează tipurile TypeScript, construiește pe datele mock |
+| **Frontend** | secțiunile 1–7 și 10 | pornește backend-ul, generează tipurile TypeScript, construiește pe datele scenariului |
 | **Backend** | secțiunile 1–9, apoi `backend/PLAN_DE_ATAC_BACKEND.md` | înlocuiește pe rând corpul funcțiilor din `backend/app/routers/` cu servicii reale |
 | **Securitate** | secțiunile 3, 4, 8 și `contract/security/README.md` | înlocuiește corpul funcțiilor provizorii din `backend/app/security/` |
 | **Medicul AI** | `contract/ai/README.md`; aici doar `/ai/*` | serviciul din `ai/`, pe portul 8001 |
@@ -68,8 +67,8 @@ Fără `uv`, varianta clasică: `python -m venv .venv && source .venv/bin/activa
   încerca orice endpoint din browser.
 - **http://localhost:8000/health** — verifică dacă serverul răspunde.
 
-**Conturi de test — câte unul pentru fiecare astronaut.** Fiecare are altă parolă (valorile de test sunt și în
-`backend/app/examples.py`, la `MOCK_PASSWORDS`):
+**Conturi de test — câte unul pentru fiecare astronaut.** Fiecare are altă parolă (valorile de test sunt în
+`backend/seed/users.json`):
 
 | Utilizator | Parolă de test | Rol | Membru de echipaj | Ecranul lui |
 |---|---|---|---|---|
@@ -87,13 +86,14 @@ curl -s localhost:8000/api/v1/auth/accounts          # conturile pentru ecranul 
 curl -s -X POST localhost:8000/api/v1/auth/login \
   -H 'content-type: application/json' \
   -d '{"username":"specialist2","password":"cm2-shadow"}'
-# → {"access_token":"mock-specialist2", "user": {"role":"astronaut","crew_id":"cm-2", ...}}
+# → {"access_token":"eyJhbGciOi…", "user": {"role":"astronaut","crew_id":"cm-2", ...}}
 
-curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H 'Authorization: Bearer mock-specialist2'   # 200, datele lui
-curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H 'Authorization: Bearer mock-comandant'     # 403, nu sunt ale lui
+TOKEN=eyJhbGciOi…   # access_token din răspunsul de mai sus
+curl -s localhost:8000/api/v1/crew/cm-2/dashboard -H "Authorization: Bearer $TOKEN"   # 200, datele lui
+curl -s localhost:8000/api/v1/crew/cm-1/dashboard -H "Authorization: Bearer $TOKEN"   # 403, nu sunt ale lui
 ```
 
-Scenariul mock: **ziua 96 din 140, ora 07:00, tranzit spre Marte**. Misiunea pornește din acest punct; zilele 1–95
+Scenariul: **ziua 96 din 140, ora 07:00, tranzit spre Marte**. Misiunea pornește din acest punct; zilele 1–95
 sunt istoric, iar zilele 97–140 nu au avut loc încă. Specialist de misiune 2 are o alertă imunitară de nivel 2
 (puls de noapte +7 bpm, 3 nopți) și una comportamentală de nivel 1 (tastare mai lentă cu 18%). Ceilalți trei membri
 ai echipajului au totul „în limite”: autentificați-vă cu conturi diferite ca să vedeți că fiecare își primește
@@ -127,10 +127,10 @@ backend/app/
 ├── main.py                  ← create_app(), lifespan, forma erorilor, OpenAPI
 ├── deps.py                  ← autentificare, roluri, difuzorul SSE
 ├── routers/                 ← câte un fișier pe domeniu; aici intră logica reală (prin services/)
-├── examples.py              ← datele mock (scenariul zilei 96); dispare pe măsură ce apare logica reală
+├── services/, engine/, link/, simulator/, db/   ← logica reală (vezi secțiunea 8)
 ├── datafiles.py             ← formatul fișierelor din data/ + încărcarea lor
 ├── ai_schemas.py            ← copie a ai/service/schemas.py
-└── security/                ← al echipei de securitate (variante provizorii, semnături finale)
+└── security/                ← al echipei de securitate (Ed25519, AES-256-GCM, HS256, argon2id)
 
 frontend/src/lib/
 ├── shadow-api.d.ts          ← tipuri TypeScript generate din contract/api/openapi.json
@@ -307,8 +307,9 @@ Afișați mereu, vizibil, cine e autentificat (nume + inițiale, în antet). Tas
 - **Jurnal:** `login`, `login_failed` și `logout` se scriu în jurnalul de acces, cu contul și ora.
 - **Fără conturi noi din aplicație:** echipajul e fix, stabilit înainte de misiune. Nu există endpoint de înregistrare.
 
-**În mock**, tokenul este textul `mock-<utilizator>` (de exemplu `mock-specialist2`), ca să puteți testa fără
-login, și nu se revocă la `logout`.
+**Doar pentru teste**, cu `ALLOW_MOCK_TOKENS=true` în `.env`, backend-ul acceptă și tokenul `mock-<utilizator>`
+(de exemplu `mock-specialist2`), FĂRĂ parolă; acesta nu se revocă la `logout`. Implicit e oprit: într-un demo sau
+pe o rețea cu alți oameni ar însemna că oricine intră în orice cont.
 
 ### Ce are voie fiecare rol
 
@@ -396,7 +397,7 @@ data: {"id":"ev-000123","type":"alert.created","at":"2027-04-15T07:42:00Z","crew
 
 | `type` | Când vine | Forma lui `data` | Ce face frontend-ul |
 |---|---|---|---|
-| `mission.tick` | la ~1 secundă reală (mock: la 3 s) | [MissionTick](#missiontick) | actualizează ceasul și ziua misiunii |
+| `mission.tick` | la ~1 secundă reală | [MissionTick](#missiontick) | actualizează ceasul și ziua misiunii |
 | `environment.changed` | s-a schimbat mediul | [MissionState](#missionstate) | actualizează comutatorul și întârzierea afișată |
 | `dashboard.changed` | după check-in, exerciții, test de reacție, reverificare, salt de zi, reset | `{ "reason": "checkin" \| "exercise" \| "pvt" \| "keystrokes" \| "recheck" \| "jump" \| "reset" }` | reîncarcă `dashboard` și panoul deschis; la `reset`, reîncarcă **tot** (ca după o reconectare) |
 | `alert.created` | triajul a creat o alertă | [AlertBrief](#alertbrief) | notificare + reîncarcă `dashboard` |
@@ -545,7 +546,7 @@ Contractul fixează **ce** se vede din afară. **Cum** se construiește backend-
 pornire din ziua 96, task-uri din fundal, ordinea pe ore) e în `backend/PLAN_DE_ATAC_BACKEND.md`, iar lista
 funcționalităților, în `BACKEND_SARCINI.md`. Pe scurt:
 
-| Modul | Unde | Ce înlocuiește mock-ul |
+| Modul | Unde | Ce face |
 |---|---|---|
 | Fundație | `main.py` (`create_app`, `lifespan`), `config.py`, `clock.py`, `db/` | baza SQLite asincronă, recreată la fiecare pornire; `SimClock`; încărcarea `data/` cu `datafiles.load_all()` |
 | Autentificare | `routers/auth.py`, `deps.py` | conturile din `backend/seed/users.json`, tokenuri reale, revocare, jurnal (funcțiile vin din `security/`) |
@@ -671,7 +672,7 @@ Sfaturi:
 
 ## 11. Referința endpoint-urilor
 
-Generată din cod. Exemplele sunt **răspunsuri reale ale serverului mock**; listele lungi sunt scurtate.
+Generată din cod. Exemplele sunt **răspunsuri reale ale backend-ului**, pe scenariul zilei 96; listele lungi sunt scurtate.
 
 {{REF_TOC}}
 

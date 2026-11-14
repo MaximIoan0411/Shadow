@@ -18,14 +18,6 @@ paths:
   /chat:
     post:
       summary: Răspuns cu surse
-      description: 'MOCK: reformulează direct recomandarea din context și citează sursa ei.
-
-
-        Varianta reală: caută 3–4 fragmente în index (întrebare + subiectul alertei), construiește promptul din
-
-        ai/prompts/, cere răspunsul de la llama-server, verifică limitele (fără diagnostic, fără medicamente,
-
-        lungime maximă) și întoarce doar citările folosite.'
       operationId: chat_chat_post
       requestBody:
         content:

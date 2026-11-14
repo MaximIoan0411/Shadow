@@ -18,12 +18,11 @@ le scrie.
 
 ## 1. Cum lucrăm
 
-- Toate funcțiile **există deja**, cu semnăturile finale. Multe au corp **provizoriu**: suficient ca backend-ul să
-  lucreze, fără criptografie reală. Fiecare modul le listează în constanta `PROVIZORIU`, iar referința de mai jos
-  le marchează. Când termină o funcție, echipa de securitate îi scoate numele din listă.
-- Backend-ul le apelează de la început. Echipa de securitate înlocuiește corpul cu varianta reală (argon2id, PyJWT,
-  Ed25519 și AES-GCM din `cryptography`), **fără să schimbe semnăturile**, deci fără să atingă codul backend-ului.
-- **Până la ora 12** nu mai rămâne niciun `# PROVIZORIU`. Ce rămâne provizoriu **nu se prezintă juriului ca real**.
+- Toate funcțiile au corpul **real**: argon2id (`argon2-cffi`), HS256 (`PyJWT`), Ed25519 și AES-256-GCM
+  (`cryptography`). Semnăturile lor au rămas cele stabilite de la început, deci codul backend-ului nu s-a schimbat.
+- Dacă o funcție redevine provizorie, modulul o trece în constanta `PROVIZORIU`, iar referința de mai jos o
+  marchează. Ce e provizoriu **nu se prezintă juriului ca real**.
+- La pornire, backend-ul încarcă cheile (`keys.load_keys`) și le dă sigilării (`sealing.configure`).
 - Modelul de amenințări și arhitectura sunt în `security/threat-model.md` și `security/architecture.md`.
 
 ## 2. Regulile pentru backend
@@ -51,6 +50,10 @@ le scrie.
    `tokens.issue` → `access_log.write`.
 7. **Ordinea la fiecare cerere autentificată:** `tokens.decode` → `tokens.is_revoked` → încărcarea contului.
    `role` și `crew_id` se citesc **doar din token**.
+8. **Măsurătorile de la dispozitive** (`POST /ingest/measurements`): semnătura se verifică peste JSON-ul exact
+   cum a sosit, nu peste modelul validat; un dispozitiv poate trimite doar pentru membrul lui de echipaj
+   (`keys.DEVICE_CREW`); aceeași măsurătoare (dispozitiv + metrică + oră) primită a doua oară e respinsă ca `replay`.
+9. **Jurnalul de acces și tokenurile revocate nu se șterg la `POST /sim/reset`**; resetarea se scrie în jurnal.
 
 ## 3. Cine apelează ce
 

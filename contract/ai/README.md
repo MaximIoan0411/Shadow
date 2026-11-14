@@ -127,12 +127,6 @@ Generată din `ai/service/main.py`. Exemplele sunt răspunsuri reale ale mock-ul
 
 #### `POST /chat` — Răspuns cu surse
 
-MOCK: reformulează direct recomandarea din context și citează sursa ei.
-
-Varianta reală: caută 3–4 fragmente în index (întrebare + subiectul alertei), construiește promptul din
-ai/prompts/, cere răspunsul de la llama-server, verifică limitele (fără diagnostic, fără medicamente,
-lungime maximă) și întoarce doar citările folosite.
-
 **Corpul cererii:** [AiServiceChatRequest](#aiservicechatrequest)
 
 **Răspuns 200:** [AiServiceChatResponse](#aiservicechatresponse)
@@ -181,7 +175,7 @@ Răspuns `200`:
 
 ```json
 {
-  "answer": "Ce s-a observat: +7 bpm peste mediana personală, 3 nopți. Ce poți face acum: Anunță ofițerul medical de la bord, cu graficul de puls și temperatură și jurnalul de simptome.",
+  "answer": "What was observed: +7 bpm peste mediana personală, 3 nopți. What you can do now: Anunță ofițerul medical de la bord, cu graficul de puls și temperatură și jurnalul de simptome.",
   "citations": [
     {
       "title": "Alavi et al. (2022), Nature Medicine 28:175–184",
