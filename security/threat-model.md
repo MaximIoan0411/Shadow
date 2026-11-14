@@ -40,7 +40,7 @@ Căile care încep cu `app/` și `tests/` sunt din `backend/`; celelalte, din r�
 | același mesaj retrimis | acțiune repetată | o măsurătoare (dispozitiv, metrică, oră) intră o singură dată; un pachet are număr de ordine unic, inclus în semnătură | `app/services/security_log.py`, `app/db/models/link.py` | `tests/security/test_ingest.py`, `tests/link/test_enqueue.py` |
 | un coleg citește datele altuia | pierderea încrederii, subraportare | cont pe astronaut; rolul și `crew_id` se citesc doar din token; toate căile `/crew/{crew_id}` trec prin aceeași verificare | `app/deps.py`, `app/services/alerts.py` | `tests/security/test_auth_flow.py`, `tests/routers/test_events.py` |
 | cineva șterge urmele | acces neobservat | jurnal în care fiecare intrare conține hash-ul celei dinainte; aplicația verifică lanțul și arată rezultatul | `app/security/access_log.py`, `app/services/access.py` | `tests/security/test_access_log_wiring.py` |
-| token furat de pe stația comună | acces în numele altcuiva | tokenul stă doar în memoria ferestrei; deconectarea îl revocă; expiră în 12 ore | `app/security/tokens.py`, `frontend/src/lib/session.tsx` | `tests/security/test_auth_flow.py`, `tests/security/test_tokens_and_keys.py` |
+| token furat de pe stația comună | acces în numele altcuiva | tokenul stă doar în memoria ferestrei; deconectarea îl revocă, iar revocarea ține și după repornire; expiră în 12 ore | `app/security/tokens.py`, `frontend/src/lib/session.tsx` | `tests/security/test_auth_flow.py`, `tests/security/test_tokens_and_keys.py` |
 | parolă ghicită | intrare în contul altcuiva | argon2id; 5 greșeli în 5 minute blochează contul 60 s; același răspuns pentru un cont inexistent | `app/security/passwords.py`, `app/security/lockout.py`, `app/services/auth.py` | `tests/security/test_auth_flow.py` |
 | token fabricat | orice rol, fără parolă | un secret lipsă, scurt sau publicat e înlocuit la pornire cu unul aleator; tokenurile de test sunt oprite implicit | `app/config.py`, `app/security/tokens.py` | `tests/security/test_tokens_and_keys.py` |
 | textul tastat ajunge în baza de date | pierderea intimității | se trimit doar timpi și clasa tastei; o cerere care conține litera e refuzată | `app/schemas.py` | `tests/routers/test_keystrokes_api.py` |
@@ -58,6 +58,5 @@ De spus ca atare juriului.
 - **Baza de date nu e criptată.** După sosire, conținutul unui pachet e păstrat decriptat.
 - **Fără deconectare automată.** O sesiune lăsată deschisă pe stația comună rămâne deschisă cât e fereastra deschisă, cel mult 12 ore.
 - **Blocarea conturilor e ținută în memorie** și dispare la repornire.
-- **La fiecare pornire, baza de date e ștearsă** (`RESET_DB_ON_START=true`, implicit), cu tot cu jurnalul de acces și cu lista tokenurilor revocate. Cu un `JWT_SECRET` fix, un token revocat la deconectare redevine valabil după repornire, până expiră.
 - **Simularea și demo-ul** (`/sim/*`, `/demo/*`) pot fi pornite de orice cont, nu de un administrator. Într-un sistem real nu există.
 - **Modelul AI pe Colab:** întrebarea și contextul alertei părăsesc calculatorul, printr-un tunel HTTPS cu cheie. Pe navă modelul ar rula local (modul `local`).

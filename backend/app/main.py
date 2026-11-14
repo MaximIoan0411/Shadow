@@ -8,8 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
-from sqlalchemy.engine import make_url
+from sqlalchemy import MetaData, text
+from sqlalchemy.engine import Connection
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import schemas
@@ -62,14 +62,6 @@ def resolve_data_dir(data_dir: str) -> Path:
     return path if path.is_absolute() else (BACKEND_DIR / path).resolve()
 
 
-def delete_sqlite_files(url: str) -> None:
-    parsed = make_url(url)
-    if parsed.get_backend_name() != "sqlite" or parsed.database in (None, "", ":memory:"):
-        return
-    for suffix in ("", "-wal", "-shm"):
-        Path(parsed.database + suffix).unlink(missing_ok=True)
-
-
 async def db_status() -> str:
     if db.engine is None:
         return "unavailable"
@@ -103,15 +95,37 @@ async def bootstrap(app: FastAPI) -> None:
 
 
 async def check_access_log() -> None:
-    """With RESET_DB_ON_START=false the access log outlives restarts, so an entry changed while the application was
-    stopped is reported here, in the server log, before anyone signs in. (With the default, the database starts
-    empty and there is nothing to check.)"""
+    """The access log outlives restarts, so an entry changed while the application was stopped is reported here, in
+    the server log, before anyone signs in."""
     async with db.SessionLocal() as s:
         await access.integrity(s)
 
 
-# the audit trail and the signed-out tokens survive POST /sim/reset: a demo button must not erase them
+# the audit trail and the signed-out tokens survive POST /sim/reset and a restart: neither a demo button nor a
+# reboot may erase who read what, or bring a signed-out token back to life
 KEPT_ON_RESET = ("access_log", "revoked_tokens")
+
+
+def _same_columns(found: MetaData, name: str) -> bool:
+    return set(found.tables[name].columns.keys()) == set(Base.metadata.tables[name].columns.keys())
+
+
+def _empty_database(conn: Connection) -> None:
+    found = MetaData()
+    found.reflect(bind=conn)
+    # there are no migrations: a kept table written by an older version of the code cannot be read, so it goes too
+    outdated = {name for name in KEPT_ON_RESET if name in found.tables and not _same_columns(found, name)}
+    for name in sorted(outdated):
+        startup_log.warning("table %s was written by an older version: it starts empty", name)
+    doomed = [t for t in found.sorted_tables if t.name not in KEPT_ON_RESET or t.name in outdated]
+    found.drop_all(conn, tables=doomed)
+
+
+async def reset_database() -> None:
+    """RESET_DB_ON_START: every start begins from the same scenario. Drops every table found in the database (also
+    the ones this version no longer knows), except the two in KEPT_ON_RESET."""
+    async with db.engine.begin() as conn:
+        await conn.run_sync(_empty_database)
 
 
 async def wipe(app: FastAPI) -> None:
@@ -144,8 +158,6 @@ async def stop_tasks(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = app.state.settings
-    if settings.reset_db_on_start:
-        delete_sqlite_files(settings.database_url)
     started = time.perf_counter()
     engine = db.init_engine(settings.database_url)
     try:
@@ -155,6 +167,8 @@ async def lifespan(app: FastAPI):
         sealing.configure(app.state.keys)
         app.state.bootstrap, app.state.wipe = bootstrap, wipe
         app.state.start_tasks, app.state.stop_tasks = start_tasks, stop_tasks
+        if settings.reset_db_on_start:
+            await reset_database()
         await bootstrap(app)
         await check_access_log()
         start_tasks(app)
