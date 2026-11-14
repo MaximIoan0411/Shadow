@@ -78,7 +78,7 @@ function Frame({ user, children }: { readonly user: Schemas["User"]; readonly ch
     <div className="relative flex h-full overflow-hidden bg-bg">
       <Sidebar
         items={items}
-        account={{ displayName: user.display_name, initials: user.initials, role: user.role }}
+        account={{ username: user.username, displayName: user.display_name, initials: user.initials, role: user.role }}
         collapsed={collapsed}
         onToggle={() => setCollapsed((value) => !value)}
         onSwitchAccount={() => void logout()}

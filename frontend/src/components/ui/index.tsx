@@ -232,7 +232,7 @@ export function Field({
       )}
       {error && (
         <p id={`${id}-error`} role="alert" className="flex items-start gap-1.5 text-small text-fg-2">
-          <StatusMark status="alert" className="mt-px" />
+          <StatusMark status="alert" className="mt-0.5" />
           {error}
         </p>
       )}
@@ -397,19 +397,25 @@ export function LevelTag({ level, full }: { readonly level: Level; readonly full
 
 // ---------------------------------------------------------------- stare
 
-/** Doar forma colorată a stării; cuvântul e citit de cititoarele de ecran. Pentru locuri înguste. */
+/** Iconița stării, cât textul din jur, cu linie subțire. Decorativă: cuvântul stării îl dă cine o folosește. */
+export function StatusIcon({ status, className }: { readonly status: Status; readonly className?: string }): ReactElement {
+  const Icon = STATUS_META[status].icon;
+  return <Icon aria-hidden="true" size="1.08em" strokeWidth={2} className={cx("shrink-0", className)} />;
+}
+
+/** Doar iconița colorată a stării; cuvântul e citit de cititoarele de ecran. Pentru locuri înguste. */
 export function StatusMark({ status, className }: { readonly status: Status; readonly className?: string }): ReactElement {
   const meta = STATUS_META[status];
   return (
-    <span className={cx("inline-block shrink-0 text-[0.72em] leading-none", className)} style={{ color: meta.color }}>
-      <span aria-hidden="true">{meta.shape}</span>
+    <span className={cx("inline-flex shrink-0 items-center leading-none", className)} style={{ color: meta.color }}>
+      <StatusIcon status={status} />
       <span className="sr-only">{meta.label}</span>
     </span>
   );
 }
 
 /**
- * Starea: culoare + formă + cuvânt, mereu împreună. `compact` = fără pastilă, pentru rânduri dense.
+ * Starea: culoare + iconiță + cuvânt, mereu împreună. `compact` = fără pastilă, pentru rânduri dense.
  * Singura componentă (cu StatusMark și Notice) care are voie să folosească o culoare de stare.
  */
 export function StatusBadge({
@@ -428,9 +434,7 @@ export function StatusBadge({
   if (compact) {
     return (
       <span className={cx("inline-flex items-center gap-1.5 whitespace-nowrap text-small font-medium", className)} style={{ color: meta.color }}>
-        <span aria-hidden="true" className="text-[0.72em] leading-none">
-          {meta.shape}
-        </span>
+        <StatusIcon status={status} />
         {label ?? meta.label}
       </span>
     );
@@ -444,9 +448,7 @@ export function StatusBadge({
         background: `color-mix(in oklab, ${meta.color} 10%, transparent)`,
       }}
     >
-      <span aria-hidden="true" className="text-[0.72em] leading-none">
-        {meta.shape}
-      </span>
+      <StatusIcon status={status} />
       {label ?? meta.label}
     </span>
   );
@@ -477,7 +479,7 @@ export function Notice({
 }): ReactElement {
   return (
     <div role={tone === "alert" ? "alert" : "status"} className={cx("flex items-start gap-3 rounded-2xl border p-4", NOTICE_TONE[tone], className)}>
-      {tone !== "neutral" && <StatusMark status={tone} className="mt-1 text-small" />}
+      {tone !== "neutral" && <StatusMark status={tone} className="mt-[3px] text-base" />}
       <div className="min-w-0 flex-1">
         <p className="text-base font-medium text-fg">{title}</p>
         {children && <div className="mt-0.5 text-body leading-relaxed text-fg-3">{children}</div>}

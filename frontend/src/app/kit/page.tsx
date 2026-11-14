@@ -108,7 +108,7 @@ export default function KitPage(): ReactElement {
           <Brand />
           <h1 className="mt-5 text-display font-medium tracking-[-0.02em] text-fg">The design system</h1>
           <p className="mt-2 max-w-[72ch] text-lead text-fg-3">
-            Signal on black: ivory tones on the logo's black, and colour appears only when the body has something to say. Three status colours, each always with its shape and its word.
+            Signal on black: ivory tones on the logo's black, and colour appears only when the body has something to say. Three status colours, each always with its icon and its word.
           </p>
         </header>
 
@@ -164,7 +164,7 @@ export default function KitPage(): ReactElement {
           </ul>
         </Group>
 
-        <Group title="Status" lead="Colour, shape and word, always together. The compact variant is for dense rows; the neutral tag never carries colour.">
+        <Group title="Status" lead="Colour, icon and word, always together. The compact variant is for dense rows; the neutral tag never carries colour.">
           <div className="flex flex-wrap items-center gap-3">
             {STATUSES.map((status) => (
               <StatusBadge key={status} status={status} />
@@ -205,7 +205,7 @@ export default function KitPage(): ReactElement {
           </div>
         </Group>
 
-        <Group title="Fields" lead="Field borders have a contrast of at least 3:1 against the background. The error appears under the field, with the status shape.">
+        <Group title="Fields" lead="Field borders have a contrast of at least 3:1 against the background. The error appears under the field, with the status icon.">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field id="kit-temp" label="Temperature" hint="With the thermometer, at the same time every day.">
               <Input id="kit-temp" defaultValue="36,9" aria-describedby="kit-temp-hint" />
@@ -231,7 +231,7 @@ export default function KitPage(): ReactElement {
           </div>
         </Group>
 
-        <Group title="Messages" lead="The neutral tone informs; coloured tones also carry the status shape.">
+        <Group title="Messages" lead="The neutral tone informs; coloured tones also carry the status icon.">
           <div className="flex flex-col gap-2.5">
             <Notice title="Today's check-in is saved (07:02)">You can send another one at any time: it replaces the previous one.</Notice>
             <Notice tone="ok" title="Reply from the flight surgeon on Earth">Agreed on rest. Temperature twice a day.</Notice>
