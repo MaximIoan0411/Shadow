@@ -190,19 +190,16 @@ corpul cu varianta reală, fără ca ei să-și schimbe codul.
 
 ## 11. Atacurile pentru demo (P0)
 
-`security/attacks/`. Momentul „atacul” din pitch (3:20–3:50) vine de aici.
+**Scripturile din `security/attacks/` nu se mai fac.** Momentul „atacul” din pitch (3:20–3:50) se arată din
+panoul *Demo* al aplicației; restul atacurilor sunt acoperite de teste.
 
-| Script | Ce face | Ce se vede |
-|---|---|---|
-| `spoof_packet.py` | trimite un pachet semnat cu o cheie greșită | rând roșu „RESPINS, semnătură invalidă” în Controlul misiunii |
-| `replay_packet.py` | retrimite un pachet deja livrat | respins, cu motivul `replay` |
-| `tamper_measurement.py` | modifică o măsurătoare după semnare | respinsă, apare la valori respinse |
-| `frozen_sensor.py` | trimite aceeași valoare de sute de ori | respinsă, cu motivul „senzor înghețat” |
-| `cross_account.py` | un astronaut cere datele altuia | `403`, iar încercarea apare în jurnal |
-
-- Fiecare script rulează cu o singură comandă: `uv run --project backend python security/attacks/<script>.py`.
-- Primele două se pot porni și din interfață, prin `POST /demo/inject-spoof`.
-- **Gata când:** fiecare script produce efectul lui, vizibil pe ecran, în cel mult 10 secunde.
+| Atac | Unde se vede |
+|---|---|
+| pachet semnat cu o cheie greșită | panoul *Demo* → *Spoofed packet* (`POST /demo/inject-spoof`); pachetul apare respins în *Link with the ship* |
+| senzor înghețat | panoul *Demo* → *Frozen sensor* (`POST /demo/frozen-sensor`); respingerea apare în *Evidence* |
+| măsurătoare modificată după semnare | doar în teste (`backend/tests/security/test_ingest.py`) |
+| un astronaut cere datele altuia | doar în teste; în aplicație, încercarea refuzată apare în jurnalul de acces |
+| pachet retrimis | nu se arată (vezi `security/checklist.md`) |
 
 ## 12. Funcțiile pe care le apelează backend-ul
 
@@ -217,7 +214,7 @@ constanta `PROVIZORIU`; scoateți numele din listă când terminați. `scripts/s
 | `tokens.py` | `issue(*, user_id, role, crew_id, secret, ttl_s) -> (token, Claims)`, `decode(token, *, secret) -> Claims` (aruncă `InvalidToken`), `async revoke(session, jti, expires_at)`, `async is_revoked(session, jti) -> bool` | `deps.py`, `services/auth.py` |
 | `lockout.py` | `check(username)` (aruncă `AccountLocked`), `record_failure(username)`, `clear(username)`, `reset_all()` | `services/auth.py`, `/sim/reset` |
 | `keys.py` | `load_keys(*, link_aes_key_b64, keys_dir) -> Keys` | `main.py` (`lifespan`) |
-| `signing.py` | `canonical(obj) -> bytes` (**final**), `sign(obj, private_key) -> str`, `verify(obj, signature_b64, public_key) -> bool` | `services/security_log.py`, `simulator/devices.py`, `security/attacks/` |
+| `signing.py` | `canonical(obj) -> bytes` (**final**), `sign(obj, private_key) -> str`, `verify(obj, signature_b64, public_key) -> bool` | `services/security_log.py`, `simulator/devices.py` |
 | `sealing.py` | `seal(payload, header, *, sender) -> bytes`, `open(blob, header) -> dict` (aruncă `SealError("bad_signature")`), `HEADER_FIELDS` | `link/queue.py`, `link/scheduler.py` |
 | `validation.py` | `check(metric_key, value, recent_values, limits) -> Issue \| None` | `services/security_log.py`, `services/checkins.py` |
 | `access_log.py` | `async write(session, *, at, actor, actor_role, action, resource, crew_id, outcome) -> Entry`, `async verify_chain(session) -> bool`, `entry_hash(prev_hash, fields)` (**final**) | `deps.py`, `services/` |
@@ -304,14 +301,10 @@ security/
 ├── threat-model.md
 ├── architecture.md
 ├── checklist.md
-├── attacks/
-│   ├── spoof_packet.py
-│   ├── replay_packet.py
-│   ├── tamper_measurement.py
-│   ├── frozen_sensor.py
-│   └── cross_account.py
 ├── keys/
 │   ├── README.md
 │   └── generate_keys.py      (cheile generate nu intră în git)
 └── audit/
+    ├── findings.md           ce s-a găsit, ce s-a reparat, ce a rămas deschis
+    └── check_endpoints.py    401 fără token, 403 pentru alt astronaut
 ```
