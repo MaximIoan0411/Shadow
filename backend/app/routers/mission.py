@@ -6,7 +6,7 @@ from ..db.session import get_session
 from ..deps import ALL, CREW, ERRORS, current_user, get_data, require_roles, roles
 from ..schemas import ClockUpdate, EnvironmentInfo, EnvironmentUpdate, MissionState, User
 from ..services import mission as mission_service
-from ..services.events import publish_all
+from ..services.events import Event, publish_all
 
 router = APIRouter(tags=["2. Mission, environment, clock"])
 
@@ -89,4 +89,6 @@ async def set_clock(
     The timeline scrubber does NOT use this endpoint: it only reads the history with `?as_of_day=`.
 
     **SSE:** `mission.tick` with the new day, then `dashboard.changed` and possibly `alert.created`."""
-    return await mission_service.set_clock(session, data, time_scale=body.time_scale, mission_day=body.mission_day)
+    state = await mission_service.set_clock(session, data, time_scale=body.time_scale, mission_day=body.mission_day)
+    publish_all([Event("mission.tick", mission_service.tick_data())])
+    return state

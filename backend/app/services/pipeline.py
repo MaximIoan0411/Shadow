@@ -236,7 +236,15 @@ async def _update(
                 note=f"Escalated automatically to level {decision.new_level}.",
             )
         )
-    # TODO T23: level 3 → link.queue.enqueue (packet to Earth)
+
+
+async def _send_level3(session: AsyncSession, alert: Alert, data: DataBundle) -> None:
+    if alert.level >= 3 and alert.packet_id is None:
+        from . import link as link_service
+
+        await link_service.send_alert_to_earth(
+            session, data, alert, sender=SHADOW_ACTOR, note="Escalated automatically by the triage engine."
+        )
 
 
 async def process(
@@ -275,11 +283,13 @@ async def process(
     for decision in triage.decide(findings, open_levels):
         if decision.action == "create":
             alert = await create_alert(session, decision.finding, data, at)
+            await _send_level3(session, alert, data)
             result.alerts_created.append(alert.id)
             result.events.append(Event("alert.created", brief(alert), crew_id))
         elif decision.action in ("update", "escalate"):
             alert = open_alerts[(decision.finding.crew_id, decision.finding.topic)]
             await _update(session, alert, decision, data, at)
+            await _send_level3(session, alert, data)
             result.alerts_updated.append(alert.id)
             result.events.append(Event("alert.updated", brief(alert), crew_id))
     await session.flush()

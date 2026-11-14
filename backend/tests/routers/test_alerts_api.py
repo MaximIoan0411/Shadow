@@ -86,8 +86,10 @@ async def test_full_flow_ack_step_escalate_resolve(client, events):
         ("step_done", "Mission Specialist 2"),
         ("escalated", "Mission Specialist 2"),
         ("escalated", "Crew Medical Officer"),
+        ("packet_sent", "Crew Medical Officer"),
         ("resolved", "Crew Medical Officer"),
     ]
+    assert r.json()["packet_id"]
     published = events()
     assert len(published) == 5 and {e["type"] for e in published} == {"alert.updated"}
     assert all(e["crew_id"] == "cm-2" for e in published)

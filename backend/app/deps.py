@@ -7,6 +7,7 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import examples as ex
+from .clock import clock
 from .config import Settings
 from .datafiles import DataBundle
 from .db.session import get_session
@@ -103,18 +104,31 @@ _subscribers: set[asyncio.Queue] = set()
 _ids = itertools.count(1)
 
 
+EARTH_EVENT_PREFIXES = ("packet.", "mission.", "environment.")
+
+
 def publish(type_: str, data: Any, crew_id: str | None = None) -> None:
     if hasattr(data, "model_dump"):
         data = data.model_dump(mode="json")
     event = {
         "id": f"ev-{next(_ids):06d}",
         "type": type_,
-        "at": ex.MISSION.sim_now.isoformat(),
+        "at": clock.now().isoformat(),
         "crew_id": crew_id,
         "data": data,
     }
     for q in list(_subscribers):
         q.put_nowait(event)
+
+
+def visible_to(user: User, event: dict) -> bool:
+    """An astronaut gets only their own and the general events; earth only mission.*, environment.* and packet.*;
+    the crew medical officer gets everything."""
+    if user.role == Role.astronaut:
+        return event.get("crew_id") in (None, user.crew_id)
+    if user.role == Role.earth:
+        return event["type"].startswith(EARTH_EVENT_PREFIXES)
+    return True
 
 
 def subscribe() -> asyncio.Queue:
@@ -128,4 +142,4 @@ def unsubscribe(q: asyncio.Queue) -> None:
 
 
 def sse_format(event: dict) -> str:
-    return f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+    return f"id: {event['id']}\nevent: {event['type']}\ndata: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"

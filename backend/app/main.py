@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -20,6 +21,8 @@ from .db import session as db
 from .db.base import Base
 from .db.seed import seed_crew_and_users, seed_history
 from .deps import ApiError
+from .link import queue as link_queue
+from .link import scheduler as link_scheduler
 from .routers import (
     ai,
     alerts,
@@ -81,11 +84,13 @@ async def lifespan(app: FastAPI):
         delete_sqlite_files(settings.database_url)
     started = time.perf_counter()
     engine = db.init_engine(settings.database_url)
+    tasks: list[asyncio.Task] = []
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         app.state.data = load_all(resolve_data_dir(settings.data_dir))
         app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
+        link_queue.configure(app.state.keys)
         scenario = app.state.data.scenario
         clock.start(
             mission_start=scenario.start,
@@ -99,9 +104,17 @@ async def lifespan(app: FastAPI):
             await seed_history(s, app.state.data, until_day=scenario.start_day, not_after=clock.now())
             await pipeline.replay_history(s, until_day=scenario.start_day, data=app.state.data)
             await s.commit()
+        if settings.background_tasks:
+            tasks = [
+                asyncio.create_task(mission_service.mission_ticker(), name="mission_ticker"),
+                asyncio.create_task(link_scheduler.link_scheduler(app.state.data), name="link_scheduler"),
+            ]
         startup_log.info("SHADOW startup finished in %.2f s", time.perf_counter() - started)
         yield
     finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         await engine.dispose()
 
 

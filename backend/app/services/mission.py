@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,9 +8,11 @@ from ..clock import clock
 from ..datafiles import DataBundle, EnvironmentEntry
 from ..db.models.link import Packet
 from ..db.models.sim import SimState
-from ..deps import ApiError
+from ..deps import ApiError, publish
 from ..schemas import EnvironmentId, EnvironmentInfo, LinkStatus, MissionState
 from .events import Event
+
+log = logging.getLogger(__name__)
 
 MISSION_NAME = "SHADOW-1"
 ENV_KEY = "environment"
@@ -103,5 +108,18 @@ async def set_clock(
     return await state(session, data)
 
 
+TICK_S = 1.0
+
+
+def tick_data() -> dict:
+    return {"sim_now": clock.now().isoformat(), "mission_day": clock.mission_day()}
+
+
 async def mission_ticker() -> None:
-    raise NotImplementedError("T22")
+    """Background task: one `mission.tick` per real second with the mission time."""
+    while True:
+        try:
+            publish("mission.tick", tick_data())
+        except Exception:
+            log.exception("mission ticker failed; continuing")
+        await asyncio.sleep(TICK_S)

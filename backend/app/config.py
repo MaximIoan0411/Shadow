@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ai_url: str = "http://localhost:8001"
     ai_timeout_s: float = 20
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    background_tasks: bool = True
 
 
 def get_settings() -> Settings:

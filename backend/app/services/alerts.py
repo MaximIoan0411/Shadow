@@ -161,7 +161,10 @@ async def escalate(
     a.status = "alert"
     a.state = AlertState.escalated.value
     _history(a, user, "escalated", note)
-    # TODO T23: level 3 → link.queue.enqueue (signed, encrypted packet to Earth) and set a.packet_id
+    if to_level == 3:
+        from . import link as link_service
+
+        await link_service.send_alert_to_earth(session, data, a, sender=user.display_name, note=note)
     return await _save(session, a, data)
 
 
