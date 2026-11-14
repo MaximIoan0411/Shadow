@@ -38,9 +38,11 @@ async def test_earth_role_denied_is_logged(client, new_entries):
 
 
 async def test_cmo_reading_alert_is_logged(client, new_entries):
-    assert (await client.get("/api/v1/alerts/al-1042", headers=auth("medic"))).status_code == 200
+    own = (await client.get("/api/v1/crew/cm-2/alerts", headers=auth("specialist2"))).json()
+    alert_id = next(a["id"] for a in own if a["topic"] == "immune")
+    assert (await client.get(f"/api/v1/alerts/{alert_id}", headers=auth("medic"))).status_code == 200
     [e] = new_entries()
-    assert (e.action, e.resource, e.crew_id) == ("read_alert", "alerts/al-1042", "cm-2")
+    assert (e.action, e.resource, e.crew_id) == ("read_alert", f"alerts/{alert_id}", "cm-2")
 
 
 async def test_no_secrets_in_log(client, new_entries):

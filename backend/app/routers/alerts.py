@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
+from ..datafiles import DataBundle
 from ..db.session import get_session
-from ..deps import CREW, ERRORS, ApiError, crew_access, current_user, publish, require_roles, roles
+from ..deps import CREW, ERRORS, crew_access, current_user, get_data, require_roles, roles
 from ..schemas import (
     Alert,
     AlertBrief,
-    AlertHistoryEntry,
     AlertState,
     AlertTopic,
     EscalateRequest,
@@ -18,21 +17,12 @@ from ..schemas import (
     User,
 )
 from ..services import access
+from ..services import alerts as alerts_service
+from ..services.events import publish_all
 
 router = APIRouter(tags=["7. Alerts, triage, catalog"])
 E = {k: ERRORS[k] for k in (401, 403, 404, 422)}
 E409 = {**E, 409: ERRORS[409]}
-
-
-def _get(alert_id: str, user: User) -> Alert:
-    a = ex.ALERTS.get(alert_id)
-    if not a:
-        raise ApiError(404, "not_found", f"Alert {alert_id} does not exist.")
-    if user.role == Role.astronaut and a.crew_id != user.crew_id:
-        raise ApiError(403, "forbidden", "You do not have access to another crew member's alert.")
-    if user.role == Role.cmo and a.level < 2 and a.crew_id != user.crew_id:
-        raise ApiError(403, "forbidden", "The crew medical officer only sees level 2 and 3 alerts.")
-    return a
 
 
 @router.get(
@@ -47,16 +37,10 @@ async def list_alerts(
     state: AlertState | None = Query(default=None, description="Filter. Without it = all unresolved alerts."),
     topic: AlertTopic | None = None,
     user: User = Depends(crew_access),
+    session: AsyncSession = Depends(get_session),
 ):
     """Short list, most severe first. The crew medical officer only gets level ≥ 2 alerts of other members here."""
-    out = [
-        ex.brief(a)
-        for a in ex.ALERTS.values()
-        if a.crew_id == crew_id and (state is None or a.state == state) and (topic is None or a.topic == topic)
-    ]
-    if user.role == Role.cmo and user.crew_id != crew_id:
-        out = [a for a in out if a.level >= 2]
-    return sorted(out, key=lambda a: -a.level)
+    return await alerts_service.list_for_crew(session, crew_id, user, state, topic)
 
 
 @router.get(
@@ -66,9 +50,9 @@ async def list_alerts(
     responses={k: ERRORS[k] for k in (401, 403)},
     openapi_extra=roles(Role.cmo),
 )
-async def cmo_queue(user: User = Depends(require_roles(Role.cmo))):
+async def cmo_queue(user: User = Depends(require_roles(Role.cmo)), session: AsyncSession = Depends(get_session)):
     """All unresolved level 2 and 3 alerts across the crew. The main screen of the `cmo` role."""
-    return [ex.brief(a) for a in ex.ALERTS.values() if a.level >= 2 and a.state != AlertState.resolved]
+    return await alerts_service.cmo_queue(session)
 
 
 @router.get("/alerts/{alert_id}", response_model=Alert, summary="Full alert", responses=E, openapi_extra=roles(*CREW))
@@ -76,16 +60,17 @@ async def get_alert(
     alert_id: str,
     user: User = Depends(require_roles(*CREW)),
     session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
 ):
     """The evidence, the cause (individual or environmental), the catalog recommendation with its source, the action
     plan, the recheck date and the history. Every read by the crew medical officer is written to the access log."""
-    a = _get(alert_id, user)
+    a = await alerts_service.get_row(session, alert_id, user)
     if user.role == Role.cmo:
         await access.record(
             session, user, action="read_alert", resource=f"alerts/{alert_id}", crew_id=a.crew_id, outcome="allowed"
         )
         await session.commit()
-    return a
+    return alerts_service.to_schema(a, data)
 
 
 @router.post(
@@ -95,20 +80,19 @@ async def get_alert(
     responses=E409,
     openapi_extra=roles(Role.astronaut, Role.cmo),
 )
-async def ack_alert(alert_id: str, user: User = Depends(require_roles(*CREW))):
+async def ack_alert(
+    alert_id: str,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """Moves the alert from `active` to `acknowledged`. Not allowed on an alert that is already escalated or
     resolved (409 `invalid_state`).
 
     **SSE:** `alert.updated`."""
-    a = _get(alert_id, user)
-    if a.state != AlertState.active:
-        raise ApiError(409, "invalid_state", f"The alert is already in state {a.state.value}.")
-    a.state = AlertState.acknowledged
-    a.history.append(
-        AlertHistoryEntry(at=ex.MISSION.sim_now, actor=user.display_name, role=user.role, action="acknowledged")
-    )
-    publish("alert.updated", ex.brief(a), a.crew_id)
-    return a
+    alert, events = await alerts_service.acknowledge(session, data, alert_id, user)
+    publish_all(events)
+    return alert
 
 
 @router.put(
@@ -118,17 +102,20 @@ async def ack_alert(alert_id: str, user: User = Depends(require_roles(*CREW))):
     responses=E,
     openapi_extra=roles(*CREW),
 )
-async def update_step(alert_id: str, step_id: str, body: StepUpdate, user: User = Depends(require_roles(*CREW))):
+async def update_step(
+    alert_id: str,
+    step_id: str,
+    body: StepUpdate,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """Ticks or unticks a step of the action plan.
 
     **SSE:** `alert.updated`."""
-    a = _get(alert_id, user)
-    step = next((s for s in a.plan_steps if s.id == step_id), None)
-    if not step:
-        raise ApiError(404, "not_found", f"Step {step_id} does not exist.")
-    step.done, step.done_at = body.done, (ex.MISSION.sim_now if body.done else None)
-    publish("alert.updated", ex.brief(a), a.crew_id)
-    return a
+    alert, events = await alerts_service.update_step(session, data, alert_id, step_id, body.done, user)
+    publish_all(events)
+    return alert
 
 
 @router.post(
@@ -138,7 +125,13 @@ async def update_step(alert_id: str, step_id: str, body: StepUpdate, user: User 
     responses=E409,
     openapi_extra=roles(*CREW),
 )
-async def escalate(alert_id: str, body: EscalateRequest, user: User = Depends(require_roles(*CREW))):
+async def escalate(
+    alert_id: str,
+    body: EscalateRequest,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """Raises the alert by one level.
 
     * `to_level = 2` — the astronaut sends it to the crew medical officer. It shows up in `/cmo/queue`.
@@ -149,21 +142,9 @@ async def escalate(alert_id: str, body: EscalateRequest, user: User = Depends(re
     triage engine.
 
     **SSE:** `alert.updated`, and at level 3 also `packet.sent` when the window opens."""
-    a = _get(alert_id, user)
-    if body.to_level == 3 and user.role != Role.cmo:
-        raise ApiError(403, "forbidden", "Only the crew medical officer can send an alert to Earth.")
-    if body.to_level < a.level or (body.to_level == a.level and a.state == AlertState.escalated):
-        raise ApiError(409, "invalid_state", f"The alert is already at level {a.level}.")
-    a.level, a.state = body.to_level, AlertState.escalated
-    if body.to_level == 3:
-        a.packet_id = "pk-0007"
-    a.history.append(
-        AlertHistoryEntry(
-            at=ex.MISSION.sim_now, actor=user.display_name, role=user.role, action="escalated", note=body.note
-        )
-    )
-    publish("alert.updated", ex.brief(a), a.crew_id)
-    return a
+    alert, events = await alerts_service.escalate(session, data, alert_id, body.to_level, body.note, user)
+    publish_all(events)
+    return alert
 
 
 @router.post(
@@ -173,23 +154,20 @@ async def escalate(alert_id: str, body: EscalateRequest, user: User = Depends(re
     responses=E,
     openapi_extra=roles(*CREW),
 )
-async def resolve(alert_id: str, body: ResolveRequest, user: User = Depends(require_roles(*CREW))):
+async def resolve(
+    alert_id: str,
+    body: ResolveRequest,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """An astronaut can close level 1 alerts; level 2 and 3 alerts are closed by the crew medical officer.
     `outcome = monitoring` keeps the alert open and moves `recheck_at` by one more day.
 
     **SSE:** `alert.updated`."""
-    a = _get(alert_id, user)
-    if a.level >= 2 and user.role != Role.cmo:
-        raise ApiError(403, "forbidden", "Level 2 and 3 alerts are closed by the crew medical officer.")
-    if body.outcome != "monitoring":
-        a.state = AlertState.resolved
-    a.history.append(
-        AlertHistoryEntry(
-            at=ex.MISSION.sim_now, actor=user.display_name, role=user.role, action="resolved", note=body.note
-        )
-    )
-    publish("alert.updated", ex.brief(a), a.crew_id)
-    return a
+    alert, events = await alerts_service.resolve(session, data, alert_id, body.outcome, body.note, user)
+    publish_all(events)
+    return alert
 
 
 @router.get(
@@ -203,12 +181,11 @@ async def list_recommendations(
     topic: AlertTopic | None = None,
     level: int | None = Query(default=None, ge=1, le=3),
     user: User = Depends(current_user),
+    data: DataBundle = Depends(get_data),
 ):
     """Recommendations written by the team based on the NASA HRP risks, each with its source. The AI doctor only
     rephrases them."""
-    return [
-        r for r in ex.RECOMMENDATIONS if (topic is None or r.topic == topic) and (level is None or r.level == level)
-    ]
+    return alerts_service.recommendations(data, topic, level)
 
 
 @router.get(
@@ -218,7 +195,5 @@ async def list_recommendations(
     responses={k: ERRORS[k] for k in (401, 404)},
     openapi_extra=roles(*CREW, Role.earth),
 )
-async def get_recommendation(rec_id: str, user: User = Depends(current_user)):
-    if rec_id not in ex.REC_BY_ID:
-        raise ApiError(404, "not_found", f"Recommendation {rec_id} does not exist.")
-    return ex.REC_BY_ID[rec_id]
+async def get_recommendation(rec_id: str, user: User = Depends(current_user), data: DataBundle = Depends(get_data)):
+    return alerts_service.recommendation(data, rec_id)
