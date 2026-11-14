@@ -199,7 +199,7 @@ panoul *Demo* al aplicației; restul atacurilor sunt acoperite de teste.
 | senzor înghețat | panoul *Demo* → *Frozen sensor* (`POST /demo/frozen-sensor`); respingerea apare în *Evidence* |
 | măsurătoare modificată după semnare | doar în teste (`backend/tests/security/test_ingest.py`) |
 | un astronaut cere datele altuia | doar în teste; în aplicație, încercarea refuzată apare în jurnalul de acces |
-| pachet retrimis | nu se arată (vezi `security/checklist.md`) |
+| pachet retrimis | doar în teste (`backend/tests/link/test_enqueue.py`) |
 
 ## 12. Funcțiile pe care le apelează backend-ul
 

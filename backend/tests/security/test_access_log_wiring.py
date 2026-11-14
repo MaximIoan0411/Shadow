@@ -1,8 +1,11 @@
+import logging
+
 import pytest
 from sqlalchemy import delete, select, update
 
 from app.db import session as db
 from app.db.models.security import AccessLog
+from app.main import check_access_log
 from app.security import access_log
 from tests.conftest import auth
 
@@ -107,6 +110,42 @@ async def test_chain_detects_a_deleted_entry(client):
         await s.execute(delete(AccessLog).where(AccessLog.id == 2))
         await s.commit()
     assert not await chain_ok()
+
+
+async def hide_the_refused_read() -> None:
+    """Someone edits the database directly: the commander's refused attempt (entry 2) now says `allowed`."""
+    async with db.SessionLocal() as s:
+        await s.execute(update(AccessLog).where(AccessLog.id == 2).values(outcome="allowed"))
+        await s.commit()
+
+
+async def test_the_running_app_reports_a_changed_log(client):
+    for user in ("medic", "comandant", "medic"):
+        await client.get("/api/v1/crew/cm-2/dashboard", headers=auth(user))
+    before = (await client.get("/api/v1/access-log/integrity", headers=auth("specialist2"))).json()
+    assert before["intact"] is True and before["entries"] == 3
+
+    await hide_the_refused_read()
+    after = (await client.get("/api/v1/access-log/integrity", headers=auth("medic"))).json()
+    assert after["intact"] is False and after["entries"] == 3
+
+
+async def test_a_log_changed_while_the_app_was_stopped_is_reported_at_startup(client, caplog):
+    for user in ("medic", "comandant", "medic"):
+        await client.get("/api/v1/crew/cm-2/dashboard", headers=auth(user))
+    with caplog.at_level(logging.ERROR):
+        await check_access_log()
+    assert "BROKEN" not in caplog.text
+
+    await hide_the_refused_read()
+    with caplog.at_level(logging.ERROR):
+        await check_access_log()
+    assert "access log: the hash chain is BROKEN" in caplog.text
+
+
+async def test_integrity_check_is_for_the_crew_only(client):
+    assert (await client.get("/api/v1/access-log/integrity", headers=auth("earth"))).status_code == 403
+    assert (await client.get("/api/v1/access-log/integrity")).status_code == 401
 
 
 async def test_parallel_requests_keep_one_chain(client):

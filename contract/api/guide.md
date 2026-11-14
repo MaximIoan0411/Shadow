@@ -321,10 +321,13 @@ pe o rețea cu alți oameni ar însemna că oricine intră în orice cont.
 | Alertele altui membru | nu | doar nivelul 2 și 3 | doar ce ajunge prin pachete |
 | Escaladare la nivelul 2 | da | da | nu |
 | Escaladare la nivelul 3 | **nu** | da | nu |
+| Retrimiterea unei alerte de nivel 3 (`/link/outbox`, `alert_l3`) | **nu (403)** | da | nu |
+| Rezumatul săptămânal (`/link/outbox`, `weekly_summary`) | doar despre el | da | nu |
 | Coada de pachete | nu | da | da |
 | Răspuns de pe Pământ (`/earth/replies`) | nu | nu | da |
 | Dozimetrul în timp real (`/radiation/status`) | da | da | **nu** |
 | Jurnalul de acces | doar accesul la datele lui | tot | nu |
+| Verificarea jurnalului (`/access-log/integrity`) | da | da | nu |
 | Butoanele de demo (`/sim/*`, `/demo/*`) | da | da | da |
 
 Coloana `astronaut` e valabilă pentru **fiecare** cont de astronaut în parte: „datele proprii” înseamnă cele cu
@@ -535,6 +538,8 @@ Se schimbă întârzierea legăturii, rata de doză de fond și pragurile care d
 ### 7.10 Securitate și dovezi
 
 - `GET /access-log` — cine a citit ce.
+- `GET /access-log/integrity` — verifică lanțul de hash-uri al întregului jurnal; `intact = false` înseamnă că o
+  intrare a fost modificată sau ștearsă direct în baza de date. Se afișează deasupra jurnalului.
 - `GET /security/rejections` — valori și pachete respinse.
 - `POST /demo/frozen-sensor` — demo cu senzor înghețat → SSE `measurement.rejected`.
 - `GET /evidence/tests` — rezultatele testelor automate.

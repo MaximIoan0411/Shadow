@@ -107,6 +107,8 @@ _ids = itertools.count(1)
 EARTH_EVENT_PREFIXES = ("packet.", "mission.", "environment.")
 ALERT_EVENT_PREFIX = "alert."
 CMO_MIN_LEVEL = 2
+EARTH_LEVEL = 3
+ONLY_CMO_SENDS_ALERTS = "Only the crew medical officer can send an alert to Earth."
 SUBSCRIBER_QUEUE_MAX = 1000
 
 

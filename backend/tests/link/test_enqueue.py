@@ -1,4 +1,6 @@
+import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.db import session as db
 from app.db.models.link import Packet
@@ -68,13 +70,46 @@ async def test_outbox_rules(client):
     assert (
         await client.post("/api/v1/link/outbox", headers=A, json={"kind": "weekly_summary", "crew_id": "cm-1"})
     ).status_code == 403
-    r = await client.post("/api/v1/link/outbox", headers=A, json={"kind": "alert_l3", "crew_id": "cm-2"})
+    r = await client.post("/api/v1/link/outbox", headers=C, json={"kind": "alert_l3", "crew_id": "cm-2"})
     assert r.status_code == 422
     r = await client.post(
-        "/api/v1/link/outbox", headers=A, json={"kind": "alert_l3", "crew_id": "cm-2", "alert_id": "al-9999"}
+        "/api/v1/link/outbox", headers=C, json={"kind": "alert_l3", "crew_id": "cm-2", "alert_id": "al-9999"}
     )
     assert r.status_code == 404
     assert (await client.get("/api/v1/link/packets", headers=A)).status_code == 403
+
+
+async def test_only_the_medical_officer_sends_an_alert_to_earth(client):
+    alert_id = await immune_id(client)
+    again = {"kind": "alert_l3", "crew_id": "cm-2", "alert_id": alert_id}
+
+    # the astronaut cannot get around POST /alerts/{id}/escalate, not even for their own alert
+    assert (await client.post(f"/api/v1/alerts/{alert_id}/escalate", headers=A, json={"to_level": 3})).status_code == 403
+    r = await client.post("/api/v1/link/outbox", headers=A, json=again)
+    assert r.status_code == 403 and "crew medical officer" in r.json()["error"]["message"]
+
+    # the outbox only sends an alert again: before the escalation there is nothing to send again
+    r = await client.post("/api/v1/link/outbox", headers=C, json=again)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "invalid_state"
+    assert (await client.get("/api/v1/link/packets", headers=C)).json() == []
+
+    await client.post(f"/api/v1/alerts/{alert_id}/escalate", headers=C, json={"to_level": 3})
+    assert (await client.post("/api/v1/link/outbox", headers=A, json=again)).status_code == 403
+    r = await client.post("/api/v1/link/outbox", headers=C, json=again)
+    assert r.status_code == 201 and r.json()["kind"] == "alert_l3" and r.json()["seq"] == 2
+
+
+async def test_a_copied_packet_cannot_enter_the_queue_again(client):
+    """Replay: the same (direction, seq) a second time. The number is also inside the signed header, so a copy
+    cannot be given a new one without breaking the seal."""
+    await client.post("/api/v1/link/outbox", headers=A, json={"kind": "weekly_summary", "crew_id": "cm-2"})
+    async with db.SessionLocal() as s:
+        [original] = (await s.scalars(select(Packet))).all()
+        copy = {c.name: getattr(original, c.name) for c in Packet.__table__.columns}
+        s.add(Packet(**{**copy, "id": "pk-9999"}))
+        with pytest.raises(IntegrityError):
+            await s.commit()
+    assert len((await client.get("/api/v1/link/packets", headers=C)).json()) == 1
 
 
 async def test_nothing_stored_in_clear(client):

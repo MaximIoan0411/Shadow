@@ -55,6 +55,7 @@ le scrie.
    cum a sosit, nu peste modelul validat; un dispozitiv poate trimite doar pentru membrul lui de echipaj
    (`keys.DEVICE_CREW`); aceeași măsurătoare (dispozitiv + metrică + oră) primită a doua oară e respinsă ca `replay`.
 9. **Jurnalul de acces și tokenurile revocate nu se șterg la `POST /sim/reset`**; resetarea se scrie în jurnal.
+   Se pierd însă la repornirea backend-ului cât timp `RESET_DB_ON_START=true` (implicit): baza de date e ștearsă întreagă.
 
 ## 3. Cine apelează ce
 
@@ -71,7 +72,7 @@ le scrie.
 | `sealing.open` | `link/scheduler.py` (la sosire) |
 | `validation.check` | `services/security_log.py`, `services/checkins.py` |
 | `access_log.write` | `deps.py` (acces refuzat, citirea datelor unui coleg de către ofițerul medical), `services/auth.py` |
-| `access_log.verify_chain` | doar testele de securitate; aplicația pornită nu o apelează încă |
+| `access_log.verify_chain` | `services/access.py` (`integrity`): la pornire (`main.py`) și la `GET /access-log/integrity` |
 
 ## 4. Ce e fixat și ce nu
 

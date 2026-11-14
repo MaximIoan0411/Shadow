@@ -2,13 +2,13 @@ import logging
 from typing import Literal
 
 from fastapi import Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..clock import clock
 from ..db import session as db
 from ..db.models.security import AccessLog
-from ..schemas import AccessLogEntry, Role, User
+from ..schemas import AccessLogEntry, AccessLogIntegrity, Role, User
 from ..security import access_log
 
 log = logging.getLogger(__name__)
@@ -71,6 +71,16 @@ async def record_denied(request: Request) -> None:
             await s.commit()
     except Exception:
         log.exception("could not write access_denied to the access log")
+
+
+async def integrity(session: AsyncSession) -> AccessLogIntegrity:
+    """Walks the whole hash chain. A broken chain means a row was changed or removed outside the application; it is
+    reported to whoever asks and written to the server log."""
+    intact = await access_log.verify_chain(session)
+    count = await session.scalar(select(func.count()).select_from(AccessLog)) or 0
+    if not intact:
+        log.error("access log: the hash chain is BROKEN, an entry was changed or removed outside the application")
+    return AccessLogIntegrity(intact=intact, entries=count, checked_at=clock.now())
 
 
 async def entries(session: AsyncSession, user: User, crew_id: str | None, limit: int) -> list[AccessLogEntry]:

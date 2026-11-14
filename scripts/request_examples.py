@@ -99,6 +99,7 @@ REQUESTS = {
     ("GET", f"{P}/ai/status"): dict(as_=A),
     ("POST", f"{P}/ai/chat"): dict(as_=A, json={"crew_id": "cm-2", "message": "De ce mi-a crescut pulsul de noapte?", "alert_id": "al-1042", "history": []}),
     ("GET", f"{P}/access-log"): dict(as_=A),
+    ("GET", f"{P}/access-log/integrity"): dict(as_=A),
     ("GET", f"{P}/security/rejections"): dict(as_=C),
     ("POST", f"{P}/ingest/measurements"): dict(as_=None, json={"device_id": "wearable-cm-2", "crew_id": "cm-2", "metric_key": "night_pulse_bpm", "value": 61, "unit": "bpm", "measured_at": "2027-04-15T03:00:00Z", "signature_b64": "MEUCIQDc...trunchiat..."}),
     ("GET", f"{P}/evidence/tests"): dict(as_=A),

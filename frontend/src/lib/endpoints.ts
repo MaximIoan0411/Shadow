@@ -225,6 +225,10 @@ export async function listAccessLog(): Promise<Schemas["AccessLogEntry"][]> {
   return unwrap(await client.GET("/api/v1/access-log"));
 }
 
+export async function getAccessLogIntegrity(): Promise<Schemas["AccessLogIntegrity"]> {
+  return unwrap(await client.GET("/api/v1/access-log/integrity"));
+}
+
 export async function listRejections(): Promise<Schemas["Rejection"][]> {
   return unwrap(await client.GET("/api/v1/security/rejections"));
 }

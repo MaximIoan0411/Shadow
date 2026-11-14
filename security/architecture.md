@@ -88,7 +88,7 @@ signature  = Ed25519(cheia expeditorului, "shadow-packet-v1" + antet + nonce + c
 |---|---|---|---|
 | datele unui membru (`/crew/{crew_id}/…`) | doar ale lui | ale oricui; citirea se scrie în jurnal | nu |
 | alerte | ale lui | ale lui; ale colegilor de la nivelul 2 | doar cele trimise la nivelul 3, ca pachet |
-| trimiterea de date pe Pământ | doar despre el | despre oricine; doar el escaladează o alertă la nivelul 3 | — |
+| trimiterea de date pe Pământ | rezumatul săptămânal, doar despre el; nicio alertă | despre oricine; doar el trimite o alertă (escaladarea la nivelul 3) | — |
 | conținutul unui pachet | nu; răspunsul Pământului îi ajunge ca mesaj | răspunsurile Pământului și ce a trimis el | pachetele sosite de pe navă |
 | jurnalul de acces | intrările despre el | tot | nu |
 | valorile respinse | ale lui și cele fără persoană | toate | nu |
@@ -107,8 +107,12 @@ răspund `401`, în afară de `/health`, lista de conturi, autentificarea și pr
 hash = SHA-256(prev_hash + JSON canonic al intrării), primele 16 caractere; prima intrare are prev_hash = "0000000000000000"
 ```
 
-O intrare modificată sau ștearsă din mijloc rupe lanțul (`verify_chain`). Jurnalul și tokenurile revocate nu se
-șterg la resetarea simulării; resetarea se scrie și ea în jurnal. Ce nu poate dovedi lanțul e în `threat-model.md`.
+O intrare modificată sau ștearsă din mijloc rupe lanțul. Aplicația îl verifică (`verify_chain`) la pornire și la
+`GET /access-log/integrity`; rezultatul apare deasupra jurnalului, iar un lanț rupt e afișat ca alertă și scris în
+jurnalul serverului (`app/services/access.py`).
+
+Jurnalul și tokenurile revocate nu se șterg la resetarea simulării; resetarea se scrie și ea în jurnal. Se pierd
+însă la repornirea backend-ului, cu setarea implicită. Ce nu poate dovedi lanțul e în `threat-model.md`.
 
 ## 7. Medicul AI
 
@@ -125,5 +129,5 @@ O intrare modificată sau ștearsă din mijloc rupe lanțul (`verify_chain`). Ju
 | pachet falsificat, respins la sosire | panoul *Demo* → *Spoofed packet*, apoi *Link with the ship* |
 | senzor înghețat, respins | panoul *Demo* → *Frozen sensor*, apoi *Evidence* |
 | un astronaut cere datele altuia | răspuns `403`; încercarea apare în jurnalul de acces |
-| jurnalul de acces, cu hash-uri | *Evidence* |
+| jurnalul de acces, cu hash-uri și cu rezultatul verificării lanțului | *Evidence* → *Access log* |
 | semnătura și nonce-ul unui pachet | *Link with the ship*, detaliul pachetului |

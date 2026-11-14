@@ -10,7 +10,7 @@ from ..db.models.alerts import Alert as AlertRow
 from ..db.models.alerts import AlertHistory
 from ..db.models.link import Packet as PacketRow
 from ..db.models.users import Crew
-from ..deps import ApiError
+from ..deps import EARTH_LEVEL, ONLY_CMO_SENDS_ALERTS, ApiError
 from ..link import queue
 from ..schemas import (
     CrewMessage,
@@ -149,6 +149,9 @@ async def outbox(session: AsyncSession, data: DataBundle, body: OutboxCreate, us
     if await session.get(Crew, body.crew_id) is None:
         raise ApiError(404, "not_found", f"Crew member {body.crew_id} does not exist.")
     if body.kind == "alert_l3":
+        # the same rule as POST /alerts/{id}/escalate: an alert reaches Earth only through the crew medical officer
+        if user.role != Role.cmo:
+            raise ApiError(403, "forbidden", ONLY_CMO_SENDS_ALERTS)
         if not body.alert_id:
             raise ApiError(
                 422,
@@ -159,6 +162,8 @@ async def outbox(session: AsyncSession, data: DataBundle, body: OutboxCreate, us
         alert = await _alert(session, body.alert_id)
         if alert.crew_id != body.crew_id:
             raise ApiError(422, "validation_error", "The alert belongs to another crew member.")
+        if alert.level < EARTH_LEVEL:
+            raise ApiError(409, "invalid_state", "Escalate the alert to level 3 first; this only sends it again.")
         packet = await send_alert_to_earth(session, data, alert, sender=user.display_name, note=body.body)
     else:
         week = (clock.mission_day() - 1) // 7 + 1

@@ -102,6 +102,14 @@ async def bootstrap(app: FastAPI) -> None:
         await s.commit()
 
 
+async def check_access_log() -> None:
+    """With RESET_DB_ON_START=false the access log outlives restarts, so an entry changed while the application was
+    stopped is reported here, in the server log, before anyone signs in. (With the default, the database starts
+    empty and there is nothing to check.)"""
+    async with db.SessionLocal() as s:
+        await access.integrity(s)
+
+
 # the audit trail and the signed-out tokens survive POST /sim/reset: a demo button must not erase them
 KEPT_ON_RESET = ("access_log", "revoked_tokens")
 
@@ -148,6 +156,7 @@ async def lifespan(app: FastAPI):
         app.state.bootstrap, app.state.wipe = bootstrap, wipe
         app.state.start_tasks, app.state.stop_tasks = start_tasks, stop_tasks
         await bootstrap(app)
+        await check_access_log()
         start_tasks(app)
         # once per process, not restarted by /sim/reset; the thread finishes on its own
         app.state.engine_tests = (

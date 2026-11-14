@@ -709,7 +709,7 @@ class PacketDetail(Packet):
 
 class OutboxCreate(BaseModel):
     """Astronautul/ofițerul medical pune ceva în coada spre Pământ."""
-    kind: Literal["weekly_summary", "alert_l3"]
+    kind: Literal["weekly_summary", "alert_l3"] = Field(description="`alert_l3`: doar ofițerul medical, doar pentru o alertă deja escaladată la nivelul 3.")
     crew_id: str = Field(examples=["cm-2"])
     alert_id: str | None = Field(default=None, description="Obligatoriu pentru kind = alert_l3.")
     body: str | None = Field(default=None, max_length=2000, description="Text liber adăugat de expeditor.")
@@ -843,6 +843,13 @@ class AccessLogEntry(BaseModel):
     outcome: Literal["allowed", "denied"]
     prev_hash: str
     hash: str
+
+
+class AccessLogIntegrity(BaseModel):
+    """Rezultatul verificării lanțului de hash-uri al jurnalului de acces, făcută la cerere."""
+    intact: bool = Field(description="`false` = o intrare a fost modificată sau ștearsă în afara aplicației.")
+    entries: int = Field(description="Câte intrări are tot jurnalul (nu doar cele pe care le vede contul).", examples=[42])
+    checked_at: datetime = Field(description="Când s-a făcut verificarea (timpul misiunii).")
 
 
 class Rejection(BaseModel):
