@@ -1,7 +1,7 @@
 import copy
 import time
 
-from measurements import Checker, Rejected, make_reading, sign_reading
+from security.measurements.measurements import Checker, Rejected, make_reading, sign_reading
 
 
 def expect_rejected(test_name, checker, message, reason):
