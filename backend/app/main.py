@@ -11,6 +11,7 @@ from sqlalchemy.engine import make_url
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import schemas
+from .clock import clock
 from .config import get_settings
 from .datafiles import load_all
 from .db import models  # noqa: F401  (registers every table on Base.metadata)
@@ -80,6 +81,13 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
         app.state.data = load_all(resolve_data_dir(settings.data_dir))
         app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
+        scenario = app.state.data.scenario
+        clock.start(
+            mission_start=scenario.start,
+            day=scenario.start_day,
+            time_hhmm=scenario.start_time,
+            scale=settings.time_scale,
+        )
         async with db.SessionLocal() as s:
             await seed_crew_and_users(s, str(USERS_SEED))
             await s.commit()

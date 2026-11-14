@@ -4,9 +4,12 @@ import json
 from typing import Any
 
 from fastapi import Depends, Header, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import examples as ex
+from .config import Settings
 from .datafiles import DataBundle
+from .db.session import get_session
 from .schemas import ErrorResponse, Role, User
 
 
@@ -36,16 +39,26 @@ def get_data(request: Request) -> DataBundle:
     return request.app.state.data
 
 
-def decode_token(token: str) -> User:
-    if token.startswith("mock-") and token[5:] in ex.USERS:
-        return ex.USERS[token[5:]]
-    raise ApiError(401, "unauthorized", "Invalid or expired token. Please sign in again.")
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings
 
 
-def current_user(authorization: str | None = Header(default=None)) -> User:
+async def current_user(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    from .services import auth as auth_service
+
     if not authorization or not authorization.lower().startswith("bearer "):
         raise ApiError(401, "unauthorized", "Missing header Authorization: Bearer <token>.")
-    return decode_token(authorization[7:].strip())
+    token = authorization[7:].strip()
+    settings = request.app.state.settings
+    user = await auth_service.user_from_token(
+        session, token, secret=settings.jwt_secret, allow_mock=settings.allow_mock_tokens
+    )
+    request.state.token = token
+    return user
 
 
 def require_roles(*allowed: Role):
