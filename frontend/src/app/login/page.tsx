@@ -1,13 +1,15 @@
 "use client";
 /**
- * „Cine ești?” — fiecare astronaut are contul lui. Ecranul arată câte o casetă pe cont; la alegere cere parola
- * acelui cont. Conturile de la bord și cel de pe Pământ sunt separate după stația de lucru.
+ * „Cine ești?” — fiecare membru al echipajului are contul lui. Ecranul are două jumătăți: în stânga gaura neagră
+ * (doar imagine), în dreapta intrarea, în doi pași: alegi contul din listă, apoi scrii parola lui.
+ * Conturile de la bord și cel de pe Pământ sunt separate după stația de lucru.
  */
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
-import { Backdrop } from "@/components/layout/Shell";
+import { BlackHole } from "@/components/login/BlackHole";
 import { RoleIcon, hasRoleIcon } from "@/components/login/RoleIcon";
-import { Button, Card, Field, Input, Notice, Segmented, Skeleton, cx } from "@/components/ui";
+import { Button, Field, Input, Notice, Segmented, Skeleton, cx } from "@/components/ui";
 import { ApiError, ERROR_CODE, errorMessage, type Schemas } from "@/lib/api";
 import { getBackendStatus, type BackendStatus } from "@/lib/desktop";
 import { formatDuration } from "@/lib/format";
@@ -25,9 +27,10 @@ const LOCATIONS = [
 
 const MS_PER_SECOND = 1000;
 const PASSWORD_FIELD_ID = "login-password";
-const SKELETON_TILES = ["a", "b", "c", "d"] as const;
+const SKELETON_ROWS = ["a", "b", "c", "d"] as const;
 const RETRY_MS = 3000;
 const BACKEND_COMMAND = "cd backend && uv run uvicorn app.main:app --port 8000";
+const AVATAR_ICON_LARGE = 30;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 
@@ -54,32 +57,40 @@ function useCountdown(): readonly [number, (seconds: number) => void] {
   return [Math.max(0, Math.ceil((until - now) / MS_PER_SECOND)), start] as const;
 }
 
-function AccountTile({ account, selected, onSelect }: { readonly account: Account; readonly selected: boolean; readonly onSelect: () => void }): ReactElement {
+/** Cercul unui cont: icoana rolului, sau inițialele dacă rolul n-are icoană. */
+function Avatar({ account, large }: { readonly account: Account; readonly large?: boolean }): ReactElement {
   const withIcon = hasRoleIcon(account.username);
-  const idleTone = withIcon ? "bg-surface-4 text-crew" : "bg-surface-4 text-fg";
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
+    <span
+      aria-hidden="true"
       className={cx(
-        "flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors",
-        selected ? "border-solid bg-white/[0.07]" : "border-line-2 bg-white/[0.02] hover:border-line-3 hover:bg-white/[0.05]",
+        "grid shrink-0 place-items-center rounded-full border border-line-2 bg-surface-3 font-semibold",
+        large ? "size-16 text-lead" : "size-11 text-body",
+        withIcon ? "text-crew" : "text-fg",
       )}
     >
-      {/* icoana de rol a contului; un cont fără icoană își arată inițialele */}
-      <span
-        aria-hidden="true"
-        className={cx("grid size-10 shrink-0 place-items-center rounded-full text-body font-semibold", selected ? "bg-solid text-on-solid" : idleTone)}
+      {withIcon ? <RoleIcon username={account.username} size={large ? AVATAR_ICON_LARGE : undefined} /> : account.initials}
+    </span>
+  );
+}
+
+/** Un rând din lista conturilor: un clic duce la parola contului. */
+function AccountRow({ account, onSelect }: { readonly account: Account; readonly onSelect: () => void }): ReactElement {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onSelect}
+        className="group flex w-full items-center gap-4 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-white/[0.05]"
       >
-        {withIcon ? <RoleIcon username={account.username} /> : account.initials}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-base font-medium text-fg">{account.display_name}</span>
-        <span className="block truncate text-small text-fg-4">{ROLE_LABEL[account.role]}</span>
-      </span>
-    </button>
+        <Avatar account={account} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-medium text-fg">{account.display_name}</span>
+          <span className="block truncate text-small text-fg-4">{ROLE_LABEL[account.role]}</span>
+        </span>
+        <ChevronRight size={17} strokeWidth={1.8} aria-hidden="true" className="shrink-0 text-fg-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-fg-2" />
+      </button>
+    </li>
   );
 }
 
@@ -154,7 +165,13 @@ export default function LoginPage(): ReactElement {
   }, [down, refetch]);
 
   const visible = (accounts.data ?? []).filter((account) => account.location === location);
-  const selected = visible.find((account) => account.username === username) ?? null;
+  const selected = (accounts.data ?? []).find((account) => account.username === username) ?? null;
+
+  const choose = (next: string | null): void => {
+    setUsername(next);
+    setPassword("");
+    setError(null);
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -175,89 +192,112 @@ export default function LoginPage(): ReactElement {
   };
 
   return (
-    <div className="relative flex min-h-full flex-col bg-bg">
-      <Backdrop />
-      <div className="app-drag absolute inset-x-0 top-0 z-10 h-10" />
-      <main className="scroll-q relative z-10 flex flex-1 flex-col items-center overflow-y-auto px-6 pb-10 pt-[7vh]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- logo local; exportul static nu optimizează imagini */}
-        <img src="/brand/mark-420.png" srcSet="/brand/mark-420.png 1x, /brand/mark-840.png 2x" alt="" width={420} height={246} className="h-auto w-[min(420px,70vw)]" />
-        {/* eslint-disable-next-line @next/next/no-img-element -- logo local */}
-        <img src="/brand/wordmark-300.png" srcSet="/brand/wordmark-300.png 1x, /brand/wordmark-600.png 2x" alt="SHADOW" width={300} height={49} className="mt-2 h-auto w-[min(300px,56vw)]" />
-        <p className="mt-5 max-w-[52ch] text-center text-lead text-fg-3">
-          Compare how you say you feel with what your data shows, against your own in-flight baseline.
-        </p>
+    <div className="relative flex min-h-full bg-bg">
+      <div className="app-drag absolute inset-x-0 top-0 z-20 h-10" />
 
-        <Card as="section" aria-labelledby="who" className="mt-9 w-full max-w-[640px] p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h1 id="who" className="text-title font-medium text-fg">
-              Who are you?
-            </h1>
-            <Segmented<Location>
-              size="sm"
-              label="Workstation"
-              value={location}
-              options={LOCATIONS}
-              onChange={(next) => {
-                setLocation(next);
-                setUsername(null);
-                setError(null);
-              }}
-            />
+      {/* stânga: gaura neagră, ca imagine; pe ecrane înguste dispare */}
+      <section aria-label="SHADOW" className="relative hidden min-w-0 flex-1 flex-col overflow-hidden bg-black lg:flex">
+        <BlackHole className="absolute inset-0" />
+        {/* un văl întunecat jos, ca textul să se citească peste stele */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="relative z-10 flex items-center gap-3 px-10 pt-12">
+          {/* eslint-disable-next-line @next/next/no-img-element -- logo local; exportul static nu optimizează imagini */}
+          <img src="/brand/mark-96.png" srcSet="/brand/mark-96.png 1x, /brand/mark-192.png 2x" alt="" width={55} height={32} className="h-8 w-auto" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- logo local */}
+          <img src="/brand/wordmark-300.png" srcSet="/brand/wordmark-300.png 1x, /brand/wordmark-600.png 2x" alt="SHADOW" width={150} height={25} className="h-[22px] w-auto" />
+        </div>
+        <span className="flex-1" />
+        <div className="relative z-10 max-w-[30rem] px-10 pb-10">
+          <p className="text-display font-semibold leading-[1.15] tracking-[-0.02em] text-fg">Every astronaut, against their own baseline.</p>
+          <p className="mt-3 text-lead leading-relaxed text-fg-2">How you say you feel, next to what your body shows in flight.</p>
+        </div>
+      </section>
+
+      {/* dreapta: intrarea */}
+      <main className="relative z-10 flex w-full flex-col border-line bg-surface lg:w-[480px] lg:shrink-0 lg:border-l">
+        <div className="scroll-q flex flex-1 flex-col overflow-y-auto px-8 pb-8 pt-16 sm:px-12">
+          {/* pe ecrane înguste logo-ul stă deasupra formularului */}
+          <div className="mx-auto mb-10 flex w-full max-w-[400px] items-center gap-3 lg:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo local */}
+            <img src="/brand/mark-96.png" srcSet="/brand/mark-96.png 1x, /brand/mark-192.png 2x" alt="" width={55} height={32} className="h-8 w-auto" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo local */}
+            <img src="/brand/wordmark-300.png" srcSet="/brand/wordmark-300.png 1x, /brand/wordmark-600.png 2x" alt="SHADOW" width={150} height={25} className="h-[22px] w-auto" />
           </div>
 
-          {down && <BackendDown desktop={desktop} failure={failure} retrying={accounts.isFetching} onRetry={() => void refetch()} />}
-
-          {accounts.isPending && !down && (
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {SKELETON_TILES.map((tile) => (
-                <Skeleton key={tile} className="h-[66px] rounded-2xl" />
-              ))}
-            </div>
-          )}
-
-          {accounts.data && (
-            <div role="radiogroup" aria-label="Accounts" className="grid gap-2.5 sm:grid-cols-2">
-              {visible.map((account) => (
-                <AccountTile
-                  key={account.username}
-                  account={account}
-                  selected={account.username === username}
-                  onSelect={() => {
-                    setUsername(account.username);
-                    setError(null);
-                    setPassword("");
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {selected && (
-            <form onSubmit={(event) => void submit(event)} className="mt-5 flex flex-col gap-3">
-              <Field id={PASSWORD_FIELD_ID} label={`Password for “${selected.display_name}”`} error={error}>
-                <div className="flex gap-2">
-                  <Input
-                    id={PASSWORD_FIELD_ID}
-                    type="password"
-                    autoComplete="current-password"
-                    autoFocus
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    aria-invalid={Boolean(error)}
-                    aria-describedby={error ? `${PASSWORD_FIELD_ID}-error` : undefined}
-                    disabled={Boolean(waitSeconds)}
-                  />
-                  <Button type="submit" variant="primary" size="lg" className="h-10 shrink-0" busy={pending} disabled={!password || Boolean(waitSeconds)}>
-                    Sign in
-                  </Button>
+          <div className="mx-auto my-auto flex w-full max-w-[400px] flex-col">
+            {selected ? (
+              <form onSubmit={(event) => void submit(event)} className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => choose(null)}
+                  className="-ml-2 mb-10 inline-flex w-fit items-center gap-2 rounded-full px-2 py-1 text-body text-fg-3 transition-colors hover:text-fg"
+                >
+                  <ArrowLeft size={15} strokeWidth={1.9} aria-hidden="true" />
+                  All accounts
+                </button>
+                <Avatar account={selected} large />
+                <h1 className="mt-5 text-title font-medium text-fg">{selected.display_name}</h1>
+                <p className="mt-1 text-body text-fg-4">{ROLE_LABEL[selected.role]}</p>
+                <div className="mt-8">
+                  <Field id={PASSWORD_FIELD_ID} label="Password" error={error}>
+                    <Input
+                      id={PASSWORD_FIELD_ID}
+                      type="password"
+                      autoComplete="current-password"
+                      autoFocus
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? `${PASSWORD_FIELD_ID}-error` : undefined}
+                      disabled={Boolean(waitSeconds)}
+                      className="h-11"
+                    />
+                  </Field>
                 </div>
-              </Field>
-              {Boolean(waitSeconds) && <p className="text-small text-fg-3">You can try again in {formatDuration(waitSeconds)}.</p>}
-            </form>
-          )}
-        </Card>
+                <Button type="submit" variant="primary" size="lg" className="mt-4 h-11 w-full" busy={pending} disabled={!password || Boolean(waitSeconds)}>
+                  Sign in
+                </Button>
+                {Boolean(waitSeconds) && <p className="mt-3 text-small text-fg-3">You can try again in {formatDuration(waitSeconds)}.</p>}
+              </form>
+            ) : (
+              <div className="flex flex-col">
+                <h1 className="text-display font-semibold tracking-[-0.02em] text-fg">Who are you?</h1>
+                <p className="mt-2 text-base text-fg-3">Each crew member has their own account.</p>
+                <div className="mt-8">
+                  <Segmented<Location>
+                    label="Workstation"
+                    value={location}
+                    options={LOCATIONS}
+                    onChange={(next) => {
+                      setLocation(next);
+                      choose(null);
+                    }}
+                  />
+                </div>
 
-        <p className="mt-6 text-small text-fg-4">A decision-support prototype, not a medical device. NASA Space Apps 2026.</p>
+                <div className="mt-6">
+                  {down && <BackendDown desktop={desktop} failure={failure} retrying={accounts.isFetching} onRetry={() => void refetch()} />}
+                  {accounts.isPending && !down && (
+                    <div className="flex flex-col gap-2">
+                      {SKELETON_ROWS.map((row) => (
+                        <Skeleton key={row} className="h-[68px] rounded-2xl" />
+                      ))}
+                    </div>
+                  )}
+                  {accounts.data && (
+                    <ul aria-label="Accounts" className="-mx-3 flex flex-col gap-0.5">
+                      {visible.map((account) => (
+                        <AccountRow key={account.username} account={account} onSelect={() => choose(account.username)} />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="mx-auto mt-12 w-full max-w-[400px] text-small text-fg-4">A decision-support prototype, not a medical device. NASA Space Apps 2026.</p>
+        </div>
       </main>
     </div>
   );

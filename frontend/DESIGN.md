@@ -18,6 +18,12 @@ picioarelor (colorate după stare), plus coloana și nervii, în crem. Se așaz�
 urmărește cursorul, inima bate și o bandă de scanare urcă din când în când. Cu „reduce motion” e un cadru nemișcat.
 Anatomia e în `anatomy.ts`, norul în `cloud.ts`, desenarea (tampon de pixeli, fără placă video) în `renderer.ts`.
 
+**Ecranul de intrare** are în stânga o gaură neagră desenată în WebGL2 (`src/components/login/BlackHole.tsx`,
+`blackholeGl.ts`, `blackholeShaders.ts`): lumina e urmărită prin spațiul curbat, discul de acreție e în culorile
+logo-ului, cu strălucire și tonuri de film. E singurul loc, pe lângă logo, unde apare portocaliul de identitate.
+Se rotește și plutește încet, urmărește cursorul; cu „reduce motion” e un cadru fix, iar fără WebGL2 o imagine din
+CSS. În dreapta, intrarea în doi pași: alegi contul, apoi scrii parola.
+
 **Icoanele de rol** de la intrare (`src/components/login/RoleIcon.tsx`, originalele în `docs/design/icons`) sunt în
 `--color-crew` (#ffb45c), folosită doar acolo; medicul de zbor de pe Pământ are crucea ofițerului medical.
 
