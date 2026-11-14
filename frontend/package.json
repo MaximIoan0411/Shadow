@@ -1,12 +1,17 @@
 {
   "name": "shadow-frontend",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
+    "build:app": "node electron/build.cjs",
+    "app": "node electron/build.cjs && electron .",
+    "app:start": "electron .",
+    "app:dev": "node electron/dev.cjs",
+    "backend": "cd ../backend && uv run uvicorn app.main:app --port 8000",
     "typecheck": "tsc --noEmit",
     "api:types": "openapi-typescript ../contract/api/openapi.json -o src/lib/shadow-api.d.ts"
   },
@@ -14,6 +19,7 @@
     "@fontsource-variable/geist": "^5.2.0",
     "@fontsource-variable/geist-mono": "^5.2.0",
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@tanstack/react-query": "^5.107.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
     "motion": "^12.0.0",
@@ -28,8 +34,11 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "electron": "^33.4.11",
     "openapi-typescript": "^7.4.0",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.9.0"
-  }
+  },
+  "description": "SHADOW — interfața (Next.js) și aplicația de desktop (Electron).",
+  "main": "electron/main.cjs"
 }

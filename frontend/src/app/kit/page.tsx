@@ -1,304 +1,287 @@
 "use client";
 /**
- * /kit — catalogul componentelor SHADOW (stilul Quaternion), compuse ca un ecran real.
- * Date statice, luate din scenariul mock (ziua 96). Nu apelează backend-ul: e referința vizuală a echipei.
+ * Catalogul viu al sistemului de design („Semnal pe negru”): tokenii și fiecare componentă, cu stările ei.
+ * Datele de aici sunt exemple scrise de mână, doar pentru catalog; ecranele reale iau totul din API.
+ * Documentația: frontend/DESIGN.md.
  */
-import { motion } from "motion/react";
-import { ArrowUpRight, Brain, HeartPulse, Bone, ShieldPlus, Sparkles, Siren } from "lucide-react";
-import type { CSSProperties, ReactElement } from "react";
-import { useState } from "react";
-import { Button, Card, Dot, Input, Kbd, Metric, Orb, PillarTag, ProblemCard, SectionTitle, Segmented, Slider, StatusBadge, Switch, Tip, cx, easeOut, rise } from "@/components/ui";
+import { Search } from "lucide-react";
+import { useState, type ReactElement, type ReactNode } from "react";
+import { BodyFigure } from "@/components/body/BodyFigure";
+import { PerceptionGapCard } from "@/components/body/PerceptionGap";
+import { LineChart } from "@/components/charts/LineChart";
+import { MissionTimeline } from "@/components/layout/MissionTimeline";
+import { Backdrop, Brand } from "@/components/layout/Shell";
+import { PacketTrack } from "@/components/link/LinkConsole";
+import {
+  Button,
+  ButtonLink,
+  Card,
+  Checkbox,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  Kbd,
+  LevelTag,
+  Meter,
+  Metric,
+  Notice,
+  SectionTitle,
+  Segmented,
+  Skeleton,
+  Slider,
+  StatusBadge,
+  Switch,
+  Tag,
+  Textarea,
+  Tip,
+} from "@/components/ui";
 import { Select } from "@/components/ui/Select";
-import { Header, SHIP_NAV, Screen, Sidebar, type NavItem } from "@/components/layout/Shell";
-import { PILLAR_HUE } from "@/lib/hues";
-import type { components } from "@/lib/shadow-api";
+import type { Pillar, Status } from "@/lib/status";
+import { ALERT_FROM, FIRST_DAY, NIGHT_PULSE, SAMPLE_DAYS, SAMPLE_GAP, SAMPLE_PACKET, SAMPLE_PILLARS, SAMPLE_TIMELINE, SAMPLE_TODAY } from "./samples";
 
-type Status = components["schemas"]["Status"];
-type Pillar = components["schemas"]["Pillar"];
-
-// Scorurile din scenariul mock (ziua 96), ca în GET /crew/cm-2/dashboard.
-const SCORE_BEHAVIORAL = 71;
-const SCORE_CARDIO = 88;
-const SCORE_IMMUNE = 58;
-const SCORE_MUSCULOSKELETAL = 82;
-
-const PILLARS: readonly { pillar: Pillar; name: string; status: Status; score: number; headline: string; icon: typeof Brain }[] = [
-  { pillar: "behavioral", name: "Tastatura", status: "watch", score: SCORE_BEHAVIORAL, headline: "Tastezi cu 18% mai lent decât de obicei", icon: Brain },
-  { pillar: "cardio", name: "Inima", status: "ok", score: SCORE_CARDIO, headline: "În limitele tale din zbor", icon: HeartPulse },
-  { pillar: "immune", name: "Santinela", status: "alert", score: SCORE_IMMUNE, headline: "Puls de noapte crescut 3 nopți la rând", icon: ShieldPlus },
-  { pillar: "musculoskeletal", name: "Încărcarea", status: "ok", score: SCORE_MUSCULOSKELETAL, headline: "1 din 2 sesiuni făcute azi", icon: Bone },
-];
-
-const MOODS = ["1", "2", "3", "4", "5"] as const;
-const ENVIRONMENTS = [
-  { value: "iss", label: "Stația spațială", detail: "întârziere sub 1 s" },
-  { value: "mars_transit", label: "Tranzit spre Marte", detail: "întârziere 3–22 min" },
+const NEUTRALS = [
+  { token: "bg", value: "#0b0a0f", note: "background (the logo's black)", swatch: "bg-bg" },
+  { token: "surface", value: "#111016", note: "sidebar", swatch: "bg-surface" },
+  { token: "surface-2", value: "#17161d", note: "fields", swatch: "bg-surface-2" },
+  { token: "surface-3", value: "#1e1d25", note: "buttons, menus", swatch: "bg-surface-3" },
+  { token: "surface-4", value: "#27262f", note: "hover, tooltip", swatch: "bg-surface-4" },
 ] as const;
-const PACKET_PROGRESS = 0.64;
-const BAR_SECONDS = 0.9;
-const DEFAULT_TIME_SCALE = 60;
-const PERCENT = 100;
 
-function PerceptionGap(): ReactElement {
-  const self = 80;
-  const objective = 52;
-  return (
-    <Card as="section" aria-labelledby="gap-h" className="relative overflow-hidden">
-      <SectionTitle id="gap-h" right={<StatusBadge status="alert" />}>
-        Decalajul de percepție
-      </SectionTitle>
-      <p className="max-w-[46ch] text-[15px] leading-relaxed text-fg-2">
-        Spui că ești bine <span className="num text-fg">(4/5)</span>, dar tastezi cu <span className="num text-fg">18%</span> mai lent și pulsul
-        de noapte a crescut.
-      </p>
-      <div className="mt-5 grid gap-3">
-        {[
-          { label: "Cum spui că te simți", value: self, hue: "var(--color-steel)" },
-          { label: "Ce arată datele", value: objective, hue: "var(--color-status-alert)" },
-        ].map((b) => (
-          <div key={b.label}>
-            <div className="mb-1.5 flex justify-between text-[12.5px] text-fg-3">
-              <span>{b.label}</span>
-              <span className="num text-fg-2">{b.value}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: b.hue }}
-                initial={{ width: 0 }}
-                animate={{ width: `${b.value}%` }}
-                transition={{ duration: BAR_SECONDS, ease: easeOut }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="num mt-4 text-[12.5px] text-fg-4">diferență {self - objective} puncte</p>
-    </Card>
-  );
-}
+const TEXTS = [
+  { token: "fg", note: "primary text", ratio: "12,8 – 16,9 : 1", swatch: "text-fg" },
+  { token: "fg-2", note: "body text", ratio: "9,1 – 11,4 : 1", swatch: "text-fg-2" },
+  { token: "fg-3", note: "secondary text", ratio: "6,4 – 7,6 : 1", swatch: "text-fg-3" },
+  { token: "fg-4", note: "quiet text (AA limit)", ratio: "5,0 – 5,7 : 1", swatch: "text-fg-4" },
+  { token: "fg-5", note: "decoration only, never text", ratio: "2,6 : 1", swatch: "text-fg-5" },
+] as const;
 
-function PillarList(): ReactElement {
-  return (
-    <Card as="section" aria-labelledby="pillars-h">
-      <SectionTitle id="pillars-h">Cei patru piloni</SectionTitle>
-      <ul className="grid gap-1">
-        {PILLARS.map((p) => (
-          <li key={p.pillar}>
-            <button
-              type="button"
-              className="group flex w-full items-center gap-3.5 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-white/[0.04]"
-              style={{ "--p": PILLAR_HUE[p.pillar] } as CSSProperties}
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-line-2 bg-[color-mix(in_oklab,var(--p)_10%,transparent)] text-[var(--p)]">
-                <p.icon size={17} strokeWidth={1.8} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <PillarTag pillar={p.pillar} name={p.name} className="text-fg" />
-                <span className="mt-0.5 block truncate text-[12.5px] text-fg-3">{p.headline}</span>
-              </span>
-              <span className="w-8 text-right text-[15px] text-fg-2 tabular-nums">{p.score}</span>
-              <StatusBadge status={p.status} />
-              <ArrowUpRight size={15} className="text-fg-5 transition-colors group-hover:text-fg-3" />
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
+const SIGNALS = [
+  { token: "ok", value: "#75dbb6", status: "ok", ratio: "9,0 – 11,8 : 1" },
+  { token: "watch", value: "#f5c25f", status: "watch", ratio: "9,1 – 12,0 : 1" },
+  { token: "alert", value: "#fa6863", status: "alert", ratio: "5,1 – 6,8 : 1" },
+] as const satisfies readonly { readonly token: string; readonly value: string; readonly status: Status; readonly ratio: string }[];
 
-function Controls(): ReactElement {
-  const [mood, setMood] = useState<(typeof MOODS)[number]>("4");
-  const [env, setEnv] = useState<string>("mars_transit");
-  const [on, setOn] = useState(true);
-  const [speed, setSpeed] = useState(DEFAULT_TIME_SCALE);
-  return (
-    <Card as="section" aria-labelledby="controls-h">
-      <SectionTitle id="controls-h">Controale</SectionTitle>
-      <div className="grid gap-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary">Trimite check-in-ul</Button>
-          <Button>Anunță ofițerul medical</Button>
-          <Button variant="ghost">Mai târziu</Button>
-          <Button variant="danger">Închide alerta</Button>
-        </div>
-        <div className="grid gap-1.5">
-          <span className="text-[12.5px] text-fg-3">Starea de spirit</span>
-          <Segmented label="Starea de spirit" value={mood} onChange={setMood} options={MOODS.map((m) => ({ value: m, label: m }))} dense />
-        </div>
-        <div className="grid gap-1.5">
-          <label htmlFor="temp" className="text-[12.5px] text-fg-3">
-            Temperatura <span className="text-fg-5">°C</span>
-          </label>
-          <Input id="temp" inputMode="decimal" defaultValue="41.9" aria-invalid="true" className="num max-w-[160px]" />
-          <span className="text-[12px] text-danger">41,9 °C e în afara intervalului posibil. Măsoară din nou.</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <Select label="Mediul misiunii" value={env} onChange={setEnv} options={ENVIRONMENTS} />
-          <label className="flex items-center gap-2.5 text-[13px] text-fg-2">
-            <Switch checked={on} onChange={setOn} label="Reamintiri" /> Reamintiri
-          </label>
-        </div>
-        <div className="grid gap-1.5">
-          <span className="flex justify-between text-[12.5px] text-fg-3">
-            Viteza ceasului <span className="num text-fg-2">×{speed}</span>
-          </span>
-          <Slider label="Viteza ceasului" value={speed} min={1} max={240} step={1} onChange={setSpeed} hue="var(--hue-a)" />
-        </div>
-        <p className="flex items-center gap-2 text-[12.5px] text-fg-4">
-          Panoul de demo: <Kbd>Ctrl</Kbd>
-          <Kbd>Shift</Kbd>
-          <Kbd>D</Kbd>
-        </p>
-      </div>
-    </Card>
-  );
-}
+const TYPE_SCALE = [
+  { cls: "text-hero", name: "hero, 44", sample: "28" },
+  { cls: "text-display", name: "display, 28", sample: "61 bpm" },
+  { cls: "text-title", name: "title, 18", sample: "Night pulse +7 bpm, 3 nights in a row" },
+  { cls: "text-lead", name: "lead, 15", sample: "Your night pulse has been 7 bpm above your baseline for three nights." },
+  { cls: "text-base", name: "base, 14", sample: "Go to bed an hour earlier for the next 3 nights." },
+  { cls: "text-body", name: "body, 13.5", sample: "Morning check-in" },
+  { cls: "text-small", name: "small, 12.5", sample: "your baseline 54" },
+  { cls: "text-caption", name: "caption, 11.5", sample: "simulated data" },
+] as const;
 
-function Metrics(): ReactElement {
-  return (
-    <Card as="section" aria-labelledby="metrics-h">
-      <SectionTitle id="metrics-h" right={<PillarTag pillar="immune" name="Santinela" />}>
-        Valori față de normalul tău
-      </SectionTitle>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Metric label="Puls de noapte" value={61} unit="bpm" baseline={54} deviation="+7" status="alert" simulated />
-        <Metric label="Temperatura" value={37.3} unit="°C" baseline={36.9} deviation="+0,4" status="watch" />
-        <Metric label="Somn" value={5.5} unit="h" baseline={6.6} deviation="−1,1" status="watch" />
-        <Metric label="Indice de stres" value={null} unit="/100" status="unknown" />
-      </div>
-    </Card>
-  );
-}
+const STATUSES: readonly Status[] = ["ok", "watch", "alert", "unknown"];
+const ENVIRONMENTS = [
+  { value: "iss", label: "Space station" },
+  { value: "mars_transit", label: "Mars transit" },
+] as const;
+type EnvironmentValue = (typeof ENVIRONMENTS)[number]["value"];
+const MOODS = ["1", "2", "3", "4", "5"] as const;
 
-function Link(): ReactElement {
+function Group({ title, lead, children }: { readonly title: string; readonly lead?: string; readonly children: ReactNode }): ReactElement {
   return (
-    <Card as="section" aria-labelledby="link-h" className="relative overflow-hidden">
-      <SectionTitle id="link-h" right={<span className="num text-[12px] text-fg-4">Ed25519 ✓</span>}>
-        Pachet spre Pământ
-      </SectionTitle>
-      <p className="text-[14px] text-fg-2">Imunitar · puls de noapte +7 bpm, 3 nopți</p>
-      <p className="shimmer-text mt-1 text-[12.5px]">Pe drum · ajunge în 4 s</p>
-      <div className="relative mt-5 h-7" role="img" aria-label={`Pachetul e la ${PACKET_PROGRESS * PERCENT}% din drum`}>
-        <span className="num absolute -top-1 left-0 text-[11px] text-fg-4">NAVA</span>
-        <span className="num absolute -top-1 right-0 text-[11px] text-fg-4">PĂMÂNT</span>
-        <div className="absolute inset-x-0 top-[18px] h-0.5 bg-[radial-gradient(rgb(var(--tint)/0.18)_1px,transparent_1.2px)] bg-[length:8px_2px]" />
-        <div className="absolute left-0 top-[18px] h-0.5 rounded-full bg-amber" style={{ width: `${PACKET_PROGRESS * PERCENT}%` }} />
-        <span className="absolute top-[13px] size-3 rotate-45 rounded-[2px] bg-amber shadow-[0_0_12px_var(--color-amber)]" style={{ left: `calc(${PACKET_PROGRESS * PERCENT}% - 6px)` }} />
-      </div>
-    </Card>
-  );
-}
-
-function AiCard(): ReactElement {
-  const [busy, setBusy] = useState(true);
-  return (
-    <Card as="section" aria-labelledby="ai-h" className="relative">
-      <span className="glow-ring" data-on={busy ? "true" : "false"} />
-      <SectionTitle id="ai-h" right={<StatusBadge status="unknown" label="model: mock" />}>
-        Medicul AI de bord
-      </SectionTitle>
-      {busy ? (
-        <p className="shimmer-text text-[14px]">Caută în documentele NASA…</p>
-      ) : (
-        <div className="prose-q">
-          <p>
-            Pulsul tău de noapte e cu <strong>7 bpm</strong> peste normalul tău de trei nopți. Anunță ofițerul medical și protejează-ți somnul.
-          </p>
-        </div>
-      )}
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <a className="text-[12.5px] text-periwinkle underline decoration-periwinkle/35 underline-offset-[3px]" href="https://www.nature.com/articles/s41591-021-01593-2">
-          Alavi et al. (2022), Nature Medicine
-        </a>
-        <Button size="sm" variant="ghost" onClick={() => setBusy((b) => !b)}>
-          <Sparkles size={13} /> {busy ? "Arată răspunsul" : "Din nou"}
-        </Button>
-      </div>
-      <p className="mt-3 text-[11.5px] text-fg-4">Prototip de sprijin, nu dispozitiv medical.</p>
-    </Card>
-  );
-}
-
-function StormBanner(): ReactElement {
-  return (
-    <div role="alert" className="float-q flex flex-wrap items-center gap-4 rounded-[var(--radius-card)] border-danger/30 p-4" style={{ borderColor: "color-mix(in oklab, var(--color-danger) 35%, transparent)" }}>
-      <span className="grid size-10 place-items-center rounded-2xl bg-danger/15 text-danger">
-        <Siren size={19} strokeWidth={1.9} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-medium text-fg">Mergi în adăpost</p>
-        <p className="text-[13px] text-fg-3">
-          Rata dozei e de <span className="num text-fg">6,2×</span> media pe 24 h. Furtună solară reală, NASA DONKI, 11 mai 2024 · curbă sintetică.
-        </p>
-      </div>
-      <Button variant="primary">Sunt în adăpost</Button>
-    </div>
-  );
-}
-
-function EmptyState(): ReactElement {
-  return (
-    <Card className="grid place-items-center py-10 text-center">
-      <Orb size={52} />
-      <p className="mt-5 text-[15px] font-medium text-fg">Nicio alertă</p>
-      <p className="mt-1 max-w-[34ch] text-[13px] text-fg-3">Toți cei patru piloni sunt în limitele normalului tău.</p>
+    <Card as="section" aria-label={title}>
+      <SectionTitle>{title}</SectionTitle>
+      {lead && <p className="mb-4 max-w-[76ch] text-body leading-relaxed text-fg-3">{lead}</p>}
+      {children}
     </Card>
   );
 }
 
 export default function KitPage(): ReactElement {
-  const [collapsed, setCollapsed] = useState(false);
-  const [active, setActive] = useState<NavItem["screen"]>("dashboard");
+  const [pillar, setPillar] = useState<Pillar | null>(null);
+  const [on, setOn] = useState(true);
+  const [done, setDone] = useState(false);
+  const [mood, setMood] = useState<(typeof MOODS)[number]>("4");
+  const [environment, setEnvironment] = useState<EnvironmentValue>("mars_transit");
+  const [scale, setScale] = useState(SAMPLE_TODAY);
+  const [day, setDay] = useState<number | null>(null);
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        active={active}
-        items={SHIP_NAV}
-        account={{ displayName: "Specialist de misiune 2", initials: "S2", roleLabel: "astronaut · cm-2" }}
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((c) => !c)}
-        onNavigate={(n) => setActive(n.screen)}
-        onSwitchAccount={() => undefined}
-      />
-      <main className="min-w-0 flex-1">
-        <Screen screen={active} live>
-          <Header
-            title="Catalogul componentelor"
-            mission={{ clock: "Ziua 96 · 07:42", environment: "Tranzit spre Marte", delay: "11 min 40 s", linkOpen: true }}
-            right={
-              <Tip label="Legătura cu Pământul">
-                <span className="inline-flex items-center gap-2 rounded-full border border-line-2 px-3 py-1 text-[12px] text-fg-3">
-                  <Dot hue="var(--hue-a)" /> ecran: {active}
-                </span>
-              </Tip>
-            }
-          />
-          <div className="scroll-q min-h-0 flex-1 overflow-y-auto">
-            <motion.div {...rise} className="mx-auto grid max-w-[1180px] gap-5 px-6 pb-16 pt-6">
-              <div>
-                <p className="text-[12.5px] text-fg-4">Bună dimineața, Specialist de misiune 2.</p>
-                <h2 className="mt-1 text-[34px] font-light tracking-[-0.02em] text-fg">Spui că ești bine. Datele spun altceva.</h2>
+    <div className="relative min-h-full bg-bg">
+      <Backdrop />
+      <main className="relative z-10 mx-auto flex max-w-[1180px] flex-col gap-5 px-6 pb-20 pt-10">
+        <header className="mb-2">
+          <Brand />
+          <h1 className="mt-5 text-display font-medium tracking-[-0.02em] text-fg">The design system</h1>
+          <p className="mt-2 max-w-[72ch] text-lead text-fg-3">
+            Signal on black: ivory tones on the logo's black, and colour appears only when the body has something to say. Three status colours, each always with its shape and its word.
+          </p>
+        </header>
+
+        <Group title="Colour: neutrals" lead="The background and four surface steps. Depth comes from tone, not from shadow.">
+          <div className="grid gap-2.5 sm:grid-cols-5">
+            {NEUTRALS.map((item) => (
+              <div key={item.token} className="rounded-2xl border border-line-2 p-2.5">
+                <div className={`h-14 rounded-xl border border-line ${item.swatch}`} />
+                <p className="mt-2 text-body font-medium text-fg">{item.token}</p>
+                <p className="code text-small text-fg-3">{item.value}</p>
+                <p className="text-caption text-fg-4">{item.note}</p>
               </div>
-              <StormBanner />
-              <div className={cx("grid items-start gap-5 lg:grid-cols-[1.1fr_1fr]")}>
-                <PerceptionGap />
-                <PillarList />
-              </div>
-              <div className="grid items-start gap-5 lg:grid-cols-2">
-                <Metrics />
-                <Controls />
-              </div>
-              <div className="grid gap-5 lg:grid-cols-3">
-                <Link />
-                <AiCard />
-                <EmptyState />
-              </div>
-              <ProblemCard title="Nu am putut salva check-in-ul." detail="Serverul nu răspunde. Datele tale sunt păstrate pe ecran." onRetry={() => undefined} />
-            </motion.div>
+            ))}
           </div>
-        </Screen>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-5">
+            {TEXTS.map((item) => (
+              <div key={item.token} className="rounded-2xl border border-line-2 p-3">
+                <p className={`text-title font-medium ${item.swatch}`}>Aa 61</p>
+                <p className="mt-1 text-body font-medium text-fg">{item.token}</p>
+                <p className="text-caption text-fg-4">{item.note}</p>
+                <p className="num text-caption text-fg-3">{item.ratio}</p>
+              </div>
+            ))}
+          </div>
+        </Group>
+
+        <Group title="Colour: signal" lead="The only colours in the interface. They are never used for pillars, screens, levels or decoration. Orange belongs to the logo.">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {SIGNALS.map((item) => (
+              <div key={item.token} className="flex items-center gap-3 rounded-2xl border border-line-2 p-3">
+                <span className="size-12 shrink-0 rounded-xl" style={{ background: item.value }} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-body font-medium text-fg">{item.token}</span>
+                    <StatusBadge status={item.status} />
+                  </span>
+                  <span className="code block text-small text-fg-3">{item.value}</span>
+                  <span className="num block text-caption text-fg-4">contrast as text: {item.ratio}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Group>
+
+        <Group title="Typography" lead="Geist for everything; Geist Mono only for identifiers. Every step has a role.">
+          <ul className="flex flex-col">
+            {TYPE_SCALE.map((item) => (
+              <li key={item.cls} className="flex items-baseline gap-5 border-t border-line py-2.5 first:border-t-0">
+                <span className="w-28 shrink-0 text-small text-fg-4">{item.name}</span>
+                <span className={`${item.cls} min-w-0 truncate font-medium text-fg`}>{item.sample}</span>
+              </li>
+            ))}
+          </ul>
+        </Group>
+
+        <Group title="Status" lead="Colour, shape and word, always together. The compact variant is for dense rows; the neutral tag never carries colour.">
+          <div className="flex flex-wrap items-center gap-3">
+            {STATUSES.map((status) => (
+              <StatusBadge key={status} status={status} />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            {STATUSES.map((status) => (
+              <StatusBadge key={status} status={status} compact />
+            ))}
+            <Tag>simulated data</Tag>
+            <Tag>hypothesis</Tag>
+            <LevelTag level={1} full />
+            <LevelTag level={2} full />
+            <LevelTag level={3} full />
+          </div>
+        </Group>
+
+        <Group title="Buttons" lead="Pills. At most one primary button per screen.">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="primary">Save check-in</Button>
+            <Button>Notify the medical officer</Button>
+            <Button variant="ghost">Close alert</Button>
+            <Button variant="primary" busy>
+              Sending
+            </Button>
+            <Button disabled>Unavailable</Button>
+            <ButtonLink href="/kit">Open alert</ButtonLink>
+            <Tip label="Search">
+              <IconButton label="Search">
+                <Search size={16} strokeWidth={1.8} />
+              </IconButton>
+            </Tip>
+            <span className="flex items-center gap-1.5 text-small text-fg-3">
+              <Kbd>Ctrl</Kbd>
+              <Kbd>Shift</Kbd>
+              <Kbd>D</Kbd>
+            </span>
+          </div>
+        </Group>
+
+        <Group title="Fields" lead="Field borders have a contrast of at least 3:1 against the background. The error appears under the field, with the status shape.">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field id="kit-temp" label="Temperature" hint="With the thermometer, at the same time every day.">
+              <Input id="kit-temp" defaultValue="36,9" aria-describedby="kit-temp-hint" />
+            </Field>
+            <Field id="kit-temp-bad" label="Temperature" error="41.9 °C is outside the possible range. Measure again.">
+              <Input id="kit-temp-bad" defaultValue="41,9" aria-invalid aria-describedby="kit-temp-bad-error" />
+            </Field>
+            <Field id="kit-note" label="Free note">
+              <Textarea id="kit-note" placeholder="Write a sentence or two." />
+            </Field>
+            <div className="flex flex-col gap-4">
+              <Segmented label="Mood" value={mood} options={MOODS.map((value) => ({ value, label: value }))} onChange={setMood} dense />
+              <Select<EnvironmentValue> label="Mission environment" value={environment} options={ENVIRONMENTS} onChange={setEnvironment} />
+              <span className="flex items-center gap-2.5 text-body text-fg-2">
+                <Switch checked={on} onChange={setOn} label="Only thresholds used by triage" />
+                Only thresholds used by triage
+              </span>
+              <Slider label="Day" value={scale} min={1} max={SAMPLE_DAYS} step={1} onChange={setScale} />
+              <Checkbox checked={done} onChange={setDone}>
+                Take your temperature morning and evening.
+              </Checkbox>
+            </div>
+          </div>
+        </Group>
+
+        <Group title="Messages" lead="The neutral tone informs; coloured tones also carry the status shape.">
+          <div className="flex flex-col gap-2.5">
+            <Notice title="Today's check-in is saved (07:02)">You can send another one at any time: it replaces the previous one.</Notice>
+            <Notice tone="ok" title="Reply from the flight surgeon on Earth">Agreed on rest. Temperature twice a day.</Notice>
+            <Notice tone="watch" title="You are typing 18% slower than usual" action={<Button size="sm">See the plan</Button>} />
+            <Notice tone="alert" title="Solar storm: go to the shelter">The dosimeter reads 6.2 times the mean of the last 24 hours.</Notice>
+            <EmptyState title="No open alerts">All your values are within your in-flight baseline.</EmptyState>
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
+        </Group>
+
+        <Group title="Values" lead="The large value in proportional figures; your personal baseline and the deviation underneath.">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <Metric label="Night pulse" value={61} unit="bpm" baseline={54} deviation={7} status="alert" simulated />
+            <Metric label="Temperature" value={37.3} unit="°C" baseline={36.9} deviation={0.4} status="watch" />
+            <Metric label="Sleep" value={6.6} unit="h" baseline={6.6} deviation={0} status="ok" />
+          </div>
+          <div className="mt-4 max-w-[420px]">
+            <Meter value={68} max={100} label="Fatigue index" status="watch" />
+          </div>
+        </Group>
+
+        <Group title="Chart" lead="The line is cream; only points outside your normal range take the status colour. Exact values appear on hover or with the arrow keys.">
+          <LineChart
+            title="Night pulse, example"
+            unit="bpm"
+            baseline={54}
+            bandLow={52}
+            bandHigh={57}
+            threshold={58}
+            thresholdLabel="+4 bpm, 2 nights (NightSignal)"
+            series={[
+              {
+                key: "night_pulse_bpm",
+                label: "Night pulse",
+                points: NIGHT_PULSE.map((value, index) => ({ x: FIRST_DAY + index, xLabel: `Day ${FIRST_DAY + index}`, value, status: value >= ALERT_FROM ? "alert" : "ok" })),
+              },
+            ]}
+          />
+        </Group>
+
+        <Group title="The dot language" lead="Taken from the logo: the body, the mission timeline and the packet's path are drawn from small squares. Those within limits stay neutral; deviations light up.">
+          <BodyFigure pillars={SAMPLE_PILLARS} selected={pillar} onSelect={(next) => setPillar((current) => (current === next ? null : next))} />
+          <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+            <MissionTimeline days={SAMPLE_TIMELINE} totalDays={SAMPLE_DAYS} currentDay={SAMPLE_TODAY} selectedDay={day} onSelect={setDay} />
+            <PerceptionGapCard gap={SAMPLE_GAP} canCheckIn={false} />
+          </div>
+          <div className="mt-5 rounded-2xl border border-line bg-white/[0.02] p-4">
+            <PacketTrack packet={SAMPLE_PACKET} />
+          </div>
+        </Group>
       </main>
     </div>
   );

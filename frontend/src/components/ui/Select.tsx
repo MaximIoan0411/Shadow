@@ -1,5 +1,5 @@
 "use client";
-// Listă derulantă în stilul aplicației (portată din Quaternion), în locul <select>-ului sistemului.
+// Listă derulantă în stilul aplicației, în locul <select>-ului sistemului.
 // Construită pe Radix Select: tastatura, căutarea după litere și cititoarele de ecran merg ca la una nativă.
 import { Check, ChevronDown } from "lucide-react";
 import { Select as Radix } from "radix-ui";
@@ -9,7 +9,7 @@ import { cx } from "./index";
 export interface SelectOption<TValue extends string> {
   readonly value: TValue;
   readonly label: ReactNode;
-  /** A second, quieter line under the label in the list. */
+  /** A doua linie, mai discretă, sub etichetă. */
   readonly detail?: ReactNode;
 }
 
@@ -20,10 +20,10 @@ const MENU_OFFSET_PX = 6;
 type SelectSize = "sm" | "md" | "toolbar";
 
 const SIZE: Readonly<Record<SelectSize, string>> = {
-  sm: "h-8 rounded-full pl-3 pr-2 text-[12.5px]",
-  md: "h-9 rounded-xl pl-3 pr-2.5 text-[13px]",
+  sm: "h-8 rounded-full pl-3 pr-2 text-small",
+  md: "h-10 rounded-xl pl-3.5 pr-2.5 text-body",
   /** As tall as a Segmented control (a 32px button inside 4px padding and a 1px border), for rows that mix the two. */
-  toolbar: "h-[42px] rounded-full pl-4 pr-3 text-[13px]",
+  toolbar: "h-[42px] rounded-full pl-4 pr-3 text-body",
 };
 
 export function Select<TValue extends string>({
@@ -31,7 +31,7 @@ export function Select<TValue extends string>({
   options,
   onChange,
   label,
-  placeholder = "Alege…",
+  placeholder = "Choose…",
   size = "md",
   className,
   disabled,
@@ -61,7 +61,7 @@ export function Select<TValue extends string>({
         aria-label={label}
         title={label}
         className={cx(
-          "group inline-flex min-w-0 items-center gap-2 border border-line-2 bg-surface-2 font-medium text-fg-2 outline-none transition-colors hover:border-line-3 hover:text-fg focus-visible:border-line-3 data-[state=open]:border-line-3 data-[state=open]:bg-surface-3 data-[state=open]:text-fg disabled:opacity-50",
+          "group inline-flex min-w-0 items-center gap-2 border border-line-4 bg-surface-2 font-medium text-fg-2 outline-none transition-colors hover:border-fg-4 hover:text-fg data-[state=open]:border-fg-3 data-[state=open]:bg-surface-3 data-[state=open]:text-fg disabled:cursor-not-allowed disabled:border-line-2 disabled:text-fg-4",
           SIZE[size],
           className,
         )}
@@ -77,20 +77,20 @@ export function Select<TValue extends string>({
         <Radix.Content
           position="popper"
           sideOffset={MENU_OFFSET_PX}
-          className="z-[80] max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border border-line-2 bg-surface-3/95 p-1.5 shadow-[0_24px_60px_-12px_rgb(var(--shade)/calc(0.85*var(--shade-k)))] backdrop-blur-xl data-[state=open]:animate-[select-in_140ms_ease-out]"
+          className="z-[80] max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border border-line-2 bg-surface-3 p-1.5 shadow-[0_24px_60px_-12px_rgb(0_0_0/0.85)] data-[state=open]:animate-[select-in_140ms_ease-out]"
         >
           <Radix.Viewport className="scroll-q">
             {options.map((o) => (
               <Radix.Item
                 key={inner(o.value)}
                 value={inner(o.value)}
-                className="relative flex cursor-default select-none items-center gap-2.5 rounded-xl py-2 pl-3 pr-8 text-[13px] text-fg-2 outline-none transition-colors data-[highlighted]:bg-white/[0.07] data-[highlighted]:text-fg data-[state=checked]:text-fg"
+                className="relative flex cursor-default select-none items-center gap-2.5 rounded-xl py-2 pl-3 pr-8 text-body text-fg-2 outline-none transition-colors data-[highlighted]:bg-white/[0.07] data-[highlighted]:text-fg data-[state=checked]:text-fg"
               >
                 <span className="min-w-0 flex-1">
                   <Radix.ItemText>
                     <span className="block truncate">{o.label}</span>
                   </Radix.ItemText>
-                  {o.detail && <span className="block truncate text-[11.5px] text-fg-4">{o.detail}</span>}
+                  {o.detail && <span className="block truncate text-caption text-fg-4">{o.detail}</span>}
                 </span>
                 <Radix.ItemIndicator className="absolute right-2.5">
                   <Check size={14} strokeWidth={2.2} />

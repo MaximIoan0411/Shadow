@@ -1,89 +1,122 @@
-# SHADOW — sistemul de design
+# SHADOW — sistemul de design v2: „Semnal pe negru”
 
-Preluat din **Quaternion 0.2.0** (`src/index.css`, `src/components/ui.tsx`, `Select.tsx`, `Chrome.tsx`) și adaptat
-la SHADOW. Referința vizuală vie: **`/kit`** (`npm run dev`, apoi http://localhost:3000/kit).
+Catalogul viu: **`/kit`** (`npm run dev`, apoi http://localhost:3000/kit). Interfața e în **engleză**; codul și
+comentariile rămân în română.
 
-## Ce am preluat și ce nu
+## Ideea
 
-| Din Quaternion | În SHADOW |
-|---|---|
-| fundalul negru `#050507`, suprafețele `surface` … `surface-4`, liniile `line` … `line-3`, textul `fg` … `fg-5` | **la fel** |
-| Geist + Geist Mono, încărcate local din `@fontsource-variable` | **la fel** (merge offline, important pentru demo) |
-| paleta: platinum, steel, violet, cyan, periwinkle, orchid, mint, amber, coral, warn, danger | **la fel** |
-| razele 12 / 16 / 22, umbrele `card` și `float`, curbele `ease-out` / `ease-in-out` | **la fel** |
-| `card-q` (sticlă), `float-q` (ridicat), `sidebar-q`, `nav-q`, `scroll-q`, `aurora`, `orb`, `shimmer-text`, `slider-q`, `prose-q` | **la fel** |
-| inelul rotitor din jurul prompt-ului (`composer-glow`) | redenumit **`glow-ring`**; se folosește pe cardul medicului AI |
-| o nuanță pe fiecare model / ecran (`SCREEN_HUE`) | o nuanță pe fiecare **ecran SHADOW** și pe fiecare **pilon** (`src/lib/hues.ts`) |
-| `Button`, `IconButton`, `Switch`, `Slider`, `Segmented`, `Kbd`, `Orb`, `Tip`, `ProblemCard`, `Select`, preseturile de mișcare | **la fel**, în `src/components/ui/` (textele în română) |
-| `Sidebar`, `Header` | adaptate: fără zona de tragere și butoanele ferestrei; contul autentificat jos; ceasul misiunii în antet |
-| tema deschisă, Monaco, Dockview, xterm, Shiki, graficul echipelor | **nu** (nu le folosim) |
-| — | nou: `StatusBadge`, `Card`, `Metric`, `PillarTag`, `SectionTitle`, `Dot`, `Input`, `Screen`, `Backdrop`, `.starfield`, `.num` |
+Paleta vine din logo: **negrul** lui (`#0b0a0f`) e fundalul, **crema** lui (`#fef7ea`) e lumina interfeței, iar
+**portocaliul** rămâne doar al logo-ului. Totul e în tonuri de fildeș pe negru. Culoarea apare **numai când corpul
+are ceva de spus**: trei culori de stare, fiecare mereu cu forma și cuvântul ei.
 
-## Culorile cu sens
+Limbajul vizual e cel din logo: **pătrățele în grilă**. Din ele sunt desenate derulatorul misiunii (o celulă pe zi)
+și drumul pachetului navă ↔ Pământ.
 
-**Starea** (vine de la backend în câmpul `status`; frontend-ul doar o colorează). Culoarea apare **mereu** cu forma și
-cuvântul, prin `<StatusBadge status=… />`:
+**Corpul interactiv** (`src/components/body/`) e o figură 3D din particule: pielea „de sticlă” (lumină la margini,
+rețea de linii fine între noduri), înăuntru creierul, inima cu aorta, ganglionii cu vasele limfatice și oasele
+picioarelor (colorate după stare), plus coloana și nervii, în crem. Se așază din praf la apariție, se leagănă încet,
+urmărește cursorul, inima bate și o bandă de scanare urcă din când în când. Cu „reduce motion” e un cadru nemișcat.
+Anatomia e în `anatomy.ts`, norul în `cloud.ts`, desenarea (tampon de pixeli, fără placă video) în `renderer.ts`.
+
+**Icoanele de rol** de la intrare (`src/components/login/RoleIcon.tsx`, originalele în `docs/design/icons`) sunt în
+`--color-crew` (#ffb45c), folosită doar acolo; medicul de zbor de pe Pământ are crucea ofițerului medical.
+
+## Ce s-a schimbat față de v1 (Quaternion)
+
+| v1 | v2 | De ce |
+|---|---|---|
+| 11 culori de paletă + o nuanță pe fiecare pilon, ecran și mediu; aurora colorată | **3 culori de stare** + neutre | prea multe culori: nu se mai înțelegea ce e important |
+| pilonii colorați (violet, coral, mint, periwinkle) | pilonii au **iconiță și nume**, nu culoare | culoarea pilonului se confunda cu starea |
+| accent periwinkle pe focus și linkuri | focus și linkuri **crem** | o culoare în plus, fără sens |
+| fundal `#050507`, text alb-albăstrui | fundal și text **din logo** (negru cald, fildeș) | interfața și logo-ul arată ca aceeași familie |
+| mono pentru toate cifrele | **Geist cu cifre tabulare**; mono doar pentru identificatori | în mono, cifrele mari arătau rarefiate |
+
+## Culoarea
+
+### Neutre
+
+| Token | Valoare | Folosire |
+|---|---|---|
+| `bg` | `#0b0a0f` | fundalul |
+| `surface` | `#111016` | bara laterală |
+| `surface-2` | `#17161d` | câmpuri |
+| `surface-3` | `#1e1d25` | butoane secundare, meniuri |
+| `surface-4` | `#27262f` | hover, tooltip, inițialele contului |
+| `fg` | `#f2ede4` | text principal |
+| `fg-2` … `fg-4` | `fg` la 82 / 66 / 56% | corp, secundar, discret |
+| `fg-5` | `fg` la 32% | **doar decor**, niciodată text |
+| `line` … `line-3` | crem la 7,5 / 12 / 18% | despărțitoare, conturul cardurilor, hover |
+| `line-4` | crem la 36% | **marginea câmpurilor** (≥ 3:1, WCAG 1.4.11) |
+| `solid` / `on-solid` | `#fef7ea` / `#0b0a0f` | butonul primar, comutatorul pornit, ziua selectată |
+
+### Semnal (singurele culori)
 
 | `status` | Token | Culoare | Formă | Cuvânt |
 |---|---|---|---|---|
-| `ok` | `--color-status-ok` | mint `#7cf3d6` | ● | În limite |
-| `watch` | `--color-status-watch` | warn `#f5c66b` | ▲ | De urmărit |
-| `alert` | `--color-status-alert` | danger `#ff6b6b` | ■ | Alertă |
-| `unknown` | `--color-status-unknown` | `fg-4` | ○ | Fără date |
+| `ok` | `ok` | `#75dbb6` | ● | Within limits |
+| `watch` | `watch` | `#f5c25f` | ▲ | Watch |
+| `alert` | `alert` | `#fa6863` | ■ | Alert |
+| `unknown` | `fg-4` | neutru | ○ | No data |
 
-**Pilonii** (aceleași familii ca în planul PDF): Tastatura = violet, Inima = coral, Santinela = mint,
-Încărcarea = periwinkle. Clase Tailwind: `text-pillar-immune`, `bg-pillar-cardio/10` etc.
+Verificate cu validatorul de palete (dataviz): ok ↔ watch ↔ alert se disting și la daltonism (ΔE ≥ 10 protan),
+iar forma și cuvântul le deosebesc oricum.
 
-**Ecranele** (aurora, orb-ul, inelul AI-ului): `SCREEN_HUES` din `src/lib/hues.ts`. Controlul misiunii e singurul
-ecran cu portocaliu (amber + coral), semnul distanței. Furtuna solară suprascrie ecranul cu `storm` (danger + amber).
+`brand` (`#e2792e`) există ca token, dar se folosește **doar în logo**.
 
-## Cum construiești un ecran
+### Contrast (WCAG 2.1, verificat)
 
-```tsx
-import { Header, Screen } from "@/components/layout/Shell";
-import { Card, SectionTitle, StatusBadge, rise } from "@/components/ui";
-import { motion } from "motion/react";
+| Text | pe `bg` | pe `surface-4` | Cerut |
+|---|---|---|---|
+| `fg` | 16,9 : 1 | 12,8 : 1 | 4,5 : 1 |
+| `fg-2` | 11,4 : 1 | 9,1 : 1 | 4,5 : 1 |
+| `fg-3` | 7,6 : 1 | 6,4 : 1 | 4,5 : 1 |
+| `fg-4` | 5,7 : 1 | 5,0 : 1 | 4,5 : 1 |
+| `ok` / `watch` / `alert` ca text | 11,8 / 12,0 / 6,8 : 1 | 9,0 / 9,1 / 5,1 : 1 | 4,5 : 1 |
+| `on-solid` pe `solid` (butonul primar) | 18,5 : 1 | | 4,5 : 1 |
 
-export default function CheckinPage() {
-  return (
-    <Screen screen="checkin" live={false}>               {/* nuanțele ecranului + aurora + rețeaua de puncte */}
-      <Header title="Check-in de dimineață" mission={mission} />
-      <div className="scroll-q min-h-0 flex-1 overflow-y-auto">
-        <motion.div {...rise} className="mx-auto grid max-w-[1180px] gap-5 px-6 pb-16 pt-6">   {/* o singură intrare */}
-          <Card as="section" aria-labelledby="h1">
-            <SectionTitle id="h1" right={<StatusBadge status="ok" />}>Tensiunea</SectionTitle>
-            …
-          </Card>
-        </motion.div>
-      </div>
-    </Screen>
-  );
-}
-```
+Scanarea automată axe-core (WCAG 2.1 A + AA) trece fără erori pe toate ecranele.
 
-`live` aprinde aurora: folosiți-l cât timp un pachet e pe drum, AI-ul răspunde sau furtuna e activă.
+## Tipografie
+
+Geist pentru tot. Geist Mono **doar** pentru identificatori (`pk-0007`, numele testelor, amprentele din jurnal),
+clasa `code`. Cifrele folosesc clasa `num` (cifre tabulare, ca să nu „sară” când se schimbă).
+
+| Clasă | Mărime | Rol |
+|---|---|---|
+| `text-hero` | 44 | cifra unică a unui ecran (decalajul, întârzierea legăturii, doza) |
+| `text-display` | 28 | valoarea unei măsurători |
+| `text-title` | 18 | titlul unei alerte, al unui panou |
+| `text-lead` | 15 | explicații, răspunsul medicului AI |
+| `text-base` | 14 | textul de citit |
+| `text-body` | 13,5 | controale, rânduri de listă |
+| `text-small` | 12,5 | text secundar, stări |
+| `text-caption` | 11,5 | titluri de secțiune, note |
+
+## Forme și mișcare
+
+- Raze: controale 12 (`rounded-xl`), carduri interioare 16 (`rounded-2xl`), carduri 22. Butoanele sunt pastile.
+- Adâncimea vine din ton (`card-q`, `float-q`), nu din umbră.
+- O singură mișcare fără acțiunea utilizatorului: zona în **alertă** de pe corp „respiră” încet (corpul din particule are și mișcările lui, descrise mai sus). Restul mișcărilor
+  răspund la ce face utilizatorul. `prefers-reduced-motion` le oprește pe toate.
+- În timpul unei alerte de radiații, lumina de fundal devine roșie: singura dată când fundalul are culoare.
+
+## Componentele
+
+`src/components/ui/index.tsx`: `Button`, `ButtonLink`, `IconButton`, `Spinner`, `Input`, `Textarea`, `Field`,
+`Switch`, `Checkbox`, `Slider`, `Segmented`, `Kbd`, `Card`, `SectionTitle`, `Tag`, `LevelTag`, `StatusMark`,
+`StatusBadge`, `Notice`, `ProblemCard`, `EmptyState`, `Skeleton`, `Meter`, `Metric`, `Tip`.
+`src/components/ui/Select.tsx`: `Select`. `src/components/ui/overlays.tsx`: `Sheet`, `Dialog`, `Tabs`.
+`src/components/charts/LineChart.tsx`: graficul (linie crem, banda normală, pragul, puncte colorate doar în afara
+normalului, tooltip la hover și la săgeți, tabel ascuns pentru cititoarele de ecran).
 
 ## Regulile
 
-1. **Culoarea e informație**, nu decor: stare, pilon, ecran. Orice altceva e în tonuri de gri (`fg-2` … `fg-5`).
-2. **Starea apare mereu cu formă și cuvânt** (`StatusBadge`). Nu colorați un număr fără eticheta lui.
-3. **Cifre:** valorile mari în Geist cu `tabular-nums`; ceasul, codurile și citirile mici în mono (`.num`).
-4. **Raze:** controale `rounded-xl` (12), carduri interioare `rounded-2xl` (16), carduri și panouri `rounded-[var(--radius-card)]` (22). Butoanele sunt pastile (`rounded-full`).
-5. **Adâncime din ton, nu din umbră:** `card-q` pentru carduri, `float-q` pentru ce plutește (meniuri, banner-ul de adăpost).
-6. **O singură animație de intrare pe ecran** (`rise`); meniurile folosesc `pop`. `prefers-reduced-motion` oprește tot.
-7. **Focus vizibil** (contur periwinkle) pe orice element interactiv; zonele corpului sunt butoane reale.
-8. **Eticheta „date simulate”** apare unde backend-ul trimite `source = simulated` sau `data_is_simulated = true` (`<Metric simulated />`).
-9. **Fără resurse de pe internet:** fonturile sunt locale, iconițele vin din `lucide-react`.
-10. **Textele vin de la backend, în română**; componentele nu compun mesaje din bucăți.
-
-## Fișierele
-
-```
-src/styles/tokens.css          tokenii și utilitarele (din Quaternion + stările, pilonii, .starfield, .num)
-src/app/globals.css            fonturile locale + Tailwind + tokens.css
-src/lib/hues.ts                SCREEN_HUES, PILLAR_HUE, STATUS_META, hueStyle()
-src/components/ui/index.tsx    componentele de bază
-src/components/ui/Select.tsx   lista derulantă (Radix)
-src/components/layout/Shell.tsx  Screen, Backdrop, Sidebar, Header, SHIP_NAV, CMO_NAV
-src/app/kit/page.tsx           catalogul vizual
-```
+1. **Culoarea e semnal.** Doar `ok`, `watch`, `alert`, și doar pentru o stare venită de la backend.
+2. **Starea apare mereu cu formă și cuvânt** (`StatusBadge`, `StatusMark`, `Notice`).
+3. **Textul nu poartă culoarea datelor**, cu excepția etichetei de stare.
+4. Cel mult **un buton primar** pe ecran.
+5. **„simulated data”** apare unde backend-ul trimite `source = simulated` sau `data_is_simulated = true`.
+6. **Textele de interfață sunt în engleză**, în componente. Textele de conținut (titlurile alertelor, explicațiile,
+   recomandările, câmpurile check-in-ului, erorile API) vin de la backend și se afișează exact cum vin.
+7. **Fără resurse de pe internet:** fonturi locale, iconițe din `lucide-react`, logo din `public/brand/`.
+8. **Focus vizibil** (inel crem) pe orice element interactiv; zonele corpului au butoane reale.
