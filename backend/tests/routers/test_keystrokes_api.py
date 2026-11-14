@@ -23,7 +23,10 @@ async def post(client, crew_id: str, username: str, session_id: str, events: lis
 
 
 async def behavioral_alerts() -> list[Alert]:
-    stmt = select(Alert).where(Alert.topic == "behavioral").options(selectinload(Alert.history))
+    """The open typing alerts (the history also has the resolved crew-wide sleep alerts of day 40, T29)."""
+    stmt = (
+        select(Alert).where(Alert.topic == "behavioral", Alert.state != "resolved").options(selectinload(Alert.history))
+    )
     async with db.SessionLocal() as s:
         return list((await s.scalars(stmt)).all())
 

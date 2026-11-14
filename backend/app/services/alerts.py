@@ -185,5 +185,26 @@ async def resolve(
     return await _save(session, a, data)
 
 
-async def recheck_loop() -> None:
-    raise NotImplementedError("T30")
+RECHECK_STEP_S = 5.0
+
+
+async def recheck_loop(data: DataBundle) -> None:
+    """Background task, every 5 real seconds, with its own session: the alerts whose recheck time has come
+    (services/pipeline.recheck_due). Events after commit; an error is logged and the loop goes on."""
+    import asyncio
+    import logging
+
+    from ..db import session as db
+    from . import pipeline
+    from .events import publish_all
+
+    log = logging.getLogger(__name__)
+    while True:
+        try:
+            async with db.SessionLocal() as s:
+                events = await pipeline.recheck_due(s, data)
+                await s.commit()
+            publish_all(events)
+        except Exception:
+            log.exception("recheck loop failed; continuing")
+        await asyncio.sleep(RECHECK_STEP_S)

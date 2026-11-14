@@ -12,9 +12,9 @@ from ..db import repos
 from ..db.models.alerts import Alert, AlertHistory, PlanStep
 from ..db.models.measurements import KeystrokeSession, Measurement
 from ..db.models.users import Crew
-from ..engine import triage
+from ..engine import cross_signals, triage
 from ..engine.baseline import compute
-from ..engine.derived import CARDIO_ADAPTATION_DAYS, CARDIO_WINDOW_DAYS, MIN_SPREAD
+from ..engine.derived import CARDIO_ADAPTATION_DAYS, CARDIO_WINDOW_DAYS, CROSS_SIGNAL_WINDOW_DAYS, MIN_SPREAD
 from ..engine.pillars import behavioral, cardio, immune
 from ..engine.types import Finding, PillarScore, Point, TriageDecision
 from ..ids import next_id
@@ -22,6 +22,7 @@ from ..schemas import AlertBrief
 from .events import Event
 
 SHADOW_ACTOR = "SHADOW"
+INDIVIDUAL_CAUSE = "Only you have this deviation; the rest of the crew is within their usual range."
 
 IMMUNE_METRICS = ("night_pulse_bpm", "temperature_c", "sleep_hours")
 TYPING_METRICS = {"keys_per_min", "hold_ms_mean", "flight_ms_mean"}
@@ -251,8 +252,8 @@ async def create_alert(session: AsyncSession, finding: Finding, data: DataBundle
         state="active",
         title=finding.title,
         explanation=finding.explanation,
-        cause="unknown",
-        cause_explanation="",
+        cause=finding.extra.get("cause", "individual"),
+        cause_explanation=finding.extra.get("cause_explanation", INDIVIDUAL_CAUSE),
         evidence=_evidence(finding),
         recommendation_id=finding.recommendation_id,
         recheck_at=at + timedelta(days=entry.recheck_days),
@@ -282,6 +283,8 @@ async def _update(
     alert.explanation = f.explanation
     alert.evidence = _evidence(f)
     alert.updated_at = at
+    if "cause" in f.extra:
+        alert.cause, alert.cause_explanation = f.extra["cause"], f.extra.get("cause_explanation", "")
     if f.status == "alert":
         alert.status = "alert"
     if decision.action == "escalate":
@@ -385,19 +388,17 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
     if await session.scalar(select(Alert.id).limit(1)) is not None:
         return
     crew_ids = (await session.scalars(select(Crew.id).order_by(Crew.id))).all()
-    for crew_id in crew_ids:
-        series = await _load_immune_series(session, crew_id, until_day)
-        typing_base = await typing_baseline(session, crew_id, data)
-        typing_by_day: dict[int, list[KeystrokeSession]] = {}
-        for row in await repos.keystroke_sessions(session, crew_id, 1, until_day):
-            typing_by_day.setdefault(row.mission_day, []).append(row)
-        cardio_series = await _load_cardio_series(session, crew_id, until_day)
-        cardio_since: int | None = None
-        readiness = []
-        for day in range(1, until_day + 1):
-            score, cardio_finding = cardio_day(crew_id, day, cardio_series, data, cardio_since)
-            if cardio_finding and cardio_since is None:
-                cardio_since = day
+    pre = {crew_id: await _crew_history(session, crew_id, until_day, data) for crew_id in crew_ids}
+    readiness = []
+    cardio_since: dict[str, int | None] = dict.fromkeys(crew_ids)
+    for day in range(1, until_day + 1):
+        at = review_time(data, day)
+        signals_today: dict[str, list[Finding]] = {}
+        for crew_id in crew_ids:
+            h = pre[crew_id]
+            score, cardio_finding = cardio_day(crew_id, day, h.cardio, data, cardio_since[crew_id])
+            if cardio_finding and cardio_since[crew_id] is None:
+                cardio_since[crew_id] = day
             if score.score is not None:
                 readiness.append(
                     {
@@ -405,7 +406,7 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                         "metric_key": LANDING_READINESS,
                         "value": score.score,
                         "unit": "/100",
-                        "measured_at": review_time(data, day),
+                        "measured_at": at,
                         "mission_day": day,
                         "source": "simulated",
                     }
@@ -416,14 +417,14 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                 set(IMMUNE_METRICS),
                 day=day,
                 data=data,
-                at=review_time(data, day),
-                _series={m: _up_to(points, day) for m, points in series.items()},
+                at=at,
+                _series={m: _up_to(points, day) for m, points in h.immune.items()},
                 extra_findings=[cardio_finding] if cardio_finding else None,
             )
-            for row in typing_by_day.get(day, []):
-                if row.is_baseline or not typing_base["ready"]:
+            for row in h.typing_by_day.get(day, []):
+                if row.is_baseline or not h.typing_base["ready"]:
                     continue
-                row.fatigue_index, _z = behavioral.fatigue_index(behavioral.features_of(row), typing_base)
+                row.fatigue_index, _z = behavioral.fatigue_index(behavioral.features_of(row), h.typing_base)
                 row.status = behavioral.status_for(row.fatigue_index)
                 if row.status in ("watch", "alert"):
                     await process(
@@ -433,7 +434,167 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                         day=day,
                         data=data,
                         at=row.updated_at,
-                        _typing=(row, typing_base),
+                        _typing=(row, h.typing_base),
                     )
-        if readiness:
-            await session.execute(insert(Measurement), readiness)
+            signals_today[crew_id] = cross_signals.weak_signals(crew_id, day, observations_for_day(h, day, data))
+        await environmental_pass(session, data, day, signals_today, at)
+        await recheck_due(session, data, at)
+    if readiness:
+        await session.execute(insert(Measurement), readiness)
+
+
+# --------------------------------------------------------------------------- weak signals, cause, cross signals
+
+
+@dataclass
+class CrewHistory:
+    immune: dict[str, list[Point]]
+    cardio: dict[str, list[Point]]
+    typing_base: dict
+    typing_by_day: dict[int, list[KeystrokeSession]]
+
+
+async def _crew_history(session: AsyncSession, crew_id: str, to_day: int, data: DataBundle) -> CrewHistory:
+    typing_by_day: dict[int, list[KeystrokeSession]] = {}
+    for row in await repos.keystroke_sessions(session, crew_id, 1, to_day):
+        typing_by_day.setdefault(row.mission_day, []).append(row)
+    return CrewHistory(
+        immune=await _load_immune_series(session, crew_id, to_day),
+        cardio=await _load_cardio_series(session, crew_id, to_day),
+        typing_base=await typing_baseline(session, crew_id, data),
+        typing_by_day=typing_by_day,
+    )
+
+
+def observations_for_day(h: CrewHistory, day: int, data: DataBundle) -> dict[str, tuple[float, float]]:
+    """metric → (the day's value, the personal median from the days before), for the weak signals."""
+    min_n = data.params.value("nightsignal_min_nights_baseline")
+    out = {}
+    for metric in IMMUNE_METRICS:
+        today = next((p for p in reversed(h.immune[metric]) if p.day == day), None)
+        if today is None:
+            continue
+        base = immune.baseline_before(h.immune[metric], day, min_n=min_n)
+        if base.ready:
+            out[metric] = (today.value, base.median)
+    rows = [r for r in h.typing_by_day.get(day, []) if r.n_keys and not r.is_baseline]
+    if rows and h.typing_base["ready"]:
+        out["keys_per_min"] = (rows[-1].keys_per_min, h.typing_base["mean"]["keys_per_min"])
+    return out
+
+
+async def environmental_pass(
+    session: AsyncSession, data: DataBundle, day: int, signals_today: dict[str, list[Finding]], at: datetime
+) -> list[Event]:
+    """The same weak signal at ≥ ENVIRONMENTAL_MIN_CREW members on the same day → a level 1 alert for each of them,
+    with cause = environmental."""
+    every = [f for signals in signals_today.values() for f in signals]
+    shared = cross_signals.environmental_cause(every, len(signals_today))
+    events: list[Event] = []
+    for key in sorted(shared):
+        matching = [f for f in every if f.extra.get("signal") == key]
+        for signal in matching:
+            env = cross_signals.environmental_finding(signal, len(matching), len(signals_today))
+            result = await process(session, signal.crew_id, set(), day=day, data=data, at=at, extra_findings=[env])
+            events += result.events
+    return events
+
+
+async def cross_signals_for(session: AsyncSession, crew_id: str, day: int, data: DataBundle) -> list[dict]:
+    """The cross signals of one person for the dashboard: weak signals of the last CROSS_SIGNAL_WINDOW_DAYS days,
+    without the ones the whole crew shares (environmental)."""
+    first = max(1, day - CROSS_SIGNAL_WINDOW_DAYS + 1)
+    crew_ids = (await session.scalars(select(Crew.id).order_by(Crew.id))).all()
+    histories = {c: await _crew_history(session, c, day, data) for c in crew_ids}
+    mine: list[Finding] = []
+    for d in range(first, day + 1):
+        today = {c: cross_signals.weak_signals(c, d, observations_for_day(h, d, data)) for c, h in histories.items()}
+        shared = cross_signals.environmental_cause([f for fs in today.values() for f in fs], len(crew_ids))
+        mine += [f for f in today.get(crew_id, []) if f.extra.get("signal") not in shared]
+    return cross_signals.detect(mine)
+
+
+# --------------------------------------------------------------------------- recheck (T30)
+
+
+async def _recheck_verdict(session: AsyncSession, alert: Alert, day: int, data: DataBundle) -> str:
+    """ "resolved" (values back to normal), "worse" (still above the threshold) or "nodata" (nothing new to judge)."""
+    if alert.topic == "radiation":
+        from . import radiation as radiation_service
+
+        status = await radiation_service.status(session, data)
+        return "resolved" if status.event is None or status.ratio < status.threshold_ratio else "nodata"
+
+    if alert.cause == "environmental":
+        h = await _crew_history(session, alert.crew_id, day, data)
+        metric = alert.evidence[0]["metric_key"] if alert.evidence else None
+        observations = observations_for_day(h, day, data)
+        if metric not in observations:
+            return "nodata"
+        signals = cross_signals.weak_signals(alert.crew_id, day, observations)
+        return "worse" if any(s.extra["signal"] == metric for s in signals) else "resolved"
+
+    if alert.topic == "immune":
+        series = await _load_immune_series(session, alert.crew_id, day)
+        if not any(p.day == day for p in series["night_pulse_bpm"]):
+            return "nodata"
+        return "worse" if _immune_finding(alert.crew_id, day, series, data, alert.mission_day) else "resolved"
+
+    if alert.topic == "behavioral":
+        row = await repos.latest_keystroke_session(session, alert.crew_id, day, from_day=day, judged_only=True)
+        if row is None or row.updated_at <= alert.updated_at:
+            return "nodata"
+        base = await typing_baseline(session, alert.crew_id, data)
+        finding = behavioral.typing_finding(
+            alert.crew_id, behavioral.features_of(row), base, row.fatigue_index, day=day
+        )
+        return "worse" if finding else "resolved"
+
+    if alert.topic == "cardio":
+        series = await _load_cardio_series(session, alert.crew_id, day)
+        if not any(p.day == day for p in series["resting_pulse_bpm"]):
+            return "nodata"
+        _score, finding = cardio_day(alert.crew_id, day, series, data, alert.mission_day)
+        return "worse" if finding else "resolved"
+    return "nodata"
+
+
+async def recheck_due(session: AsyncSession, data: DataBundle, now: datetime | None = None) -> list[Event]:
+    """Open alerts whose `recheck_at` has come: values back to normal → resolved by SHADOW; still above the
+    threshold → one level up (max 3) and a new recheck date; no new data → wait. Does not commit."""
+    now = now or clock.now()
+    day = clock.mission_day(now)
+    stmt = (
+        select(Alert)
+        .where(Alert.state != "resolved", Alert.recheck_at.is_not(None), Alert.recheck_at <= now)
+        .options(selectinload(Alert.steps), selectinload(Alert.history))
+    )
+    events: list[Event] = []
+    for alert in (await session.scalars(stmt)).all():
+        verdict = await _recheck_verdict(session, alert, day, data)
+        if verdict == "nodata":
+            continue
+        alert.updated_at = now
+        if verdict == "resolved":
+            note = "Values back to normal."
+            alert.state = "resolved"
+            alert.history.append(AlertHistory(at=now, actor=SHADOW_ACTOR, role=None, action="rechecked", note=note))
+            alert.history.append(AlertHistory(at=now, actor=SHADOW_ACTOR, role=None, action="resolved", note=note))
+        else:
+            alert.level = min(alert.level + 1, 3)
+            alert.status, alert.state = "alert", "escalated"
+            days = data.catalog.by_id()[alert.recommendation_id].recheck_days
+            alert.recheck_at = now + timedelta(days=days)
+            alert.history.append(
+                AlertHistory(
+                    at=now,
+                    actor=SHADOW_ACTOR,
+                    role=None,
+                    action="rechecked",
+                    note=f"Still above the threshold: moved to level {alert.level}.",
+                )
+            )
+            await _send_level3(session, alert, data)
+        events.append(Event("alert.updated", brief(alert), alert.crew_id))
+    await session.flush()
+    return events

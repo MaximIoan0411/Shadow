@@ -26,6 +26,31 @@ CARDIO_PENALTY_PER_LN_HRV = 40.0
 CARDIO_PENALTY_SYSTOLIC = 10.0
 CARDIO_ADAPTATION_DAYS = 14
 CARDIO_WINDOW_DAYS = 7
+# Loading pillar (T28): bone loading score. Full value for the first reps of a set, half after; a normal session
+# (3 sets × 10 reps × 80 kg) = 33.3 points, so a normal split day (2 sessions + 20% bonus) ≈ 80 = the daily target
+LOADING_FULL_REPS = 5
+LOADING_TAIL_WEIGHT = 0.5
+LOADING_REF_SESSION_RAW = 1800.0
+LOADING_REF_SESSION_SCORE = 33.3
+LOADING_SPLIT_BONUS = 0.2
+LOADING_SPLIT_GAP_H = 4.0
+LOADING_TARGET = 80.0
+LOADING_WATCH_FRACTION = 0.5
+LOADING_SPLIT_RATE_FACTOR = 0.7
+LOADING_ADHERENCE_DAYS = 14
+
+# Weak signals (T29): small deviations that alone are not alerts; with ≥ ENVIRONMENTAL_MIN_CREW members on the
+# same day they mean an environmental cause, and from ≥ 2 pillars at one person they make a cross signal
+WEAK_SIGNALS = {
+    "night_pulse_bpm": ("up", 2.0),
+    "temperature_c": ("up", 0.3),
+    "sleep_hours": ("down", 1.0),
+    "keys_per_min": ("down_pct", 8.0),
+}
+CROSS_SIGNAL_BASE_CONFIDENCE = 0.4
+CROSS_SIGNAL_CONFIDENCE_PER_SIGNAL = 0.1
+CROSS_SIGNAL_MAX_CONFIDENCE = 0.9
+
 # minimum personal CV, so day-to-day noise of a very steady person does not cross the 1×CV / 0.5×CV thresholds
 CARDIO_MIN_CV = {"resting_pulse_bpm": 0.03, "hrv_lnrmssd": 0.04}
 

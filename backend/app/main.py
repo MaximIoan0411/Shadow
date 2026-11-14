@@ -40,6 +40,8 @@ from .routers import (
 )
 from .security import keys as security_keys
 from .services import access, pipeline
+from .services import alerts as alerts_service
+from .services import exercise as exercise_service
 from .services import mission as mission_service
 from .services import radiation as radiation_service
 from .simulator import live
@@ -104,6 +106,7 @@ async def lifespan(app: FastAPI):
             await seed_crew_and_users(s, str(USERS_SEED))
             await mission_service.init_environment(s, app.state.data)
             await seed_history(s, app.state.data, until_day=scenario.start_day, not_after=clock.now())
+            await exercise_service.backfill(s, until_day=scenario.start_day)
             await pipeline.replay_history(s, until_day=scenario.start_day, data=app.state.data)
             await radiation_service.seed_readings(s, app.state.data)
             await s.commit()
@@ -112,6 +115,7 @@ async def lifespan(app: FastAPI):
                 asyncio.create_task(mission_service.mission_ticker(), name="mission_ticker"),
                 asyncio.create_task(link_scheduler.link_scheduler(app.state.data), name="link_scheduler"),
                 asyncio.create_task(live.live_simulator(app.state.data), name="live_simulator"),
+                asyncio.create_task(alerts_service.recheck_loop(app.state.data), name="recheck_loop"),
             ]
         startup_log.info("SHADOW startup finished in %.2f s", time.perf_counter() - started)
         yield

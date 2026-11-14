@@ -312,6 +312,10 @@ def _finding(crew_id: str, level: int, rate: float, mean: float, dose: float, da
         ),
         recommendation_id=rec,
         day=day,
+        extra={
+            "cause": "environmental",
+            "cause_explanation": "The whole crew is exposed: the cause is the solar storm, not your body.",
+        },
     )
 
 

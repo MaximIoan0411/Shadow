@@ -21,6 +21,7 @@ from ..engine.types import Point
 from ..schemas import (
     CrewMember,
     CrewSummary,
+    CrossSignal,
     Dashboard,
     DataSource,
     MetricSeries,
@@ -39,6 +40,7 @@ from ..schemas import (
 from . import alerts as alerts_service
 from . import behavioral as behavioral_service
 from . import checkins as checkins_service
+from . import exercise as exercise_service
 from . import pipeline
 from . import radiation as radiation_service
 
@@ -47,9 +49,7 @@ RANK = {"unknown": 0, "ok": 1, "watch": 2, "alert": 3}
 CHART_DAYS = 10
 
 # pillars without engine rules yet (T28): fixed placeholder values, shown as simulated
-PLACEHOLDER = {
-    Pillar.musculoskeletal: (82.0, "Exercise plan on track"),
-}
+PLACEHOLDER: dict = {}
 
 METRICS = {
     Pillar.behavioral: {
@@ -69,13 +69,16 @@ METRICS = {
         "temperature_c": ("Temperature", "°C"),
         "sleep_hours": ("Sleep", "h"),
     },
-    Pillar.musculoskeletal: {"exercise_sessions": ("Exercise sessions", "sessions/day")},
+    Pillar.musculoskeletal: {
+        "loading_score": ("Daily bone loading", "/80"),
+        "exercise_sessions": ("Exercise sessions", "sessions/day"),
+    },
 }
 CHART_METRIC = {
     Pillar.behavioral: "keys_per_min",
     Pillar.cardio: "landing_readiness",
     Pillar.immune: "night_pulse_bpm",
-    Pillar.musculoskeletal: "exercise_sessions",
+    Pillar.musculoskeletal: "loading_score",
 }
 TOPIC_LABEL = {
     "behavioral": "Typing",
@@ -174,8 +177,8 @@ async def _pillar_summaries(
             status = "ok" if latest else "unknown"
             headline = "Within your in-flight range" if latest else "Learning your in-flight normal"
         else:
-            score, headline = PLACEHOLDER[pillar]
-            status = "ok"
+            s = await exercise_service.yesterday_score(session, crew_id, day)
+            score, status, headline = s.score, s.status, s.headline
         if alert is not None:
             status = worst([status, alert.status])
             headline = alert.title
@@ -211,16 +214,7 @@ def _run_until(days: set[int], day: int) -> tuple[int, int]:
 
 async def _streaks(session: AsyncSession, crew_id: str, day: int) -> list[Streak]:
     checkin = await checkins_service.streak(session, crew_id, day)
-    counts = dict(
-        (
-            await session.execute(
-                select(ExerciseSession.mission_day, func.count())
-                .where(ExerciseSession.crew_id == crew_id, ExerciseSession.mission_day <= day)
-                .group_by(ExerciseSession.mission_day)
-            )
-        ).all()
-    )
-    split_now, split_best = _run_until({d for d, n in counts.items() if n >= 2}, day)
+    split = await exercise_service.split_streak(session, crew_id, day)
     pvt_days = set(
         (
             await session.scalars(
@@ -231,7 +225,7 @@ async def _streaks(session: AsyncSession, crew_id: str, day: int) -> list[Streak
     pvt_now, pvt_best = _run_until(pvt_days, day)
     return [
         checkin,
-        Streak(key="split_training", label="Training in two sessions", days=split_now, best=split_best),
+        split,
         Streak(key="pvt", label="Reaction test", days=pvt_now, best=pvt_best),
     ]
 
@@ -294,7 +288,7 @@ async def dashboard(session: AsyncSession, data: DataBundle, crew_id: str, as_of
         overall_status=worst([p.status for p in pillars] + [a.status for a in alerts]),
         pillars=pillars,
         perception_gap=gap,
-        cross_signals=[],  # TODO T29
+        cross_signals=[CrossSignal(**x) for x in await pipeline.cross_signals_for(session, crew_id, day, data)],
         alerts_active_count=len(alerts),
         top_alert=alerts_service.brief(top) if top else None,
         streaks=await _streaks(session, crew_id, day),
