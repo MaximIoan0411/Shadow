@@ -1,9 +1,9 @@
 /**
- * Sensul vizual al valorilor din contract: starea are culoare + formă + cuvânt (mereu împreună), iar pilonii,
+ * Sensul vizual al valorilor din contract: starea are culoare + iconiță + cuvânt (mereu împreună), iar pilonii,
  * subiectele și nivelurile au doar iconiță și nume, fără culoare. Singurul loc din aplicație care leagă un
  * `status` de o culoare.
  */
-import { Bone, Brain, HeartPulse, Radiation, ShieldPlus, Waypoints, type LucideIcon } from "lucide-react";
+import { Bone, Brain, CircleCheck, CircleDashed, HeartPulse, OctagonAlert, Radiation, ShieldPlus, TriangleAlert, Waypoints, type LucideIcon } from "lucide-react";
 import type { components } from "./shadow-api";
 
 type Schemas = components["schemas"];
@@ -15,15 +15,16 @@ export type Level = Schemas["AlertBrief"]["level"];
 interface StatusMeta {
   /** Variabila CSS a culorii; `unknown` nu are culoare, e un ton neutru. */
   readonly color: string;
-  readonly shape: string;
+  /** Iconița stării; fiecare are alt contur (cerc, triunghi, octogon), ca starea să se vadă și fără culoare. */
+  readonly icon: LucideIcon;
   readonly label: string;
 }
 
 export const STATUS_META = {
-  ok: { color: "var(--color-ok)", shape: "●", label: "Within limits" },
-  watch: { color: "var(--color-watch)", shape: "▲", label: "Watch" },
-  alert: { color: "var(--color-alert)", shape: "■", label: "Alert" },
-  unknown: { color: "var(--color-fg-4)", shape: "○", label: "No data" },
+  ok: { color: "var(--color-ok)", icon: CircleCheck, label: "Within limits" },
+  watch: { color: "var(--color-watch)", icon: TriangleAlert, label: "Watch" },
+  alert: { color: "var(--color-alert)", icon: OctagonAlert, label: "Alert" },
+  unknown: { color: "var(--color-fg-4)", icon: CircleDashed, label: "No data" },
 } as const satisfies Record<Status, StatusMeta>;
 
 /** Gravitatea, pentru sortări: poziția în această listă (cea mai gravă e ultima). */

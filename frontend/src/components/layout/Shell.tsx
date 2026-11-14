@@ -24,6 +24,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactElement, ReactNode } from "react";
 import { IconButton, StatusMark, Tag, Tip, cx } from "@/components/ui";
+import { RoleIcon, hasRoleIcon } from "@/components/login/RoleIcon";
 import { Select } from "@/components/ui/Select";
 import type { Schemas } from "@/lib/api";
 import { formatDuration, formatTime } from "@/lib/format";
@@ -91,10 +92,28 @@ export function navFor(role: Role, alerts?: { readonly count: number; readonly s
 }
 
 export interface Account {
+  /** După el se alege icoana de rol (vezi RoleIcon). */
+  readonly username: string;
   readonly displayName: string;
   readonly initials: string;
   readonly role: Role;
 }
+
+/** Cercul contului: icoana de rol, sau inițialele dacă rolul n-are icoană. */
+function AccountAvatar({ account, size }: { readonly account: Account; readonly size: "sm" | "md" }): ReactElement {
+  const withIcon = hasRoleIcon(account.username);
+  return (
+    <span
+      aria-hidden="true"
+      className={cx("grid shrink-0 place-items-center rounded-full bg-surface-4 text-small font-semibold", size === "md" ? "size-9" : "size-8", withIcon ? "text-crew" : "text-fg")}
+    >
+      {withIcon ? <RoleIcon username={account.username} size={size === "md" ? AVATAR_ICON_MD : AVATAR_ICON_SM} /> : account.initials}
+    </span>
+  );
+}
+
+const AVATAR_ICON_MD = 19;
+const AVATAR_ICON_SM = 17;
 
 const isActive = (pathname: string, href: string): boolean => pathname === href || pathname === `${href}/`;
 
@@ -166,16 +185,14 @@ export function Sidebar({
               type="button"
               onClick={onSwitchAccount}
               aria-label={`${account.displayName}. Switch account`}
-              className="grid size-9 place-items-center rounded-full bg-surface-4 text-small font-semibold text-fg"
+              className="rounded-full"
             >
-              {account.initials}
+              <AccountAvatar account={account} size="md" />
             </button>
           </Tip>
         ) : (
           <div className="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5">
-            <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-4 text-small font-semibold text-fg">
-              {account.initials}
-            </span>
+            <AccountAvatar account={account} size="sm" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-body font-medium text-fg">{account.displayName}</span>
               <span className="block truncate text-caption text-fg-4">{ROLE_LABEL[account.role]}</span>

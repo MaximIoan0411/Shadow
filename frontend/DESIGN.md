@@ -7,7 +7,7 @@ comentariile rămân în română.
 
 Paleta vine din logo: **negrul** lui (`#0b0a0f`) e fundalul, **crema** lui (`#fef7ea`) e lumina interfeței, iar
 **portocaliul** rămâne doar al logo-ului. Totul e în tonuri de fildeș pe negru. Culoarea apare **numai când corpul
-are ceva de spus**: trei culori de stare, fiecare mereu cu forma și cuvântul ei.
+are ceva de spus**: trei culori de stare, fiecare mereu cu iconița și cuvântul ei.
 
 Limbajul vizual e cel din logo: **pătrățele în grilă**. Din ele sunt desenate derulatorul misiunii (o celulă pe zi)
 și drumul pachetului navă ↔ Pământ.
@@ -51,15 +51,15 @@ Anatomia e în `anatomy.ts`, norul în `cloud.ts`, desenarea (tampon de pixeli, 
 
 ### Semnal (singurele culori)
 
-| `status` | Token | Culoare | Formă | Cuvânt |
+| `status` | Token | Culoare | Iconiță | Cuvânt |
 |---|---|---|---|---|
-| `ok` | `ok` | `#75dbb6` | ● | Within limits |
-| `watch` | `watch` | `#f5c25f` | ▲ | Watch |
-| `alert` | `alert` | `#fa6863` | ■ | Alert |
-| `unknown` | `fg-4` | neutru | ○ | No data |
+| `ok` | `ok` | `#75dbb6` | cerc cu bifă (`CircleCheck`) | Within limits |
+| `watch` | `watch` | `#f5c25f` | triunghi (`TriangleAlert`) | Watch |
+| `alert` | `alert` | `#fa6863` | octogon (`OctagonAlert`) | Alert |
+| `unknown` | `fg-4` | neutru | cerc punctat (`CircleDashed`) | No data |
 
 Verificate cu validatorul de palete (dataviz): ok ↔ watch ↔ alert se disting și la daltonism (ΔE ≥ 10 protan),
-iar forma și cuvântul le deosebesc oricum.
+iar iconița (alt contur pe fiecare stare) și cuvântul le deosebesc oricum.
 
 `brand` (`#e2792e`) există ca token, dar se folosește **doar în logo**.
 
@@ -112,7 +112,7 @@ normalului, tooltip la hover și la săgeți, tabel ascuns pentru cititoarele de
 ## Regulile
 
 1. **Culoarea e semnal.** Doar `ok`, `watch`, `alert`, și doar pentru o stare venită de la backend.
-2. **Starea apare mereu cu formă și cuvânt** (`StatusBadge`, `StatusMark`, `Notice`).
+2. **Starea apare mereu cu iconiță și cuvânt** (`StatusBadge`, `StatusMark`, `Notice`).
 3. **Textul nu poartă culoarea datelor**, cu excepția etichetei de stare.
 4. Cel mult **un buton primar** pe ecran.
 5. **„simulated data”** apare unde backend-ul trimite `source = simulated` sau `data_is_simulated = true`.

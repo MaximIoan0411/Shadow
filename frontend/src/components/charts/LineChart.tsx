@@ -10,6 +10,7 @@
 import { useMemo, useState, type KeyboardEvent, type PointerEvent, type ReactElement } from "react";
 import { clamp, formatNumber } from "@/lib/format";
 import { useElementWidth } from "@/lib/hooks";
+import { StatusIcon } from "@/components/ui";
 import { STATUS_META, type Status } from "@/lib/status";
 
 export interface ChartPoint {
@@ -257,7 +258,12 @@ export function LineChart(props: LineChartProps): ReactElement {
                 </p>
               );
             })}
-            {activePoint.status && <p style={{ color: STATUS_META[activePoint.status].color }}>{`${STATUS_META[activePoint.status].shape} ${STATUS_META[activePoint.status].label}`}</p>}
+            {activePoint.status && (
+              <p className="flex items-center gap-1.5" style={{ color: STATUS_META[activePoint.status].color }}>
+                <StatusIcon status={activePoint.status} />
+                {STATUS_META[activePoint.status].label}
+              </p>
+            )}
           </div>
         )}
       </div>

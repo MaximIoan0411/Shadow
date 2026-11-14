@@ -5,6 +5,7 @@
  */
 import { X } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { StatusIcon } from "@/components/ui";
 import { STATUS_META, type Status } from "./status";
 
 export interface ToastInput {
@@ -58,8 +59,8 @@ export function ToastProvider({ children }: { readonly children: ReactNode }): R
         {items.map((item) => (
           <div key={item.id} className="float-q pointer-events-auto flex animate-[select-in_180ms_var(--ease-out)] items-start gap-3 rounded-2xl p-3.5">
             {item.status && (
-              <span aria-hidden="true" className="mt-0.5 text-small leading-none" style={{ color: STATUS_META[item.status].color }}>
-                {STATUS_META[item.status].shape}
+              <span aria-hidden="true" className="mt-0.5 text-base leading-none" style={{ color: STATUS_META[item.status].color }}>
+                <StatusIcon status={item.status} />
               </span>
             )}
             <div className="min-w-0 flex-1">
