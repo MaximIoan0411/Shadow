@@ -50,10 +50,10 @@ construi fiecare ecran fără să aștepți backend-ul. Referința: `contract/RE
 | Etichetele de stare | `StatusBadge` din `components/ui` (**gata**) | fiecare stare are culoare **și** formă **și** cuvânt |
 | Rutele goale | `src/app/` | fiecare ecran din scheletul de mai jos există, chiar dacă e gol |
 
-**Sistemul de design e gata, preluat din Quaternion:** `frontend/DESIGN.md`, componentele din
-`src/components/ui/` și `src/components/layout/Shell.tsx`, catalogul vizual la `/kit`. Culorile de stare:
-`ok` mint `#7cf3d6` ●, `watch` warn `#f5c66b` ▲, `alert` danger `#ff6b6b` ■, `unknown` gri ○ (mereu prin
-`<StatusBadge />`). Fundal `#050507`; portocaliul (amber + coral) doar pe ecranul Pământului.
+**Sistemul de design e gata (v2, „Semnal pe negru”):** `frontend/DESIGN.md`, catalogul vizual la `/kit`.
+Paleta vine din logo (negru `#0b0a0f`, crem `#fef7ea`); singurele culori sunt cele de stare: `ok` `#75dbb6` ●,
+`watch` `#f5c25f` ▲, `alert` `#fa6863` ■, `unknown` neutru ○ (mereu prin `<StatusBadge />`). Pilonii nu au culoare.
+**Interfața e în engleză**; textele de conținut vin de la backend și se afișează cum vin.
 
 ## 2. Autentificarea: „Cine ești?” (P0)
 

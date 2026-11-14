@@ -1,22 +1,75 @@
-# frontend — interfața SHADOW (Next.js)
+# SHADOW — frontend și aplicația de desktop
 
-**Cine lucrează aici:** frontend (2)
+Interfața (Next.js 15, React 19, Tailwind v4), în engleză, legată de backend prin contractul din
+`../contract/api/` și `src/lib/shadow-api.d.ts`. Rulează ca aplicație de desktop (Electron) sau în browser.
 
-Next.js (App Router) + TypeScript + Tailwind v4, cu sistemul de design preluat din Quaternion.
+## Pornire pe Windows (prima dată)
 
-```bash
+Ai nevoie de **Node.js 20+** și, pentru backend, de **uv** (https://docs.astral.sh/uv/).
+
+```powershell
+cd Desktop\shadow\frontend
 npm install
-cp .env.local.example .env.local        # NEXT_PUBLIC_API_URL=http://localhost:8000
-npm run dev                             # http://localhost:3000  (deocamdată duce la /kit)
+npm run app
 ```
 
-Backend-ul mock trebuie pornit în paralel: `cd ../backend && uv sync && uv run uvicorn app.main:app --reload --port 8000`.
+`npm run app` construiește interfața și deschide fereastra SHADOW. Dacă backend-ul nu rulează deja, aplicația îl
+pornește singură din `..\backend` (cu `uv run uvicorn`) și îl oprește la ieșire. Prima pornire a backend-ului
+durează un minut, cât `uv` instalează dependențele; ecranul de autentificare arată „Starting the SHADOW server…”.
 
-| Citește | Pentru |
+Pornirile următoare: `npm run app:start` (fără reconstruire).
+
+Dacă vrei backend-ul separat (ca să-i vezi log-urile), într-un alt terminal:
+
+```powershell
+cd Desktop\shadow\backend
+uv run uvicorn app.main:app --port 8000
+```
+
+## Conturile de test
+
+| Cont | Parolă | Rol |
+|---|---|---|
+| Comandant | `cm1-shadow` | astronaut |
+| Specialist de misiune 2 | `cm2-shadow` | astronaut, cu alertele din scenariu |
+| Ofițer medical de bord | `cm3-shadow` | ofițer medical (coada medicală) |
+| Inginer de zbor | `cm4-shadow` | astronaut |
+| Medicul de zbor (fila „On Earth”) | `earth-shadow` | Pământul |
+
+Fiecare fereastră are sesiunea ei (`Ctrl+N` deschide încă una), deci poți ține nava și Pământul alături.
+Panoul de demo: iconița din antet sau `Ctrl+Shift+D`.
+
+## Comenzi
+
+| Comandă | Ce face |
 |---|---|
-| `DESIGN.md` (aici) + pagina `/kit` | componentele, culorile, regulile vizuale |
-| `../docs/FRONTEND_SARCINI.md` | ce construim: ecranele, în ordinea priorității |
-| `../contract/api/README.md` | endpoint-urile, modelele, erorile, evenimentele live |
+| `npm run app` | construiește interfața și deschide aplicația de desktop |
+| `npm run app:start` | deschide aplicația (fără reconstruire) |
+| `npm run app:dev` | aplicația de desktop peste `next dev`, cu reîncărcare la salvare |
+| `npm run dev` | doar în browser, la http://localhost:3000 (catalogul de design: `/kit`) |
+| `npm run backend` | pornește backend-ul (`uv`) |
+| `npm run typecheck` | verifică tipurile |
+| `npm run api:types` | regenerează tipurile din contract |
 
-`src/lib/api.ts` (clientul) și `src/lib/shadow-api.d.ts` (tipurile) vorbesc cu backend-ul **doar prin contract**.
-După o schimbare de contract: `npm run api:types` (sau `bash ../scripts/gen_types.sh`).
+## Cum e legat de backend
+
+- Frontend-ul cere totul pe **aceeași origine**, la `/api/v1/…`. În `npm run dev` cererile le duce Next
+  (`next.config.ts`, `SHADOW_API_URL`), în aplicație le duce Electron (`electron/main.cjs`). Fără CORS.
+- `src/lib/endpoints.ts` are câte o funcție pentru fiecare endpoint din contract; `src/lib/queries.ts`, citirile.
+- **Fără polling.** Un singur flux de evenimente (`src/lib/events.tsx`) invalidează datele la `alert.*`,
+  `packet.*`, `radiation.*`, `dashboard.changed`; după o reconectare se reîncarcă tot.
+- Tokenul stă doar în memorie. „Switch account” oprește colectorul de tastare, închide evenimentele, deconectează și
+  golește toate datele.
+- Tastarea trimite doar timpii și clasa tastei, niciodată textul.
+
+## Structura
+
+```
+electron/        main.cjs (fereastra, serverul local, proxy, pornirea backend-ului), preload.cjs, build.cjs, dev.cjs
+public/brand/    logo-ul
+src/app/         login, (ship)/{dashboard, checkin, rhythm, exercise, alerts, ai, radiation, evidence, cmo},
+                 mission-control/{, evidence}, kit
+src/components/  ui, layout, body, charts, alerts, ai, keystrokes, pvt, link, radiation, evidence
+src/lib/         api, endpoints, queries, events, session, status, format, toast, hooks, useKeystrokes, desktop
+src/styles/      tokens.css (sistemul de design, vezi DESIGN.md)
+```

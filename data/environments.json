@@ -3,7 +3,7 @@
   "environments": [
     {
       "id": "iss",
-      "name": "Stația spațială (orbită joasă)",
+      "name": "Space station (low Earth orbit)",
       "one_way_delay_s": 1.0,
       "gravity_g": 0.0,
       "baseline_dose_usv_h": 30.5,
@@ -11,7 +11,7 @@
         "gravity",
         "hostile_environment"
       ],
-      "description": "Pământul răspunde aproape imediat; triajul trimite mai ușor la nivelul 3.",
+      "description": "Earth answers almost immediately; triage escalates to level 3 more readily.",
       "dose_source_param": "doza_iss_zilnica",
       "delay_range_s": null,
       "sources": [
@@ -20,13 +20,13 @@
           "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         }
       ]
     },
     {
       "id": "moon_base",
-      "name": "Bază pe Lună",
+      "name": "Moon base",
       "one_way_delay_s": 1.3,
       "gravity_g": 0.165,
       "baseline_dose_usv_h": 57.0,
@@ -34,7 +34,7 @@
         "radiation",
         "gravity"
       ],
-      "description": "Gravitație redusă, dar nu zero: alte praguri pentru oase și inimă.",
+      "description": "Reduced gravity, but not zero: different thresholds for bones and the heart.",
       "dose_source_param": "doza_luna_suprafata",
       "delay_range_s": null,
       "sources": [
@@ -43,13 +43,13 @@
           "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         }
       ]
     },
     {
       "id": "mars_transit",
-      "name": "Tranzit spre Marte",
+      "name": "Transit to Mars",
       "one_way_delay_s": 700.0,
       "gravity_g": 0.0,
       "baseline_dose_usv_h": 65.8,
@@ -58,7 +58,7 @@
         "distance",
         "isolation"
       ],
-      "description": "Întârziere de 3–22 de minute; nivelurile 1 și 2 rezolvă aproape tot la bord.",
+      "description": "A 3–22 minute delay; levels 1 and 2 handle almost everything on board.",
       "dose_source_param": "doza_tranzit_marte_revizuita",
       "delay_range_s": [
         182.4,
@@ -70,13 +70,13 @@
           "url": "https://link.springer.com/article/10.1007/s00159-021-00136-5",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         }
       ]
     },
     {
       "id": "mars_base",
-      "name": "Bază pe Marte",
+      "name": "Mars base",
       "one_way_delay_s": 700.0,
       "gravity_g": 0.38,
       "baseline_dose_usv_h": 26.7,
@@ -85,7 +85,7 @@
         "gravity",
         "isolation"
       ],
-      "description": "Gravitație redusă; la conjuncția solară, circa 2 săptămâni fără comenzi de pe Pământ.",
+      "description": "Reduced gravity; at solar conjunction, about 2 weeks without commands from Earth.",
       "dose_source_param": "doza_suprafata_marte_hassler2014",
       "delay_range_s": [
         182.4,
@@ -97,7 +97,7 @@
           "url": "https://doi.org/10.1126/science.1244797",
           "verification": "unverified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         }
       ]
     }
