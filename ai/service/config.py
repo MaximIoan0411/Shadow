@@ -8,9 +8,10 @@ ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 def _read_env_file() -> dict[str, str]:
+    # utf-8-sig: Notepad pe Windows poate pune un BOM la începutul fișierului
     if not ENV_FILE.exists():
         return {}
-    pairs = (line.split("=", 1) for line in ENV_FILE.read_text(encoding="utf-8").splitlines() if "=" in line and not line.lstrip().startswith("#"))
+    pairs = (line.split("=", 1) for line in ENV_FILE.read_text(encoding="utf-8-sig").splitlines() if "=" in line and not line.lstrip().startswith("#"))
     return {key.strip(): value.strip().strip('"').strip("'") for key, value in pairs}
 
 

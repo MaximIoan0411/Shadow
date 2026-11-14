@@ -70,6 +70,11 @@ def main() -> int:
 
         from service.main import app
 
+        from service.config import ENV_FILE, load_settings
+
+        settings = load_settings()
+        print(f"Modul: {settings.mode}" + (f", model la {settings.llm_url}" if settings.llm_url else
+              f" (fără model: {ENV_FILE} lipsește sau nu are SHADOW_LLM_URL)") + "\n")
         client_cm = TestClient(app)
         client = client_cm.__enter__()
     for item in questions:
