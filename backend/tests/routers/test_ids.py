@@ -1,6 +1,6 @@
 from app.db import session as db
 from app.db.models.sim import SimState
-from app.ids import next_id, next_seq
+from app.ids import next_id, next_ids, next_seq
 
 
 async def test_next_id_counts_up_with_padding(client):
@@ -20,13 +20,13 @@ async def test_prefixes_have_separate_counters(client):
 
 async def test_counter_persists_across_sessions(client):
     async with db.SessionLocal() as s:
-        await next_id(s, "ck")
+        await next_id(s, "tst")
         await s.commit()
     async with db.SessionLocal() as s:
-        assert await next_id(s, "ck") == "ck-0002"
+        assert await next_id(s, "tst") == "tst-0002"
         await s.commit()
     async with db.SessionLocal() as s:
-        row = await s.get(SimState, "id:ck")
+        row = await s.get(SimState, "id:tst")
         assert row.value == {"n": 2}
 
 
@@ -49,6 +49,14 @@ async def test_next_seq_per_direction(client):
         await s.commit()
     async with db.SessionLocal() as s:
         assert await next_seq(s, "down") == 4
+        await s.commit()
+
+
+async def test_next_ids_reserves_a_block(client):
+    async with db.SessionLocal() as s:
+        assert await next_ids(s, "blk", 3) == ["blk-0001", "blk-0002", "blk-0003"]
+        assert await next_id(s, "blk") == "blk-0004"
+        assert await next_ids(s, "blk", 0) == []
         await s.commit()
 
 

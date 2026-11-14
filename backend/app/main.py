@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from .datafiles import load_all
 from .db import models  # noqa: F401  (registers every table on Base.metadata)
 from .db import session as db
 from .db.base import Base
-from .db.seed import seed_crew_and_users
+from .db.seed import seed_crew_and_users, seed_history
 from .deps import ApiError
 from .routers import (
     ai,
@@ -42,6 +43,7 @@ API_PREFIX = "/api/v1"
 VERSION = "1.2.0"
 
 log = logging.getLogger(__name__)
+startup_log = logging.getLogger("uvicorn.error")  # uvicorn only prints its own loggers by default
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 USERS_SEED = BACKEND_DIR / "seed" / "users.json"
@@ -77,6 +79,7 @@ async def lifespan(app: FastAPI):
     settings = app.state.settings
     if settings.reset_db_on_start:
         delete_sqlite_files(settings.database_url)
+    started = time.perf_counter()
     engine = db.init_engine(settings.database_url)
     try:
         async with engine.begin() as conn:
@@ -93,7 +96,9 @@ async def lifespan(app: FastAPI):
         async with db.SessionLocal() as s:
             await seed_crew_and_users(s, str(USERS_SEED))
             await mission_service.init_environment(s, app.state.data)
+            await seed_history(s, app.state.data, until_day=scenario.start_day, not_after=clock.now())
             await s.commit()
+        startup_log.info("SHADOW startup finished in %.2f s", time.perf_counter() - started)
         yield
     finally:
         await engine.dispose()
