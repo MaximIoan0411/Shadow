@@ -1,5 +1,3 @@
-"""T02: SimClock — timpul misiunii (ziua 96, 07:00, ×scale), cu time.monotonic() controlat din test."""
-
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -7,7 +5,7 @@ import pytest
 from app import clock as clock_module
 from app.clock import SimClock
 
-MISSION_START = datetime(2027, 1, 10, tzinfo=UTC)  # data/scenario/scenario.json → start
+MISSION_START = datetime(2027, 1, 10, tzinfo=UTC)
 
 
 class FakeMonotonic:
@@ -54,7 +52,7 @@ def test_day_start_and_mission_day(clk):
 
 
 def test_day_rolls_over_at_midnight(clk, mono):
-    mono.t += 17 * 3600 / 60  # 17 ore de misiune la ×60 → 00:00 a zilei 97
+    mono.t += 17 * 3600 / 60
     assert clk.mission_day() == 97
 
 

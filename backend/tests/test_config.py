@@ -1,5 +1,3 @@
-"""T01: setările vin din mediu / .env prin get_settings(), citite la create_app(), nu la import."""
-
 from app.main import create_app
 
 

@@ -1,8 +1,3 @@
-"""Setările, citite din .env / mediu (pydantic-settings). TASK T01.
-
-Se citesc la APEL (get_settings()), nu la import, ca testele să le poată schimba înainte de create_app().
-"""
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,8 +8,8 @@ class Settings(BaseSettings):
     reset_db_on_start: bool = True
     time_scale: float = 60
     data_dir: str = "../data"
-    jwt_secret: str = "dev-secret-schimba-ma"   # T07: în producție obligatoriu din .env
-    allow_mock_tokens: bool = True              # T07: acceptă și „mock-<utilizator>” (testele, smoke.py, frontend-ul pe mock)
+    jwt_secret: str = "dev-secret-schimba-ma"
+    allow_mock_tokens: bool = True
     link_aes_key_b64: str = ""
     ai_url: str = "http://localhost:8001"
     ai_timeout_s: float = 20

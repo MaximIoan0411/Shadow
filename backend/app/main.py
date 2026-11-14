@@ -1,15 +1,3 @@
-"""SHADOW API — scheletul contractului.
-
-Rulează ca MOCK SERVER: toate endpoint-urile există și întorc date de exemplu valide, iar textele, mediile,
-catalogul și pragurile vin deja din data/. Backend-ul înlocuiește pe rând corpul fiecărei funcții cu logica
-reală, FĂRĂ să schimbe semnăturile (cale, parametri, modele). Așa frontend-ul nu se strică niciodată.
-
-    uv run uvicorn app.main:app --reload --port 8000
-    http://localhost:8000/docs   ← documentație interactivă (Swagger)
-
-Arhitectura țintă (create_app + lifespan + task-uri din fundal): backend/PLAN_DE_ATAC_BACKEND.md, secțiunile 5–10.
-"""
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -43,19 +31,11 @@ VERSION = "1.2.0"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # MOCK: nimic de pornit. REAL (planul de atac, secțiunea 6), în ordine:
-    #   1. ștergerea bazei (RESET_DB_ON_START) + init_engine + create_all
-    #   2. load_all(DATA_DIR) din app/datafiles.py → app.state.data
-    #   3. seed_users, seed_history(until_day=scenario.start_day), replay_engine
-    #   4. clock.start(day=scenario.start_day, ...)
-    #   5. task-urile: link_scheduler, mission_ticker, live_simulator, recheck_loop
     yield
-    #   la oprire: anularea task-urilor, engine.dispose()
 
 
 def create_app() -> FastAPI:
-    """Aplicația se construiește aici (nu la import), ca testele să poată schimba setările înainte."""
-    settings = get_settings()  # citite la apel: testele schimbă mediul înainte de create_app()
+    settings = get_settings()
     app = FastAPI(
         title="SHADOW API",
         version=VERSION,
@@ -85,7 +65,6 @@ def create_app() -> FastAPI:
     return app
 
 
-# ------------------------------------------------------------------ erori într-o singură formă
 def _err(status: int, code: str, message: str, details=None) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details}})
 
@@ -108,7 +87,6 @@ async def unexpected(_: Request, e: Exception):
     return _err(500, "internal_error", "Unexpected server error.")
 
 
-# ------------------------------------------------------------------ OpenAPI: securitate + modelele SSE
 def custom_openapi(app: FastAPI):
     if app.openapi_schema:
         return app.openapi_schema
@@ -134,4 +112,4 @@ def custom_openapi(app: FastAPI):
     return spec
 
 
-app = create_app()  # pentru `uvicorn app.main:app`
+app = create_app()
