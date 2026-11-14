@@ -18,6 +18,17 @@ ENVIRONMENTAL_MIN_CREW = 3
 # Radiation (T25): consecutive readings above the threshold that trigger the alert
 SEP_CONSECUTIVE_READINGS = 3
 
+# Heart pillar (T27): landing readiness score, points lost per bpm of resting pulse above the in-flight baseline,
+# per ln unit of HRV below it, and when the systolic pressure is beyond the in-flight drop threshold;
+# the first days of flight are adaptation and do not enter the in-flight baseline
+CARDIO_PENALTY_PER_BPM = 3.0
+CARDIO_PENALTY_PER_LN_HRV = 40.0
+CARDIO_PENALTY_SYSTOLIC = 10.0
+CARDIO_ADAPTATION_DAYS = 14
+CARDIO_WINDOW_DAYS = 7
+# minimum personal CV, so day-to-day noise of a very steady person does not cross the 1×CV / 0.5×CV thresholds
+CARDIO_MIN_CV = {"resting_pulse_bpm": 0.03, "hrv_lnrmssd": 0.04}
+
 # Typing (T19)
 FLIGHT_PAUSE_MS = 2000
 KEYSTROKE_WATCH_FATIGUE = 50

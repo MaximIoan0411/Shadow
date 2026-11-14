@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,11 +10,12 @@ from ..clock import clock
 from ..datafiles import DataBundle
 from ..db import repos
 from ..db.models.alerts import Alert, AlertHistory, PlanStep
-from ..db.models.measurements import KeystrokeSession
+from ..db.models.measurements import KeystrokeSession, Measurement
 from ..db.models.users import Crew
 from ..engine import triage
-from ..engine.derived import MIN_SPREAD
-from ..engine.pillars import behavioral, immune
+from ..engine.baseline import compute
+from ..engine.derived import CARDIO_ADAPTATION_DAYS, CARDIO_WINDOW_DAYS, MIN_SPREAD
+from ..engine.pillars import behavioral, cardio, immune
 from ..engine.types import Finding, PillarScore, Point, TriageDecision
 from ..ids import next_id
 from ..schemas import AlertBrief
@@ -108,6 +109,72 @@ async def immune_snapshot(session: AsyncSession, crew_id: str, day: int, data: D
     )
     delta = nights[-1].value - base.median if nights and base.ready else None
     return ImmuneSnapshot(score=immune.score(nights, base, finding), finding=finding, night_delta_bpm=delta)
+
+
+CARDIO_METRICS = ("resting_pulse_bpm", "hrv_lnrmssd", "systolic_mmhg")
+LANDING_READINESS = "landing_readiness"
+
+
+def cardio_params(data: DataBundle) -> dict:
+    v = data.params.value
+    hr, hrv = v("prag_hr_repaus_crestere"), v("prag_hrv_lnrmssd")
+    return {
+        "hr_cv_default_pct": hr["CV_implicit_daca_lipseste_pct"],
+        "hr_min_days": hr["minim_zile_consecutive"],
+        "hrv_cv_default_pct": hrv["CV_implicit_daca_lipseste_pct"],
+        "sbp_drop_mmhg": v("prag_tas_scadere_in_zbor"),
+    }
+
+
+def cardio_day(
+    crew_id: str, day: int, series: dict[str, list[Point]], data: DataBundle, alert_since: int | None
+) -> tuple[PillarScore, Finding | None]:
+    """The Heart pillar for one day. The in-flight baseline uses the days after the adaptation period and before
+    the last 7-day window (minus the days of an open heart alert)."""
+    excluded = set(range(alert_since, day + 1)) if alert_since is not None else set()
+    upto = {m: [p for p in series[m] if p.day <= day] for m in CARDIO_METRICS}
+    bases = {
+        m: compute(
+            [p for p in upto[m] if CARDIO_ADAPTATION_DAYS < p.day <= day - CARDIO_WINDOW_DAYS],
+            min_n=CARDIO_WINDOW_DAYS,
+            exclude_days=excluded,
+        )
+        for m in CARDIO_METRICS
+    }
+    return cardio.landing_readiness(
+        upto["resting_pulse_bpm"],
+        upto["hrv_lnrmssd"],
+        upto["systolic_mmhg"],
+        bases,
+        cardio_params(data),
+        crew_id=crew_id,
+        day=day,
+    )
+
+
+async def _load_cardio_series(session: AsyncSession, crew_id: str, to_day: int) -> dict[str, list[Point]]:
+    return {m: await repos.series(session, crew_id, m, 1, to_day) for m in CARDIO_METRICS}
+
+
+async def _save_readiness(
+    session: AsyncSession, crew_id: str, day: int, score: float, at: datetime, source: str
+) -> None:
+    await session.execute(
+        delete(Measurement).where(
+            Measurement.crew_id == crew_id, Measurement.metric_key == LANDING_READINESS, Measurement.mission_day == day
+        )
+    )
+    session.add(
+        Measurement(
+            crew_id=crew_id,
+            metric_key=LANDING_READINESS,
+            value=score,
+            unit="/100",
+            measured_at=at,
+            mission_day=day,
+            source=source,
+        )
+    )
 
 
 async def typing_baseline(session: AsyncSession, crew_id: str, data: DataBundle) -> dict:
@@ -278,6 +345,19 @@ async def process(
         finding = await _typing_finding(session, crew_id, day, data, _typing)
         if finding:
             findings.append(finding)
+    if "cardio" in pillars:
+        open_cardio = open_alerts.get((crew_id, "cardio"))
+        score, finding = cardio_day(
+            crew_id,
+            day,
+            await _load_cardio_series(session, crew_id, day),
+            data,
+            open_cardio.mission_day if open_cardio else None,
+        )
+        if score.score is not None:
+            await _save_readiness(session, crew_id, day, score.score, at, "manual")
+        if finding:
+            findings.append(finding)
 
     open_levels = {key: (a.id, a.level) for key, a in open_alerts.items()}
     for decision in triage.decide(findings, open_levels):
@@ -311,7 +391,25 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
         typing_by_day: dict[int, list[KeystrokeSession]] = {}
         for row in await repos.keystroke_sessions(session, crew_id, 1, until_day):
             typing_by_day.setdefault(row.mission_day, []).append(row)
+        cardio_series = await _load_cardio_series(session, crew_id, until_day)
+        cardio_since: int | None = None
+        readiness = []
         for day in range(1, until_day + 1):
+            score, cardio_finding = cardio_day(crew_id, day, cardio_series, data, cardio_since)
+            if cardio_finding and cardio_since is None:
+                cardio_since = day
+            if score.score is not None:
+                readiness.append(
+                    {
+                        "crew_id": crew_id,
+                        "metric_key": LANDING_READINESS,
+                        "value": score.score,
+                        "unit": "/100",
+                        "measured_at": review_time(data, day),
+                        "mission_day": day,
+                        "source": "simulated",
+                    }
+                )
             await process(
                 session,
                 crew_id,
@@ -320,6 +418,7 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                 data=data,
                 at=review_time(data, day),
                 _series={m: _up_to(points, day) for m, points in series.items()},
+                extra_findings=[cardio_finding] if cardio_finding else None,
             )
             for row in typing_by_day.get(day, []):
                 if row.is_baseline or not typing_base["ready"]:
@@ -336,3 +435,5 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                         at=row.updated_at,
                         _typing=(row, typing_base),
                     )
+        if readiness:
+            await session.execute(insert(Measurement), readiness)

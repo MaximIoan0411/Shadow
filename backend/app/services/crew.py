@@ -40,14 +40,14 @@ from . import alerts as alerts_service
 from . import behavioral as behavioral_service
 from . import checkins as checkins_service
 from . import pipeline
+from . import radiation as radiation_service
 
 ORDER = (Pillar.behavioral, Pillar.cardio, Pillar.immune, Pillar.musculoskeletal)
 RANK = {"unknown": 0, "ok": 1, "watch": 2, "alert": 3}
 CHART_DAYS = 10
 
-# pillars without engine rules yet (T27, T28): fixed placeholder values, shown as simulated
+# pillars without engine rules yet (T28): fixed placeholder values, shown as simulated
 PLACEHOLDER = {
-    Pillar.cardio: (88.0, "Within your in-flight range"),
     Pillar.musculoskeletal: (82.0, "Exercise plan on track"),
 }
 
@@ -58,6 +58,7 @@ METRICS = {
         "pvt_mean_speed": ("Reaction speed (PVT-B)", "1/s"),
     },
     Pillar.cardio: {
+        "landing_readiness": ("Landing readiness", "/100"),
         "resting_pulse_bpm": ("Resting pulse", "bpm"),
         "hrv_lnrmssd": ("Heart rate variability", "ln(ms)"),
         "systolic_mmhg": ("Blood pressure (systolic)", "mmHg"),
@@ -72,7 +73,7 @@ METRICS = {
 }
 CHART_METRIC = {
     Pillar.behavioral: "keys_per_min",
-    Pillar.cardio: "resting_pulse_bpm",
+    Pillar.cardio: "landing_readiness",
     Pillar.immune: "night_pulse_bpm",
     Pillar.musculoskeletal: "exercise_sessions",
 }
@@ -167,6 +168,11 @@ async def _pillar_summaries(
             _pvt, pvt_sd, _text = await behavioral_service.pvt_snapshot(session, crew_id, day)
             s = behavioral.score(typing.fatigue_index if typing else None, pvt_sd)
             score, status, headline = s.score, s.status, s.headline
+        elif pillar == Pillar.cardio:
+            latest = await repos.latest(session, crew_id, pipeline.LANDING_READINESS, day)
+            score = latest.value if latest else None
+            status = "ok" if latest else "unknown"
+            headline = "Within your in-flight range" if latest else "Learning your in-flight normal"
         else:
             score, headline = PLACEHOLDER[pillar]
             status = "ok"
@@ -293,7 +299,7 @@ async def dashboard(session: AsyncSession, data: DataBundle, crew_id: str, as_of
         top_alert=alerts_service.brief(top) if top else None,
         streaks=await _streaks(session, crew_id, day),
         reminders=await _reminders(session, crew_id, day, checkin is not None),
-        radiation_alert_active=False,  # TODO T25
+        radiation_alert_active=await radiation_service.alert_active(session) if day == current_day() else False,
         checkin_done_today=checkin is not None,
     )
 

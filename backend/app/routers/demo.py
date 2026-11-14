@@ -1,74 +1,112 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import examples as ex
-from ..deps import CREW, ERRORS, publish, require_roles, roles
+from ..datafiles import DataBundle
+from ..db.session import get_session
+from ..deps import CREW, ERRORS, get_data, publish, require_roles, roles
 from ..schemas import Ok, Packet, RadiationStatus, Rejection, Role, SepStart, User
 from ..security import lockout
-from . import radiation
+from ..services import radiation as radiation_service
+from ..services.events import publish_all
 
-router = APIRouter(tags=["12. Demo și simulator"])
+router = APIRouter(tags=["12. Demo and simulator"])
 E = {k: ERRORS[k] for k in (401, 403, 422)}
 
 
-@router.post("/sim/sep/start", response_model=RadiationStatus, summary="Pornește furtuna solară", responses=E, openapi_extra=roles(*CREW, Role.earth))
-async def sep_start(body: SepStart, user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Butonul de demo. Simulatorul redă evenimentul real din DONKI:
+@router.post(
+    "/sim/sep/start",
+    response_model=RadiationStatus,
+    summary="Start the solar storm",
+    responses=E,
+    openapi_extra=roles(*CREW, Role.earth),
+)
+async def sep_start(
+    body: SepStart,
+    user: User = Depends(require_roles(*CREW, Role.earth)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """The demo button. The simulator replays the real event from DONKI:
 
-    1. rata dozei la dozimetru urcă → la 3 citiri peste 2× media, SHADOW dă alerta de nivel 1 (`radiation.alert`);
-    2. avertizarea de pe Pământ pleacă în coadă ca pachet `donki_alert`, direcția `up`, și ajunge după întârzierea legăturii;
-    3. la sosire se completează `lead_minutes` în `/radiation/status`.
+    1. the dose rate at the dosimeter rises → after 3 readings above 2× the mean, SHADOW gives the level 1 alert
+       (`radiation.alert`);
+    2. Earth's warning leaves the queue as a `donki_alert` packet, direction `up`, at the time of NASA's alert
+       (20 minutes after the onset), and arrives after the link delay;
+    3. on arrival, `lead_minutes` is filled in in `/radiation/status`.
 
-    **SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, apoi `packet.arrived`."""
-    radiation.STATE.update(storm=True, sheltered=False)
-    ex.DASHBOARD.radiation_alert_active = True
-    status = radiation.current()
-    publish("radiation.alert", status)
+    **SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, then `packet.arrived`."""
+    status, events = await radiation_service.start_storm(session, data, body.event_id, body.starts_in_min)
+    publish_all(events)
     return status
 
 
-@router.post("/sim/sep/stop", response_model=RadiationStatus, summary="Oprește furtuna solară", responses=E, openapi_extra=roles(*CREW, Role.earth))
-async def sep_stop(user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Readuce rata dozei la fond. **SSE:** `radiation.cleared`."""
-    radiation.STATE.update(storm=False, sheltered=False)
-    ex.DASHBOARD.radiation_alert_active = False
-    publish("radiation.cleared", radiation.current())
-    return radiation.current()
+@router.post(
+    "/sim/sep/stop",
+    response_model=RadiationStatus,
+    summary="Stop the solar storm",
+    responses=E,
+    openapi_extra=roles(*CREW, Role.earth),
+)
+async def sep_stop(
+    user: User = Depends(require_roles(*CREW, Role.earth)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """Brings the dose rate back to the background. **SSE:** `radiation.cleared`."""
+    status, events = await radiation_service.stop_storm(session, data)
+    publish_all(events)
+    return status
 
 
-@router.post("/demo/inject-spoof", response_model=Packet, summary="Injectează un pachet falsificat", responses=E, openapi_extra=roles(*CREW, Role.earth))
+@router.post(
+    "/demo/inject-spoof",
+    response_model=Packet,
+    summary="Inject a forged packet",
+    responses=E,
+    openapi_extra=roles(*CREW, Role.earth),
+)
 async def inject_spoof(user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Demo de securitate: pune în coadă un pachet semnat cu o cheie greșită. La sosire e respins și apare cu
-    `status = rejected`, `signature_valid = false`, în jurnal și în `/security/rejections`.
+    """Security demo: puts in the queue a packet signed with a wrong key. On arrival it is rejected and shows up with
+    `status = rejected`, `signature_valid = false`, in the log and in `/security/rejections`.
 
     **SSE:** `packet.rejected`."""
-    p = ex.PACKETS[2]
-    publish("packet.rejected", link_packet(p))
-    return link_packet(p)
+    p = link_packet(ex.PACKETS[2])
+    publish("packet.rejected", p)
+    return p
 
 
-@router.post("/demo/frozen-sensor", response_model=Rejection, summary="Simulează un senzor înghețat", responses=E, openapi_extra=roles(*CREW, Role.earth))
+@router.post(
+    "/demo/frozen-sensor",
+    response_model=Rejection,
+    summary="Simulate a frozen sensor",
+    responses=E,
+    openapi_extra=roles(*CREW, Role.earth),
+)
 async def frozen_sensor(user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Demo de securitate: simulatorul trimite aceeași valoare de multe ori; stratul de validare o respinge.
+    """Security demo: the simulator sends the same value many times; the validation layer rejects it.
 
     **SSE:** `measurement.rejected`."""
     publish("measurement.rejected", ex.REJECTIONS[1], ex.REJECTIONS[1].crew_id)
     return ex.REJECTIONS[1]
 
 
-@router.post("/sim/reset", response_model=Ok, summary="Readuce demo-ul la starea inițială", responses=E, openapi_extra=roles(*CREW, Role.earth))
+@router.post(
+    "/sim/reset",
+    response_model=Ok,
+    summary="Bring the demo back to the start",
+    responses=E,
+    openapi_extra=roles(*CREW, Role.earth),
+)
 async def reset(user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Șterge tot ce s-a schimbat în timpul demo-ului și reîncarcă scenariul: baza se recreează, istoricul se
-    regenerează (același seed, deci aceleași date), ceasul repornește la ziua 96, ora 07:00, iar blocările de
-    cont se șterg. Durează câteva secunde. Folosiți-l între repetiții.
+    """Removes everything changed during the demo and reloads the scenario: the database is recreated, the history is
+    regenerated (same seed, so the same data), the clock restarts on day 96 at 07:00, and the account lockouts are
+    cleared. It takes a few seconds. Use it between rehearsals.
 
-    După reset, frontend-ul trebuie să reîncarce tot (ca după o reconectare). Tokenurile rămân valabile.
+    After a reset the frontend must reload everything (as after a reconnect). Tokens stay valid.
 
-    **SSE:** `mission.tick` cu ziua 96, apoi `dashboard.changed`."""
-    radiation.STATE.update(storm=False, sheltered=False)
-    ex.DASHBOARD.radiation_alert_active = False
+    **SSE:** `mission.tick` with day 96, then `dashboard.changed`."""
     lockout.reset_all()
-    ex.MISSION.mission_day = ex.DAY
-    ex.MISSION.sim_now = ex.NOW
     publish("dashboard.changed", {"reason": "reset"})
     return Ok()
 

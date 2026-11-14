@@ -15,6 +15,7 @@ from ..security import sealing
 from ..security.errors import SealError
 from ..services import alerts as alerts_service
 from ..services import mission as mission_service
+from ..services import radiation as radiation_service
 from ..services.events import Event, publish_all
 from ..services.link import to_packet
 from . import windows
@@ -78,6 +79,8 @@ async def step(session: AsyncSession, data: DataBundle) -> list[Event]:
         events.append(_event("packet.arrived", p))
         if p.kind == "earth_reply":
             await _deliver_reply(session, p, events)
+        elif p.kind == "donki_alert":
+            await radiation_service.donki_arrived(session, p.id)
     await session.flush()
     return events
 
