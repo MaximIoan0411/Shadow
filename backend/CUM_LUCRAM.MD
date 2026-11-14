@@ -7,6 +7,10 @@ Eu îți spun doar numărul taskului (de exemplu „T07"). Tu urmezi pașii de m
 
 - Faci UN SINGUR task: cel pe care ți l-am spus. Nu începi altul și nu „îmbunătățești" alte fișiere.
 - Lucrezi doar în `backend/`. Nu modifici `frontend/`, `ai/`, `security/`, `contract/`, `data/`.
+
+
+
+
 - Nu schimbi contractul: căile, parametrii și `response_model` ale routerelor, `app/schemas.py`,
   `app/ai_schemas.py`, `app/datafiles.py`, semnăturile din `app/security/`.
   Dacă taskul pare să ceară asta, te oprești și îmi spui.
