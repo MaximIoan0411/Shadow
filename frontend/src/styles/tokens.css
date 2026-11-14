@@ -313,3 +313,11 @@
   }
   .shimmer-text { animation: none; color: var(--color-fg-3); background: none; }
 }
+
+/* gaura neagră de pe ecranul de intrare, când browserul nu are WebGL2: o imagine fixă, din gradiente */
+.blackhole-still {
+  background:
+    radial-gradient(circle at 50% 44%, #000 0 8.6%, rgb(250 228 182 / 0.95) 9.2%, rgb(226 121 46 / 0.5) 10.6%, transparent 21%),
+    radial-gradient(ellipse 44% 4.5% at 50% 44%, rgb(250 228 182 / 0.85), rgb(226 121 46 / 0.4) 55%, transparent 100%),
+    #000;
+}
