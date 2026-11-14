@@ -37,7 +37,7 @@ shadow/
 ├── backend/               API-ul FastAPI, cu uv
 ├── frontend/              interfața Next.js
 ├── ai/                    medicul AI, serviciu separat
-├── security/              ce NU rulează în aplicație: amenințări, audit, atacuri de demo, chei
+├── security/              ce NU rulează în aplicație: amenințări, arhitectură, audit, chei
 ├── data/                  datele comune: praguri, catalog, texte, DONKI, scenariu
 ├── docs/                  plan, pitch, research, design
 └── scripts/               generatorul de documentație, teste de contract, pornire și reset de demo
@@ -299,21 +299,19 @@ security/
 ├── README.md
 ├── threat-model.md            ce apărăm, de cine, ce atacuri contează (urgență ascunsă, alarmă falsă)
 ├── architecture.md            chei, semnături, criptare, roluri, jurnal: cum se leagă
-├── checklist.md               lista de verificare pentru implementare
-│
-├── attacks/                   scripturile pentru demo-ul „atacul”
-│   ├── spoof_packet.py        pachet semnat cu o cheie greșită → respins
-│   ├── replay_packet.py       același pachet trimis a doua oară → respins
-│   ├── tamper_measurement.py  măsurătoare modificată după semnare → respinsă
-│   ├── frozen_sensor.py       aceeași valoare la nesfârșit → respinsă
-│   └── cross_account.py       un astronaut cere datele altuia → 403, vizibil în jurnal
+├── checklist.md               fiecare cerință, cu starea ei: făcut, parțial, nefăcut
 │
 ├── keys/
 │   ├── README.md
 │   └── generate_keys.py       generează cheile Ed25519 și cheia AES (cheile NU intră în git)
 │
-└── audit/                     raportul auditului de la ora 14–15 și ce s-a reparat
+└── audit/
+    ├── findings.md            ce s-a găsit la audit, ce s-a reparat, ce a rămas deschis
+    └── check_endpoints.py     401 fără token, 403 pentru alt astronaut, pe aplicația reală
 ```
+
+Scripturi de atac nu există: atacurile se arată din panoul *Demo* al aplicației și sunt acoperite de teste
+(`security/checklist.md`).
 
 ---
 
@@ -407,7 +405,7 @@ din rădăcina repo-ului:
 ```bash
 uv run --project backend python scripts/smoke.py
 uv run --project backend python scripts/build_docs.py
-uv run --project backend python security/attacks/spoof_packet.py
+uv run --project backend python security/audit/check_endpoints.py
 ```
 
 **4. Dockerfile-ul backend-ului** folosește uv:

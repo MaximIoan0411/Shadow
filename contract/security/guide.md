@@ -23,7 +23,8 @@ le scrie.
 - Dacă o funcție redevine provizorie, modulul o trece în constanta `PROVIZORIU`, iar referința de mai jos o
   marchează. Ce e provizoriu **nu se prezintă juriului ca real**.
 - La pornire, backend-ul încarcă cheile (`keys.load_keys`) și le dă sigilării (`sealing.configure`).
-- Modelul de amenințări și arhitectura sunt în `security/threat-model.md` și `security/architecture.md`.
+- Modelul de amenințări și arhitectura sunt în `security/threat-model.md` și `security/architecture.md`; starea
+  fiecărei cerințe e în `security/checklist.md`, iar auditul în `security/audit/findings.md`.
 
 ## 2. Regulile pentru backend
 
@@ -64,13 +65,13 @@ le scrie.
 | `tokens.issue`, `tokens.revoke` | `services/auth.py` (login, logout) |
 | `tokens.decode`, `tokens.is_revoked` | `deps.py` (`current_user`) |
 | `keys.load_keys` | `main.py` (`lifespan`) → `app.state.keys` |
-| `signing.canonical`, `signing.sign` | `simulator/devices.py`, `security/attacks/*` |
+| `signing.canonical`, `signing.sign` | `simulator/devices.py` (folosit de `services/demo.py`, pentru senzorul înghețat din demo) |
 | `signing.verify` | `services/security_log.py` (`POST /ingest/measurements`) |
 | `sealing.seal` | `link/queue.py` (la crearea pachetului) |
 | `sealing.open` | `link/scheduler.py` (la sosire) |
 | `validation.check` | `services/security_log.py`, `services/checkins.py` |
 | `access_log.write` | `deps.py` (acces refuzat, citirea datelor unui coleg de către ofițerul medical), `services/auth.py` |
-| `access_log.verify_chain` | `GET /evidence/*`, testele de securitate |
+| `access_log.verify_chain` | doar testele de securitate; aplicația pornită nu o apelează încă |
 
 ## 4. Ce e fixat și ce nu
 
@@ -84,7 +85,7 @@ le scrie.
 | regula de blocare: 5 greșeli în 5 minute → 60 s | |
 
 `signing.canonical()` și `access_log.entry_hash()` **nu sunt provizorii**: le folosesc identic simulatorul,
-backend-ul și scripturile de atac.
+backend-ul și testele.
 
 ---
 
