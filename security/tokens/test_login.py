@@ -1,4 +1,3 @@
-# test_login.py - every bad login must fail
 from login import login
 from tokens import check_token
 
@@ -12,14 +11,12 @@ for user, role in expected.items():
     assert claims["role"] == role
 print("Test 1 passed: all 5 accounts get the right role")
 
-# Test 2: wrong password is rejected
 try:
     login("medic", "wrong")
     print("Test 2 FAILED")
 except PermissionError:
     print("Test 2 passed: wrong password rejected")
 
-# Test 3: after 5 wrong passwords, even the right one is refused
 for i in range(5):
     try:
         login("inginer", "guess" + str(i))
@@ -31,7 +28,6 @@ try:
 except PermissionError as e:
     print("Test 3 passed: account locked ->", e)
 
-# Test 4: unknown user gets the same message as a wrong password
 try:
     login("hacker", "x")
 except PermissionError as e:
