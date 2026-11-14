@@ -8,6 +8,8 @@ def no_background_tasks(monkeypatch):
     # the mission ticker and the link scheduler would push events into the tests' queues;
     # tests call the scheduler step by step instead
     monkeypatch.setenv("BACKGROUND_TASKS", "false")
+    # tests sign in with `mock-<user>` tokens even when the demo .env turns them off
+    monkeypatch.setenv("ALLOW_MOCK_TOKENS", "true")
 
 
 @pytest.fixture

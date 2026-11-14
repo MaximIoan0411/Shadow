@@ -19,13 +19,14 @@ dev = [
     "pytest-asyncio>=0.24",
     "asgi-lifespan>=2.1",
     "ruff>=0.6",
+    "numpy>=2",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-pythonpath = ["."]          # fără el, pytest nu găsește pachetul `app` (proiectul uv nu e pachet instalat)
+pythonpath = ["."]          # without it pytest cannot find the `app` package (the uv project is not installed)
 
 [tool.ruff]
 line-length = 120
@@ -34,11 +35,8 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC"]
 ignore = [
-  "B008",      # Depends(...) în argumente: tiparul normal din FastAPI
-  "ASYNC110",  # buclele din fundal cu asyncio.sleep sunt intenționate
-  "E501",      # rânduri lungi: descrierile din contract sunt text; lățimea codului o ține `ruff format`
-  "UP042",     # (str, Enum) în loc de StrEnum: păstrăm forma pe care o citește corect OpenAPI
+  "B008",      # Depends(...) in arguments: the normal FastAPI pattern
+  "ASYNC110",  # the background loops with asyncio.sleep are intended
+  "E501",      # long lines: the contract descriptions are text; `ruff format` keeps the code width
+  "UP042",     # (str, Enum) instead of StrEnum: the form OpenAPI reads correctly
 ]
-
-[tool.ruff.lint.per-file-ignores]
-"app/examples.py" = ["F403", "F405"]   # mock-ul importă toate modelele; dispare pe parcurs

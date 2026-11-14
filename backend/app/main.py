@@ -177,7 +177,7 @@ def create_app() -> FastAPI:
         """No authentication. Used by Docker Compose and by the frontend at startup.
         `mode` is `mock` while some endpoints still serve example data, then `real`.
         `db` is `ok` when the database answers a `SELECT 1`."""
-        return {"ok": True, "version": app.version, "mode": "mock", "db": await db_status()}
+        return {"ok": True, "version": app.version, "mode": "real", "db": await db_status()}
 
     app.add_exception_handler(ApiError, api_error)
     app.add_exception_handler(RequestValidationError, validation_error)

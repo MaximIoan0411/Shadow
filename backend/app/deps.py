@@ -6,7 +6,6 @@ from typing import Any
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import examples as ex
 from .clock import clock
 from .config import Settings
 from .datafiles import DataBundle
@@ -80,9 +79,10 @@ async def crew_access(
     user: User = Depends(require_roles(*CREW)),
     session: AsyncSession = Depends(get_session),
 ) -> User:
+    from .db.models.users import Crew
     from .services import access
 
-    if crew_id not in ex.CREW_BY_ID:
+    if await session.get(Crew, crew_id) is None:
         raise ApiError(404, "not_found", f"Crew member {crew_id} does not exist.")
     if user.role == Role.astronaut and user.crew_id != crew_id:
         raise ApiError(403, "forbidden", "You do not have access to another crew member's data.")

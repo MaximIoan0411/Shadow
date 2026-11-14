@@ -11,6 +11,8 @@ __pycache__/
 .pytest_cache/
 # baza de date locală
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
 *.sqlite3
 *.db
 # node

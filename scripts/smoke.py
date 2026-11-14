@@ -9,9 +9,12 @@
 5. Securitate: modulele din backend/app/security/ au exact funcțiile din contract.
 """
 import inspect
+import os
 import pathlib
 import sys
 
+os.environ.setdefault("BACKGROUND_TASKS", "false")  # the contract check needs no live loops
+os.environ["ALLOW_MOCK_TOKENS"] = "true"  # smoke signs in with mock-<user> tokens
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "ai"))
@@ -23,14 +26,34 @@ from app.datafiles import load_all  # noqa: E402
 from app.main import app  # noqa: E402
 from request_examples import AI_REQUESTS, REQUESTS  # noqa: E402
 
-c = TestClient(app)
+c = TestClient(app).__enter__()   # runs the app's startup (database, seed, history replay)
 H = lambda r: {"Authorization": f"Bearer mock-{r}"} if r else {}
+
+
+def real_alert_ids():
+    """The mock ids in request_examples.py -> the real alerts the engine produces at startup:
+    al-1042 = cm-2's immune alert (level 2), al-1039 = cm-2's typing alert (level 1, active)."""
+    mine = {a["topic"]: a["id"] for a in c.get("/api/v1/crew/cm-2/alerts", headers=H("specialist2")).json()}
+    return {"al-1042": mine["immune"], "al-1039": mine["behavioral"]}
+
+
+IDS = real_alert_ids()
+
+
+def real(v):
+    """Replaces the mock ids with real ones; pk-0006 / pk-0007 = the newest real packet to Earth (created by the
+    level 3 escalation example, which runs before the packet examples)."""
+    if isinstance(v, dict):
+        return {k: real(x) for k, x in v.items()}
+    if v in ("pk-0006", "pk-0007"):
+        return c.get("/api/v1/link/packets?direction=down", headers=H("earth")).json()[0]["id"]
+    return IDS.get(v, v) if isinstance(v, str) else v
 ops = {(m.upper(), p) for p, v in app.openapi()["paths"].items() for m in v}
 missing = ops - set(REQUESTS) - {("GET", "/api/v1/events")}
 assert not missing, f"fără exemplu: {missing}"
 for (m, tpl), r in REQUESTS.items():
-    url = tpl.format(**r.get("path", {}))
-    res = c.request(m, url, params=r.get("query"), json=r.get("json"), headers=H(r["as_"]))
+    url = tpl.format(**real(r.get("path", {})))
+    res = c.request(m, url, params=r.get("query"), json=real(r.get("json")), headers=H(r["as_"]))
     assert res.status_code < 300, (m, url, res.status_code, res.text[:300])
 # permisiuni
 assert c.get("/api/v1/mission").status_code == 401
@@ -38,36 +61,40 @@ assert c.get("/api/v1/crew/cm-1/dashboard", headers=H("specialist2")).status_cod
 assert c.get("/api/v1/crew/cm-2/dashboard", headers=H("earth")).status_code == 403
 assert c.get("/api/v1/radiation/status", headers=H("earth")).status_code == 403
 assert c.get("/api/v1/cmo/queue", headers=H("specialist2")).status_code == 403
-assert c.post("/api/v1/alerts/al-1042/escalate", json={"to_level": 3}, headers=H("specialist2")).status_code == 403
+assert c.post(f"/api/v1/alerts/{IDS['al-1042']}/escalate", json={"to_level": 3}, headers=H("specialist2")).status_code == 403
 r = c.post("/api/v1/crew/cm-2/keystrokes/batches", headers=H("specialist2"), json={"session_id": "x", "context": "demo", "events": [{"t_down_ms": 1, "t_up_ms": 2, "key_class": "char", "key": "a"}]})
 assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error", r.text
 assert c.get("/api/v1/nu-exista").json()["error"]["code"] == "not_found"
 # conturi separate pe astronaut
-from app import examples as ex
+import json  # noqa: E402
+
+SEED = json.loads((ROOT / "backend" / "seed" / "users.json").read_text(encoding="utf-8"))["users"]
+PASSWORDS = {u["username"]: u["test_password"] for u in SEED}   # the test accounts, from the seed (no mock)
+CREW_OF = {u["username"]: u["crew_id"] for u in SEED}
 accs = c.get("/api/v1/auth/accounts").json()
 assert len(accs) == 5 and sum(a["role"] == "astronaut" for a in accs) == 3
 crew_ids = [a["crew_id"] for a in accs if a["crew_id"]]
 assert len(crew_ids) == len(set(crew_ids)) == 4, "fiecare cont de la bord are alt crew_id"
-for username, pw in ex.MOCK_PASSWORDS.items():
+for username, pw in PASSWORDS.items():
     r = c.post("/api/v1/auth/login", json={"username": username, "password": pw})
     assert r.status_code == 200 and r.json()["user"]["username"] == username
-    other = next(p for u, p in ex.MOCK_PASSWORDS.items() if u != username)
+    other = next(p for u, p in PASSWORDS.items() if u != username)
     assert c.post("/api/v1/auth/login", json={"username": username, "password": other}).status_code == 401, "parola altui cont nu merge"
 for u in ("comandant", "specialist2", "inginer"):                      # fiecare își vede doar datele lui
-    own = ex.USERS[u].crew_id
+    own = CREW_OF[u]
     d_ = c.get(f"/api/v1/crew/{own}/dashboard", headers=H(u))
     assert d_.status_code == 200 and d_.json()["crew"]["id"] == own
     for other in ("cm-1", "cm-2", "cm-3", "cm-4"):
         if other != own:
             assert c.get(f"/api/v1/crew/{other}/dashboard", headers=H(u)).status_code == 403
-assert c.get("/api/v1/alerts/al-1042", headers=H("comandant")).status_code == 403      # alerta lui cm-2
+assert c.get(f"/api/v1/alerts/{IDS['al-1042']}", headers=H("comandant")).status_code == 403      # alerta lui cm-2
 assert c.get("/api/v1/crew/cm-2/dashboard", headers=H("medic")).status_code == 200     # ofițerul medical are voie
 c.post("/api/v1/sim/reset", headers=H("medic"))
 for _ in range(5):
     assert c.post("/api/v1/auth/login", json={"username": "inginer", "password": "gresit"}).status_code == 401
-r = c.post("/api/v1/auth/login", json={"username": "inginer", "password": ex.MOCK_PASSWORDS["inginer"]})
+r = c.post("/api/v1/auth/login", json={"username": "inginer", "password": PASSWORDS["inginer"]})
 assert r.status_code == 429 and r.json()["error"]["code"] == "too_many_attempts", r.text
-assert c.post("/api/v1/auth/login", json={"username": "comandant", "password": ex.MOCK_PASSWORDS["comandant"]}).status_code == 200  # blocarea e pe cont
+assert c.post("/api/v1/auth/login", json={"username": "comandant", "password": PASSWORDS["comandant"]}).status_code == 200  # blocarea e pe cont
 c.post("/api/v1/sim/reset", headers=H("medic"))
 # ---------------------------------------------------------------- reguli noi în 1.2
 assert c.post("/api/v1/sim/reset", headers=H("medic")).status_code == 200
