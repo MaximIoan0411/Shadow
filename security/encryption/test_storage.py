@@ -1,4 +1,5 @@
 import copy
+import sys
 
 from cryptography.exceptions import InvalidTag
 
@@ -22,7 +23,7 @@ first = int(changed["ct"][:2], 16) ^ 1
 changed["ct"] = f"{first:02x}" + changed["ct"][2:]
 try:
     decrypt_record(changed)
-    print("Test 4 FAILED")
+    sys.exit("Test 4 FAILED")
 except InvalidTag:
     print("Test 4 passed: changed record detected")
 
@@ -30,6 +31,6 @@ swapped = copy.deepcopy(stored)
 swapped["crew"] = "A2"
 try:
     decrypt_record(swapped)
-    print("Test 5 FAILED")
+    sys.exit("Test 5 FAILED")
 except InvalidTag:
     print("Test 5 passed: record moved to another crew member is rejected")
