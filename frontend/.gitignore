@@ -3,3 +3,6 @@ node_modules/
 next-env.d.ts
 .env.local
 *.tsbuildinfo
+out/
+dist/
+.next-dev/

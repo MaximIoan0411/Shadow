@@ -1,50 +1,33 @@
 "use client";
 /**
- * SHADOW — componentele de bază. Portate din Quaternion (src/components/ui.tsx), cu aceleași clase și animații,
- * plus componentele specifice SHADOW (StatusBadge, Card, Metric, PillarTag, SectionTitle).
+ * SHADOW — componentele de bază ale sistemului de design (v2). Documentația: DESIGN.md; catalogul viu: /kit.
  *
- * Reguli (din Quaternion): butoane rotunde, raze 12 / 16 / 22, linii fine în loc de umbre grele, o singură animație
- * de intrare pe ecran, culoarea folosită ca informație. Reguli SHADOW: culoarea de stare apare mereu cu formă și
- * cuvânt; cifrele de instrumente sunt mono (clasa `num`).
+ * Reguli: tonuri neutre peste tot; culoarea apare doar ca stare, prin <StatusBadge /> / <StatusMark /> /
+ * <Notice />, mereu cu forma și cuvântul ei. Butoanele sunt pastile, razele sunt 12 / 16 / 22, cifrele de
+ * instrumente sunt mono (clasa `num`).
  */
 import { clsx } from "clsx";
-import { RotateCcw, TriangleAlert } from "lucide-react";
-import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes, ReactElement, ReactNode } from "react";
+import { Check, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Checkbox as RCheckbox, Slider as RSlider, Switch as RSwitch, Tooltip as RTooltip } from "radix-ui";
 import { forwardRef } from "react";
-import { Slider as RSlider, Switch as RSwitch, Tooltip as RTooltip } from "radix-ui";
-import { PILLAR_HUE, STATUS_META } from "@/lib/hues";
-import type { components } from "@/lib/shadow-api";
-
-type Status = components["schemas"]["Status"];
-type Pillar = components["schemas"]["Pillar"];
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactElement, ReactNode, TextareaHTMLAttributes } from "react";
+import { formatNumber, formatSigned, toPercent } from "@/lib/format";
+import { STATUS_META, levelLabel, levelShort, type Level, type Status } from "@/lib/status";
 
 export const cx = clsx;
 
-// ---------------------------------------------------------------- mișcare (preseturile Quaternion, pentru `motion`)
+// ---------------------------------------------------------------- mișcare (preseturi pentru `motion`)
 
-// cubic-bezier(0.22, 1, 0.36, 1), aceeași curbă ca --ease-out din tokens.css
+// cubic-bezier(0.22, 1, 0.36, 1): aceeași curbă ca --ease-out din tokens.css
 const EASE_X1 = 0.22;
 const EASE_X2 = 0.36;
 const EASE_OUT: [number, number, number, number] = [EASE_X1, 1, EASE_X2, 1];
-export const easeOut = EASE_OUT;
-
-const POP_SECONDS = 0.16;
-const POP_SCALE = 0.97;
-const POP_LIFT_PX = 6;
-const POP_EXIT_LIFT_PX = 3;
 const RISE_PX = 10;
 const RISE_SECONDS = 0.5;
-const SLIDE_PX = 8;
 const FADE_SECONDS = 0.15;
-const SETTLE_SCALE = 0.96;
 
-/** Meniuri și ferestre mici: o ridicare scurtă din buton. */
-export const pop = {
-  initial: { opacity: 0, y: POP_LIFT_PX, scale: POP_SCALE },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: POP_EXIT_LIFT_PX, scale: POP_SCALE },
-  transition: { duration: POP_SECONDS, ease: EASE_OUT },
-} as const;
+export const easeOut = EASE_OUT;
 
 /** Singura intrare pe un ecran: conținutul care se așază. */
 export const rise = {
@@ -53,9 +36,7 @@ export const rise = {
   transition: { duration: RISE_SECONDS, ease: EASE_OUT },
 } as const;
 
-export const slideUp = { initial: { opacity: 0, y: SLIDE_PX }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: SLIDE_PX } } as const;
 export const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: FADE_SECONDS } } as const;
-export const settle = { initial: { scale: SETTLE_SCALE }, animate: { scale: 1 } } as const;
 
 // ---------------------------------------------------------------- tooltip
 
@@ -79,7 +60,7 @@ export function Tip({
         <RTooltip.Content
           side={side}
           sideOffset={8}
-          className="z-50 rounded-lg border border-line-2 bg-surface-3 px-2.5 py-1.5 text-[12.5px] font-medium text-fg shadow-[0_8px_24px_rgb(var(--shade)/calc(0.5*var(--shade-k)))] data-[state=delayed-open]:animate-[fadeIn_120ms_ease-out]"
+          className="z-[70] max-w-[280px] rounded-lg border border-line-2 bg-surface-4 px-2.5 py-1.5 text-small font-medium text-fg shadow-[0_8px_24px_rgb(0_0_0/0.5)] data-[state=delayed-open]:animate-[fadeIn_120ms_ease-out]"
         >
           {label}
         </RTooltip.Content>
@@ -90,48 +71,89 @@ export function Tip({
 
 // ---------------------------------------------------------------- butoane
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonSize = "sm" | "md" | "lg";
 
-const BUTTON_VARIANTS: Readonly<Record<ButtonVariant, string>> = {
-  primary: "bg-platinum text-black hover:bg-white disabled:bg-white/10 disabled:text-fg-3 disabled:opacity-100",
-  secondary: "bg-surface-3 text-fg border border-line-2 hover:bg-surface-4 hover:border-line-3",
-  ghost: "text-fg-2 hover:text-fg hover:bg-white/[0.06]",
-  danger: "text-danger hover:bg-danger/10",
-};
+const BUTTON_VARIANTS = {
+  /** Acțiunea principală a ecranului. Cel mult una pe ecran. */
+  primary: "bg-solid text-on-solid hover:bg-white disabled:bg-white/10 disabled:text-fg-4",
+  secondary: "border border-line-2 bg-surface-3 text-fg hover:border-line-3 hover:bg-surface-4 disabled:text-fg-4",
+  ghost: "text-fg-2 hover:bg-white/[0.06] hover:text-fg disabled:text-fg-4",
+} as const satisfies Record<ButtonVariant, string>;
+
+const BUTTON_SIZES = {
+  sm: "h-8 px-3 text-small",
+  md: "h-9 px-4 text-body",
+  lg: "h-12 px-6 text-lead",
+} as const satisfies Record<ButtonSize, string>;
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   readonly variant?: ButtonVariant;
-  readonly size?: "sm" | "md" | "lg";
+  readonly size?: ButtonSize;
+  /** Arată că acțiunea e în curs și blochează a doua apăsare. */
+  readonly busy?: boolean;
 };
 
-const BUTTON_SIZE = { sm: "h-8 px-3 text-[13px]", md: "h-9 px-4 text-[13.5px]", lg: "h-12 px-6 text-[15px]" } as const;
-
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", className, type = "button", ...rest },
+  { variant = "secondary", size = "md", busy, disabled, className, type = "button", children, ...rest },
   ref,
 ) {
   return (
     <button
       ref={ref}
       type={type}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
       className={cx(
-        "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40",
-        BUTTON_SIZE[size],
+        "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-colors duration-150 disabled:cursor-not-allowed",
+        BUTTON_SIZES[size],
         BUTTON_VARIANTS[variant],
         className,
       )}
       {...rest}
-    />
+    >
+      {busy && <Spinner />}
+      {children}
+    </button>
   );
 });
 
+/** Un link care arată ca un buton: pentru navigare („Deschide alerta”), nu pentru acțiuni. */
+export function ButtonLink({
+  href,
+  variant = "secondary",
+  size = "md",
+  className,
+  children,
+}: {
+  readonly href: string;
+  readonly variant?: ButtonVariant;
+  readonly size?: ButtonSize;
+  readonly className?: string;
+  readonly children: ReactNode;
+}): ReactElement {
+  return (
+    <Link
+      href={href}
+      className={cx(
+        "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium no-underline transition-colors duration-150",
+        BUTTON_SIZES[size],
+        BUTTON_VARIANTS[variant],
+        className,
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
 type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** Numele accesibil; butonul are doar iconiță. */
   readonly label: string;
   readonly active?: boolean;
   readonly size?: "sm" | "md";
 };
 
-/** Buton rotund, doar cu iconiță; `label` devine numele accesibil. */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { label, active, size = "md", className, children, type = "button", ...rest },
   ref,
@@ -141,8 +163,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       ref={ref}
       type={type}
       aria-label={label}
+      aria-pressed={active}
       className={cx(
-        "inline-grid shrink-0 place-items-center rounded-full transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40",
+        "inline-grid shrink-0 place-items-center rounded-full transition-colors duration-150 disabled:cursor-not-allowed disabled:text-fg-5",
         size === "md" ? "size-9" : "size-8",
         active ? "bg-white/[0.1] text-fg" : "text-fg-3 hover:bg-white/[0.07] hover:text-fg",
         className,
@@ -154,18 +177,108 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
   );
 });
 
+export function Spinner({ className }: { readonly className?: string }): ReactElement {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx("inline-block size-3.5 animate-[spin_700ms_linear_infinite] rounded-full border-2 border-current border-r-transparent", className)}
+    />
+  );
+}
+
 // ---------------------------------------------------------------- câmpuri
 
-export function Switch({ checked, onChange, label }: { readonly checked: boolean; readonly onChange: (v: boolean) => void; readonly label: string }): ReactElement {
+const FIELD_BASE =
+  "w-full rounded-xl border border-line-4 bg-surface-2 px-3.5 text-base text-fg outline-none transition-colors placeholder:text-fg-4 hover:border-fg-4 focus:border-fg-3 focus:bg-surface-3 aria-[invalid=true]:border-alert disabled:cursor-not-allowed disabled:border-line-2 disabled:text-fg-4";
+
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
+  return <input ref={ref} className={cx(FIELD_BASE, "h-10", className)} {...rest} />;
+});
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
+  { className, ...rest },
+  ref,
+) {
+  return <textarea ref={ref} className={cx(FIELD_BASE, "min-h-24 resize-y py-2.5 leading-relaxed", className)} {...rest} />;
+});
+
+/** Eticheta, câmpul, indiciul și eroarea unui câmp, legate corect pentru cititoarele de ecran. */
+export function Field({
+  id,
+  label,
+  hint,
+  error,
+  children,
+  className,
+}: {
+  /** Același `id` ca al câmpului din `children`. */
+  readonly id: string;
+  readonly label: ReactNode;
+  readonly hint?: ReactNode;
+  readonly error?: ReactNode;
+  readonly children: ReactNode;
+  readonly className?: string;
+}): ReactElement {
+  return (
+    <div className={cx("flex flex-col gap-1.5", className)}>
+      <label htmlFor={id} className="text-small font-medium text-fg-2">
+        {label}
+      </label>
+      {children}
+      {hint && !error && (
+        <p id={`${id}-hint`} className="text-small text-fg-4">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="flex items-start gap-1.5 text-small text-fg-2">
+          <StatusMark status="alert" className="mt-px" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function Switch({ checked, onChange, label }: { readonly checked: boolean; readonly onChange: (value: boolean) => void; readonly label: string }): ReactElement {
   return (
     <RSwitch.Root
       checked={checked}
       onCheckedChange={onChange}
       aria-label={label}
-      className="relative h-[22px] w-[38px] shrink-0 rounded-full bg-white/[0.12] transition-colors duration-200 data-[state=checked]:bg-platinum"
+      className="relative h-[22px] w-[38px] shrink-0 rounded-full border border-line-4 bg-surface-3 transition-colors duration-200 data-[state=checked]:border-solid data-[state=checked]:bg-solid"
     >
-      <RSwitch.Thumb className="block size-[18px] translate-x-[2px] rounded-full bg-fg shadow-[0_1px_3px_rgb(var(--shade)/calc(0.5*var(--shade-k)))] transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=checked]:translate-x-[18px] data-[state=checked]:bg-black" />
+      <RSwitch.Thumb className="block size-4 translate-x-[2px] rounded-full bg-fg transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=checked]:translate-x-[18px] data-[state=checked]:bg-on-solid" />
     </RSwitch.Root>
+  );
+}
+
+/** Bifa unui pas din plan. Eticheta e în `children`. */
+export function Checkbox({
+  checked,
+  onChange,
+  disabled,
+  children,
+}: {
+  readonly checked: boolean;
+  readonly onChange: (value: boolean) => void;
+  readonly disabled?: boolean;
+  readonly children: ReactNode;
+}): ReactElement {
+  return (
+    <label className={cx("flex cursor-pointer items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.04]", disabled && "cursor-not-allowed")}>
+      <RCheckbox.Root
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={(value) => onChange(value === true)}
+        className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-md border border-line-4 bg-surface-2 transition-colors data-[state=checked]:border-solid data-[state=checked]:bg-solid"
+      >
+        <RCheckbox.Indicator>
+          <Check size={13} strokeWidth={3} className="text-on-solid" />
+        </RCheckbox.Indicator>
+      </RCheckbox.Root>
+      <span className={cx("text-base leading-snug", checked ? "text-fg-3 line-through decoration-fg-5" : "text-fg")}>{children}</span>
+    </label>
   );
 }
 
@@ -176,41 +289,30 @@ export function Slider({
   step,
   onChange,
   label,
-  hue,
 }: {
   readonly value: number;
   readonly min: number;
   readonly max: number;
   readonly step: number;
-  readonly onChange: (v: number) => void;
+  readonly onChange: (value: number) => void;
   readonly label: string;
-  readonly hue?: string;
 }): ReactElement {
   return (
-    <RSlider.Root
-      className="slider-q"
-      value={[value]}
-      min={min}
-      max={max}
-      step={step}
-      onValueChange={([v]) => onChange(v)}
-      aria-label={label}
-      style={hue ? ({ "--slider-hue": hue } as CSSProperties) : undefined}
-    >
+    <RSlider.Root className="slider-q" value={[value]} min={min} max={max} step={step} onValueChange={([next]) => onChange(next ?? value)} aria-label={label}>
       <RSlider.Track data-track="">
         <RSlider.Range data-range="" />
       </RSlider.Track>
-      <RSlider.Thumb data-thumb="" />
+      <RSlider.Thumb data-thumb="" aria-label={label} />
     </RSlider.Root>
   );
 }
 
 const SEGMENT_SIZE = {
-  sm: { track: "p-[3px]", button: "h-[26px] gap-1.5 px-3 text-[12.5px]" },
-  md: { track: "p-1", button: "h-8 gap-2 px-3.5 text-[13px]" },
+  sm: { track: "p-[3px]", button: "h-[26px] gap-1.5 px-3 text-small" },
+  md: { track: "p-1", button: "h-8 gap-2 px-3.5 text-body" },
 } as const;
 
-/** Butoane-pastilă unul lângă altul (ex. comutatorul de mediu, scara 1–5 a stării de spirit). */
+/** Alegere unică din câteva opțiuni scurte (mediul, scara 1–5, „la bord / pe Pământ”). */
 export function Segmented<TValue extends string>({
   value,
   options,
@@ -219,114 +321,59 @@ export function Segmented<TValue extends string>({
   size = "md",
   dense,
 }: {
-  readonly value: TValue;
+  readonly value: TValue | undefined;
   readonly options: readonly { readonly value: TValue; readonly label: string; readonly icon?: ReactNode }[];
-  readonly onChange: (v: TValue) => void;
+  readonly onChange: (value: TValue) => void;
   readonly label: string;
-  readonly size?: "sm" | "md";
+  readonly size?: keyof typeof SEGMENT_SIZE;
   readonly dense?: boolean;
 }): ReactElement {
   return (
     <div role="radiogroup" aria-label={label} className={cx("inline-flex w-fit rounded-full border border-line-2 bg-surface-2", SEGMENT_SIZE[size].track)}>
-      {options.map((o) => (
+      {options.map((option) => (
         <button
-          key={o.value}
+          key={option.value}
           type="button"
           role="radio"
-          aria-checked={o.value === value}
-          onClick={() => onChange(o.value)}
+          aria-checked={option.value === value}
+          onClick={() => onChange(option.value)}
           className={cx(
             "inline-flex items-center rounded-full font-medium transition-colors duration-150",
             SEGMENT_SIZE[size].button,
-            dense && "min-w-8 justify-center !px-2.5",
-            o.value === value ? "bg-white/[0.1] text-fg shadow-[inset_0_0_0_1px_rgb(var(--tint)/0.08)]" : "text-fg-3 hover:text-fg",
+            dense && "min-w-9 justify-center !px-2.5",
+            option.value === value ? "bg-solid text-on-solid" : "text-fg-3 hover:text-fg",
           )}
         >
-          {o.icon}
-          {o.label}
+          {option.icon}
+          {option.label}
         </button>
       ))}
     </div>
   );
 }
 
-/** Câmp de text în stilul Quaternion (fundal surface-2, linie fină, focus luminos). */
-export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
-  return (
-    <input
-      ref={ref}
-      className={cx(
-        "h-10 w-full rounded-xl border border-line-2 bg-surface-2 px-3.5 text-[14px] text-fg outline-none transition-colors placeholder:text-fg-5 hover:border-line-3 focus:border-line-3 focus:bg-surface-3 aria-[invalid=true]:border-danger/60",
-        className,
-      )}
-      {...rest}
-    />
-  );
-});
-
 export function Kbd({ children }: { readonly children: ReactNode }): ReactElement {
   return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-line-2 bg-white/[0.04] px-1.5 font-sans text-[11px] font-medium text-fg-3">
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-line-2 bg-white/[0.04] px-1.5 font-sans text-caption font-medium text-fg-3">
       {children}
     </kbd>
   );
 }
 
-// ---------------------------------------------------------------- decor viu (Quaternion)
+// ---------------------------------------------------------------- suprafețe și titluri
 
-const ORB_SIZE_PX = 56;
+type CardTag = "div" | "section" | "article" | "aside";
 
-/** Sfera lucioasă în nuanțele ecranului; pentru stările goale (ex. „Nicio alertă”). */
-export function Orb({ size = ORB_SIZE_PX, children, className }: { readonly size?: number; readonly children?: ReactNode; readonly className?: string }): ReactElement {
-  return (
-    <span aria-hidden="true" className={cx("orb", className)} style={{ "--orb-size": `${size}px` } as CSSProperties}>
-      {children}
-    </span>
-  );
-}
-
-/** Punct luminos colorat (în Quaternion: modelul; în SHADOW: pilonul sau legătura). */
-export function Dot({ hue, className }: { readonly hue: string; readonly className?: string }): ReactElement {
-  return <span aria-hidden="true" className={cx("inline-block size-2 rounded-full", className)} style={{ background: hue, boxShadow: `0 0 10px ${hue}` }} />;
-}
-
-/** O eroare spusă simplu, cu o cale de a încerca din nou. `title`/`detail` vin de la backend (ApiError.message). */
-export function ProblemCard({ title, detail, onRetry, className }: { readonly title: string; readonly detail?: string; readonly onRetry?: () => void; readonly className?: string }): ReactElement {
-  return (
-    <div role="alert" className={cx("flex items-start gap-3.5 rounded-2xl border border-danger/25 bg-danger/[0.06] p-4", className)}>
-      <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-danger/15 text-danger">
-        <TriangleAlert size={16} strokeWidth={1.9} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-medium text-fg">{title}</p>
-        {detail && <p className="mt-0.5 text-[13px] leading-relaxed text-fg-3">{detail}</p>}
-      </div>
-      {onRetry && (
-        <Button size="sm" onClick={onRetry} className="shrink-0">
-          <RotateCcw size={13} strokeWidth={2} />
-          Încearcă din nou
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- SHADOW
-
-/** Card de sticlă (utilitarul `card-q` din Quaternion), raza 22. `as="section"` pentru regiuni cu titlu. */
-export function Card({
-  className,
-  as: Tag = "div",
-  ...rest
-}: HTMLAttributes<HTMLElement> & { readonly as?: "div" | "section" | "article" | "aside" }): ReactElement {
+/** Cardul de bază, raza 22. `as="section"` + `aria-labelledby` pentru regiunile cu titlu. */
+export function Card({ className, as: Tag = "div", ...rest }: HTMLAttributes<HTMLElement> & { readonly as?: CardTag }): ReactElement {
   return <Tag className={cx("card-q rounded-[var(--radius-card)] p-5", className)} {...rest} />;
 }
 
-/** Titlu mic de secțiune, ca grupurile din bara laterală Quaternion („TODAY”). */
+/** Titlul mic al unei secțiuni, cu un element opțional în dreapta (o stare, un buton). */
 export function SectionTitle({ children, right, id }: { readonly children: ReactNode; readonly right?: ReactNode; readonly id?: string }): ReactElement {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 id={id} className="text-[11.5px] font-medium uppercase tracking-[0.06em] text-fg-4">
+    <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
+      <h2 id={id} className="text-caption font-medium uppercase tracking-[0.06em] text-fg-4">
         {children}
       </h2>
       {right}
@@ -334,46 +381,184 @@ export function SectionTitle({ children, right, id }: { readonly children: React
   );
 }
 
+/** Etichetă neutră: „date simulate”, „ipoteză”, „Nivel 2”. Nu poartă niciodată culoare. */
+export function Tag({ children, className }: { readonly children: ReactNode; readonly className?: string }): ReactElement {
+  return (
+    <span className={cx("inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full border border-line-2 px-2 text-caption font-medium text-fg-3", className)}>
+      {children}
+    </span>
+  );
+}
+
+/** Nivelul de triaj: „Nivel 2”, sau cu `full` și cine se ocupă („Nivel 2 · ofițerul medical”). */
+export function LevelTag({ level, full }: { readonly level: Level; readonly full?: boolean }): ReactElement {
+  return <Tag>{full ? levelLabel(level) : levelShort(level)}</Tag>;
+}
+
+// ---------------------------------------------------------------- stare
+
+/** Doar forma colorată a stării; cuvântul e citit de cititoarele de ecran. Pentru locuri înguste. */
+export function StatusMark({ status, className }: { readonly status: Status; readonly className?: string }): ReactElement {
+  const meta = STATUS_META[status];
+  return (
+    <span className={cx("inline-block shrink-0 text-[0.72em] leading-none", className)} style={{ color: meta.color }}>
+      <span aria-hidden="true">{meta.shape}</span>
+      <span className="sr-only">{meta.label}</span>
+    </span>
+  );
+}
+
 /**
- * Starea: culoare + formă + cuvânt, mereu împreună (cerință de accesibilitate și de onestitate).
- * `compact` = doar forma și cuvântul, fără pastilă.
+ * Starea: culoare + formă + cuvânt, mereu împreună. `compact` = fără pastilă, pentru rânduri dense.
+ * Singura componentă (cu StatusMark și Notice) care are voie să folosească o culoare de stare.
  */
-export function StatusBadge({ status, label, compact, className }: { readonly status: Status; readonly label?: string; readonly compact?: boolean; readonly className?: string }): ReactElement {
-  const m = STATUS_META[status];
+export function StatusBadge({
+  status,
+  label,
+  compact,
+  className,
+}: {
+  readonly status: Status;
+  /** Înlocuiește cuvântul implicit („În limite”, „De urmărit”, „Alertă”, „Fără date”). */
+  readonly label?: string;
+  readonly compact?: boolean;
+  readonly className?: string;
+}): ReactElement {
+  const meta = STATUS_META[status];
   if (compact) {
     return (
-      <span className={cx("inline-flex items-center gap-1.5 text-[12.5px] font-medium", className)} style={{ color: m.color }}>
-        <span aria-hidden="true">{m.shape}</span>
-        {label ?? m.label}
+      <span className={cx("inline-flex items-center gap-1.5 whitespace-nowrap text-small font-medium", className)} style={{ color: meta.color }}>
+        <span aria-hidden="true" className="text-[0.72em] leading-none">
+          {meta.shape}
+        </span>
+        {label ?? meta.label}
       </span>
     );
   }
   return (
     <span
-      className={cx("inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium", className)}
-      style={{ color: m.color, borderColor: `color-mix(in oklab, ${m.color} 30%, transparent)`, background: `color-mix(in oklab, ${m.color} 9%, transparent)` }}
+      className={cx("inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-small font-medium", className)}
+      style={{
+        color: meta.color,
+        borderColor: `color-mix(in oklab, ${meta.color} 32%, transparent)`,
+        background: `color-mix(in oklab, ${meta.color} 10%, transparent)`,
+      }}
     >
-      <span aria-hidden="true" className="text-[10px] leading-none">
-        {m.shape}
+      <span aria-hidden="true" className="text-[0.72em] leading-none">
+        {meta.shape}
       </span>
-      {label ?? m.label}
+      {label ?? meta.label}
     </span>
   );
 }
 
-/** Eticheta unui pilon, cu punctul în culoarea lui. */
-export function PillarTag({ pillar, name, className }: { readonly pillar: Pillar; readonly name: string; readonly className?: string }): ReactElement {
+type NoticeTone = "neutral" | "watch" | "alert" | "ok";
+
+const NOTICE_TONE = {
+  neutral: "border-line-2 bg-white/[0.03]",
+  ok: "border-ok/30 bg-ok/[0.07]",
+  watch: "border-watch/30 bg-watch/[0.07]",
+  alert: "border-alert/35 bg-alert/[0.08]",
+} as const satisfies Record<NoticeTone, string>;
+
+/** Mesaj pe toată lățimea: o eroare, o avertizare, o confirmare. Tonul colorat are și forma stării. */
+export function Notice({
+  tone = "neutral",
+  title,
+  children,
+  action,
+  className,
+}: {
+  readonly tone?: NoticeTone;
+  readonly title: ReactNode;
+  readonly children?: ReactNode;
+  readonly action?: ReactNode;
+  readonly className?: string;
+}): ReactElement {
   return (
-    <span className={cx("inline-flex items-center gap-2 text-[12.5px] font-medium text-fg-2", className)}>
-      <Dot hue={PILLAR_HUE[pillar]} />
-      {name}
-    </span>
+    <div role={tone === "alert" ? "alert" : "status"} className={cx("flex items-start gap-3 rounded-2xl border p-4", NOTICE_TONE[tone], className)}>
+      {tone !== "neutral" && <StatusMark status={tone} className="mt-1 text-small" />}
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-medium text-fg">{title}</p>
+        {children && <div className="mt-0.5 text-body leading-relaxed text-fg-3">{children}</div>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+/** O eroare de la backend, spusă simplu, cu o cale de a încerca din nou. */
+export function ProblemCard({ title, detail, onRetry, className }: { readonly title: string; readonly detail?: string; readonly onRetry?: () => void; readonly className?: string }): ReactElement {
+  return (
+    <Notice
+      tone="alert"
+      title={title}
+      className={className}
+      action={
+        onRetry && (
+          <Button size="sm" onClick={onRetry}>
+            <RotateCcw size={13} strokeWidth={2} />
+            Try again
+          </Button>
+        )
+      }
+    >
+      {detail}
+    </Notice>
+  );
+}
+
+/** Stare goală: spune ce lipsește și, dacă se poate, ce e de făcut. */
+export function EmptyState({ title, children, action }: { readonly title: string; readonly children?: ReactNode; readonly action?: ReactNode }): ReactElement {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line-2 px-6 py-10 text-center">
+      <p className="text-base font-medium text-fg-2">{title}</p>
+      {children && <p className="max-w-[46ch] text-body text-fg-4">{children}</p>}
+      {action && <div className="mt-2">{action}</div>}
+    </div>
+  );
+}
+
+export function Skeleton({ className }: { readonly className?: string }): ReactElement {
+  return <div aria-hidden="true" className={cx("skeleton", className)} />;
+}
+
+// ---------------------------------------------------------------- valori
+
+/** Bară subțire: o valoare într-un interval. Neutră; `status` îi dă culoare doar când valoarea e o stare. */
+export function Meter({
+  value,
+  max,
+  label,
+  status,
+  className,
+}: {
+  readonly value: number;
+  readonly max: number;
+  readonly label: string;
+  readonly status?: Status;
+  readonly className?: string;
+}): ReactElement {
+  return (
+    <div
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      className={cx("h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]", className)}
+    >
+      <div
+        className="h-full rounded-full transition-[width] duration-500 ease-[var(--ease-out)]"
+        style={{ width: `${toPercent(value, 0, max)}%`, background: status ? STATUS_META[status].color : "var(--color-fg-2)" }}
+      />
+    </div>
   );
 }
 
 /**
- * O valoare față de normalul personal: eticheta, cifra mono, unitatea, normalul și abaterea.
- * Datele vin direct din MetricValue (contract API) — frontend-ul nu calculează nimic.
+ * O valoare față de normalul personal. Datele vin direct din `MetricValue` (contract): frontend-ul doar le
+ * formatează, nu calculează nici abaterea, nici starea.
  */
 export function Metric({
   label,
@@ -388,30 +573,30 @@ export function Metric({
   readonly value: number | null | undefined;
   readonly unit: string;
   readonly baseline?: number | null;
-  readonly deviation?: string;
+  readonly deviation?: number | null;
   readonly status: Status;
   readonly simulated?: boolean;
 }): ReactElement {
   return (
     <div className="rounded-2xl border border-line bg-white/[0.02] p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[12.5px] text-fg-3">{label}</span>
+        <span className="text-small text-fg-3">{label}</span>
         <StatusBadge status={status} compact />
       </div>
       <div className="mt-1.5 flex items-baseline gap-1.5">
-        <span className="text-[28px] font-medium leading-none tracking-[-0.02em] text-fg tabular-nums">{value ?? "—"}</span>
-        <span className="text-[12.5px] text-fg-4">{unit}</span>
+        <span className="text-display font-medium tracking-[-0.02em] text-fg">{formatNumber(value)}</span>
+        <span className="text-small text-fg-4">{unit}</span>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2 text-[12px] text-fg-4">
+      <div className="mt-2 flex min-h-[22px] items-center justify-between gap-2 text-small text-fg-4">
         <span>
-          {baseline != null && (
+          {baseline !== null && baseline !== undefined && (
             <>
-              normalul tău <span className="num text-fg-3">{baseline}</span>
+              your baseline <span className="num text-fg-3">{formatNumber(baseline)}</span>
             </>
           )}
-          {deviation && <span className="num ml-1.5 text-fg-3">{deviation}</span>}
+          {deviation !== null && deviation !== undefined && <span className="num ml-2 text-fg-2">{formatSigned(deviation)}</span>}
         </span>
-        {simulated && <span className="rounded-full border border-line-2 px-2 py-0.5 text-[11px]">date simulate</span>}
+        {simulated && <Tag>simulated data</Tag>}
       </div>
     </div>
   );
