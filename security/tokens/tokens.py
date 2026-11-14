@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from pathlib import Path
@@ -9,7 +10,8 @@ ROLES = ["astronaut", "medical_officer", "earth"]
 
 TOKEN_LIFE = 15 * 60
 
-KEYS_DIR = Path(__file__).resolve().parent.parent / "keys" / "keys_files"
+# keys come from security/keys/generate_keys.py; SHADOW_KEYS_DIR lets the tests use throwaway keys
+KEYS_DIR = Path(os.environ.get("SHADOW_KEYS_DIR") or Path(__file__).resolve().parent.parent / "keys" / "keys_files")
 
 PRIVATE_KEY = serialization.load_pem_private_key(
     (KEYS_DIR / "private" / "auth.pem").read_bytes(), password=None)
