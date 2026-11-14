@@ -1,17 +1,26 @@
-"""Id-urile cu prefix din contract (al-0001, pk-0007, ck-0096 …). TASK T04.
-
-Contorul fiecărui prefix stă în sim_state (cheia "id:<prefix>"), incrementat în ACEEAȘI tranzacție cu scrierea.
-"""
 from sqlalchemy.ext.asyncio import AsyncSession
 
-WIDTH = 4  # al-0001
+from .db.models.sim import SimState
+
+WIDTH = 4
+
+
+async def _bump(session: AsyncSession, key: str) -> int:
+    row = await session.get(SimState, key)
+    if row is None:
+        n = 1
+        session.add(SimState(key=key, value={"n": n}))
+    else:
+        n = int(row.value.get("n", 0)) + 1
+        row.value = {**row.value, "n": n}
+    await session.flush()
+    return n
 
 
 async def next_id(session: AsyncSession, prefix: str) -> str:
-    """Întoarce "<prefix>-NNNN" și crește contorul. Nu face commit."""
-    raise NotImplementedError("T04")
+    n = await _bump(session, f"id:{prefix}")
+    return f"{prefix}-{n:0{WIDTH}d}"
 
 
 async def next_seq(session: AsyncSession, direction: str) -> int:
-    """Următorul seq pentru coada navă ↔ Pământ, pe direcție ("down" / "up"). Cheia sim_state: "seq:<direction>"."""
-    raise NotImplementedError("T04")
+    return await _bump(session, f"seq:{direction}")

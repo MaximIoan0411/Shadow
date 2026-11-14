@@ -1,13 +1,20 @@
+import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import schemas
 from .config import get_settings
+from .db import models  # noqa: F401  (registers every table on Base.metadata)
+from .db import session as db
+from .db.base import Base
 from .deps import ApiError
 from .routers import (
     ai,
@@ -28,10 +35,41 @@ from .routers import (
 API_PREFIX = "/api/v1"
 VERSION = "1.2.0"
 
+log = logging.getLogger(__name__)
+
+
+def delete_sqlite_files(url: str) -> None:
+    parsed = make_url(url)
+    if parsed.get_backend_name() != "sqlite" or parsed.database in (None, "", ":memory:"):
+        return
+    for suffix in ("", "-wal", "-shm"):
+        Path(parsed.database + suffix).unlink(missing_ok=True)
+
+
+async def db_status() -> str:
+    if db.engine is None:
+        return "unavailable"
+    try:
+        async with db.engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        log.exception("database health check failed")
+        return "error"
+    return "ok"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
+    settings = app.state.settings
+    if settings.reset_db_on_start:
+        delete_sqlite_files(settings.database_url)
+    engine = db.init_engine(settings.database_url)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    try:
+        yield
+    finally:
+        await engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -54,8 +92,9 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["0. Server health"], summary="Is the server up?")
     async def health():
         """No authentication. Used by Docker Compose and by the frontend at startup.
-        `mode` is `mock` while some endpoints still serve example data, then `real`."""
-        return {"ok": True, "version": app.version, "mode": "mock"}
+        `mode` is `mock` while some endpoints still serve example data, then `real`.
+        `db` is `ok` when the database answers a `SELECT 1`."""
+        return {"ok": True, "version": app.version, "mode": "mock", "db": await db_status()}
 
     app.add_exception_handler(ApiError, api_error)
     app.add_exception_handler(RequestValidationError, validation_error)
