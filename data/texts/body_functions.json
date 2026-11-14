@@ -2,94 +2,94 @@
   "pillars": [
     {
       "pillar": "behavioral",
-      "name": "Tastatura",
+      "name": "Typing",
       "body_zone": "brain",
-      "function_text": "Creierul coordonează atenția, memoria, deciziile și reacțiile rapide. În spațiu, somnul scurt și izolarea îi pot scădea performanța fără ca astronautul să observe.",
+      "function_text": "The brain coordinates attention, memory, decisions and quick reactions. In space, short sleep and isolation can lower its performance without the astronaut noticing.",
       "hazard": "isolation",
-      "hazard_text": "Izolarea și programul neregulat: somnul scurt scade atenția fără să-ți dai seama.",
-      "limits_text": "Tastarea ca semnal de oboseală are dovezi puține (un studiu mic). Nu citim niciodată ce scrii, doar ritmul.",
+      "hazard_text": "Isolation and an irregular schedule: short sleep lowers attention without you noticing.",
+      "limits_text": "Typing as a sign of fatigue has little evidence behind it (one small study). We never read what you write, only the rhythm.",
       "sources": [
         {
           "citation": "Van Dongen et al. (2003), The cumulative cost of additional wakefulness, Sleep 26(2):117–126",
           "url": "https://pubmed.ncbi.nlm.nih.gov/12683469/",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "analog terestru"
+          "evidence_strength": "terrestrial analog"
         }
       ]
     },
     {
       "pillar": "cardio",
-      "name": "Inima",
+      "name": "Heart",
       "body_zone": "heart",
-      "function_text": "Inima pompează sângele care duce oxigen și nutrienți în tot corpul. În microgravitație fluidele urcă spre cap, iar la revenire pot apărea amețeli la ridicare.",
+      "function_text": "The heart pumps the blood that carries oxygen and nutrients through the whole body. In microgravity, fluids rise towards the head, and on return you may feel dizzy when standing up.",
       "hazard": "gravity",
-      "hazard_text": "Gravitația modificată: inima lucrează mai puțin și se decondiționează.",
-      "limits_text": "Pragurile nu sunt publicate pentru astronauți; sunt derivate. Comparăm cu normalul din zbor, nu cu cel de pe Pământ.",
+      "hazard_text": "Altered gravity: the heart works less and becomes deconditioned.",
+      "limits_text": "The thresholds are not published for astronauts; they are derived. We compare against your in-flight normal, not the one from Earth.",
       "sources": [
         {
           "citation": "NASA HRP — Risk of Cardiovascular Adaptations",
           "url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
           "verification": "unverified",
           "derivation": "derived",
-          "evidence_strength": "slabă"
+          "evidence_strength": "weak"
         }
       ]
     },
     {
       "pillar": "immune",
-      "name": "Santinela",
+      "name": "Sentinel",
       "body_zone": "immune",
-      "function_text": "Sistemul imunitar apără corpul de virusuri, bacterii și celule anormale. În zbor, stresul, somnul perturbat și radiațiile îl dereglează.",
+      "function_text": "The immune system defends the body against viruses, bacteria and abnormal cells. In flight, stress, disrupted sleep and radiation throw it off balance.",
       "hazard": "hostile_environment",
-      "hazard_text": "Radiațiile și mediul închis: stresul și spațiul comun slăbesc apărarea organismului.",
-      "limits_text": "Algoritmul nu distinge tipul de infecție și poate da alarme false. A fost validat pe civili, nu pe astronauți.",
+      "hazard_text": "Radiation and the closed environment: stress and shared space weaken the body's defences.",
+      "limits_text": "The algorithm cannot tell the type of infection and can give false alarms. It was validated on civilians, not on astronauts.",
       "sources": [
         {
           "citation": "Alavi et al. (2022), Real-time alerting system for COVID-19 and other stress events using wearable data, Nature Medicine 28:175–184",
           "url": "https://www.nature.com/articles/s41591-021-01593-2",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         },
         {
           "citation": "Rooney et al. (2019), Herpes Virus Reactivation in Astronauts During Spaceflight, Frontiers in Microbiology 10:16",
           "url": "https://www.frontiersin.org/articles/10.3389/fmicb.2019.00016/full",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         },
         {
           "citation": "NASA HRP — Risk of Altered Immune Response",
           "url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "puternică"
+          "evidence_strength": "strong"
         }
       ]
     },
     {
       "pillar": "musculoskeletal",
-      "name": "Încărcarea",
+      "name": "Loading",
       "body_zone": "bones",
-      "function_text": "Oasele susțin corpul și protejează organele, iar mușchii produc mișcarea; ambele se mențin prin încărcare. Fără gravitație și fără exerciții, oasele portante pierd 1–1,5% din densitate pe lună; cu exercițiul zilnic cu greutăți (ARED), circa 0,3–0,6%.",
+      "function_text": "Bones support the body and protect the organs, and muscles produce movement; both are maintained by loading. Without gravity and without exercise, weight-bearing bones lose 1–1.5% of their density per month; with daily resistance exercise (ARED), about 0.3–0.6%.",
       "hazard": "gravity",
-      "hazard_text": "Gravitația modificată: fără greutatea corpului, oasele și mușchii pierd masă.",
-      "limits_text": "Efectul împărțirii în sesiuni e demonstrat doar pe animale. Densitatea osoasă e estimată, nu măsurată.",
+      "hazard_text": "Altered gravity: without the body's weight, bones and muscles lose mass.",
+      "limits_text": "The effect of splitting exercise into sessions has been shown only in animals. Bone density is estimated, not measured.",
       "sources": [
         {
           "citation": "NASA HRP (2024), Evidence Report: Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
           "url": "https://humanresearchroadmap.nasa.gov/evidence/reports/Bone%20Fracture%20Evidence%20Report_07-18-2024.pdf",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "moderată"
+          "evidence_strength": "moderate"
         },
         {
           "citation": "Robling et al. (2002), J Bone Miner Res 17(8):1545–1554",
           "url": "https://pubmed.ncbi.nlm.nih.gov/12162508/",
           "verification": "verified",
           "derivation": "published",
-          "evidence_strength": "doar animale"
+          "evidence_strength": "animal studies only"
         }
       ]
     }
