@@ -16,6 +16,7 @@ from .datafiles import load_all
 from .db import models  # noqa: F401  (registers every table on Base.metadata)
 from .db import session as db
 from .db.base import Base
+from .db.seed import seed_crew_and_users
 from .deps import ApiError
 from .routers import (
     ai,
@@ -40,6 +41,7 @@ VERSION = "1.2.0"
 log = logging.getLogger(__name__)
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+USERS_SEED = BACKEND_DIR / "seed" / "users.json"
 
 
 def resolve_data_dir(data_dir: str) -> Path:
@@ -78,6 +80,9 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
         app.state.data = load_all(resolve_data_dir(settings.data_dir))
         app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
+        async with db.SessionLocal() as s:
+            await seed_crew_and_users(s, str(USERS_SEED))
+            await s.commit()
         yield
     finally:
         await engine.dispose()
