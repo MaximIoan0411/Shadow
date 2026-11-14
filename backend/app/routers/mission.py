@@ -89,6 +89,10 @@ async def set_clock(
     The timeline scrubber does NOT use this endpoint: it only reads the history with `?as_of_day=`.
 
     **SSE:** `mission.tick` with the new day, then `dashboard.changed` and possibly `alert.created`."""
+    before = (await mission_service.state(session, data)).mission_day
     state = await mission_service.set_clock(session, data, time_scale=body.time_scale, mission_day=body.mission_day)
-    publish_all([Event("mission.tick", mission_service.tick_data())])
+    events = [Event("mission.tick", mission_service.tick_data())]
+    if state.mission_day > before:
+        events.append(Event("dashboard.changed", {"reason": "jump"}))
+    publish_all(events)
     return state

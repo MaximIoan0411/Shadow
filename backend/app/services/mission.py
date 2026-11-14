@@ -104,7 +104,10 @@ async def set_clock(
     if time_scale is not None:
         clock.set_scale(time_scale)
     if mission_day is not None and mission_day > current:
-        clock.jump_to_day(mission_day, data.scenario.start_time)
+        from . import demo
+
+        await demo.jump_to_day(session, data, mission_day)
+        await session.commit()
     return await state(session, data)
 
 

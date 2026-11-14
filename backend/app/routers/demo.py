@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
 from ..datafiles import DataBundle
 from ..db.session import get_session
-from ..deps import CREW, ERRORS, get_data, publish, require_roles, roles
+from ..deps import CREW, ERRORS, get_data, require_roles, roles
 from ..schemas import Ok, Packet, RadiationStatus, Rejection, Role, SepStart, User
-from ..security import lockout
+from ..services import demo as demo_service
 from ..services import radiation as radiation_service
 from ..services.events import publish_all
 
@@ -66,14 +65,14 @@ async def sep_stop(
     responses=E,
     openapi_extra=roles(*CREW, Role.earth),
 )
-async def inject_spoof(user: User = Depends(require_roles(*CREW, Role.earth))):
+async def inject_spoof(
+    user: User = Depends(require_roles(*CREW, Role.earth)), session: AsyncSession = Depends(get_session)
+):
     """Security demo: puts in the queue a packet signed with a wrong key. On arrival it is rejected and shows up with
     `status = rejected`, `signature_valid = false`, in the log and in `/security/rejections`.
 
-    **SSE:** `packet.rejected`."""
-    p = link_packet(ex.PACKETS[2])
-    publish("packet.rejected", p)
-    return p
+    **SSE:** `packet.sent`, then `packet.rejected` on arrival."""
+    return await demo_service.inject_spoof(session)
 
 
 @router.post(
@@ -83,12 +82,18 @@ async def inject_spoof(user: User = Depends(require_roles(*CREW, Role.earth))):
     responses=E,
     openapi_extra=roles(*CREW, Role.earth),
 )
-async def frozen_sensor(user: User = Depends(require_roles(*CREW, Role.earth))):
-    """Security demo: the simulator sends the same value many times; the validation layer rejects it.
+async def frozen_sensor(
+    request: Request,
+    user: User = Depends(require_roles(*CREW, Role.earth)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """Security demo: a device sends the same value 20 times in a row; the validation layer rejects the last one.
 
     **SSE:** `measurement.rejected`."""
-    publish("measurement.rejected", ex.REJECTIONS[1], ex.REJECTIONS[1].crew_id)
-    return ex.REJECTIONS[1]
+    rejection, events = await demo_service.frozen_sensor(session, data, request.app.state.keys)
+    publish_all(events)
+    return rejection
 
 
 @router.post(
@@ -98,7 +103,11 @@ async def frozen_sensor(user: User = Depends(require_roles(*CREW, Role.earth))):
     responses=E,
     openapi_extra=roles(*CREW, Role.earth),
 )
-async def reset(user: User = Depends(require_roles(*CREW, Role.earth))):
+async def reset(
+    request: Request,
+    user: User = Depends(require_roles(*CREW, Role.earth)),
+    session: AsyncSession = Depends(get_session),
+):
     """Removes everything changed during the demo and reloads the scenario: the database is recreated, the history is
     regenerated (same seed, so the same data), the clock restarts on day 96 at 07:00, and the account lockouts are
     cleared. It takes a few seconds. Use it between rehearsals.
@@ -106,10 +115,7 @@ async def reset(user: User = Depends(require_roles(*CREW, Role.earth))):
     After a reset the frontend must reload everything (as after a reconnect). Tokens stay valid.
 
     **SSE:** `mission.tick` with day 96, then `dashboard.changed`."""
-    lockout.reset_all()
-    publish("dashboard.changed", {"reason": "reset"})
+    await session.close()  # the request's own session must not hold the database while the tables are emptied
+    _seconds, events = await demo_service.reset(request.app)
+    publish_all(events)
     return Ok()
-
-
-def link_packet(p) -> Packet:
-    return Packet(**p.model_dump(include=set(Packet.model_fields)))

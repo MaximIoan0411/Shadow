@@ -39,7 +39,7 @@ from .routers import (
     security,
 )
 from .security import keys as security_keys
-from .services import access, pipeline
+from .services import access, pipeline, security_log
 from .services import alerts as alerts_service
 from .services import exercise as exercise_service
 from .services import mission as mission_service
@@ -81,6 +81,52 @@ async def db_status() -> str:
     return "ok"
 
 
+async def bootstrap(app: FastAPI) -> None:
+    """Tables, clock (day 96, 07:00), accounts, history, replay of the engine, radiation background. Used at
+    startup and by POST /sim/reset (after the tables were emptied)."""
+    settings, data = app.state.settings, app.state.data
+    async with db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    scenario = data.scenario
+    clock.start(
+        mission_start=scenario.start, day=scenario.start_day, time_hhmm=scenario.start_time, scale=settings.time_scale
+    )
+    async with db.SessionLocal() as s:
+        await seed_crew_and_users(s, str(USERS_SEED))
+        await mission_service.init_environment(s, data)
+        await seed_history(s, data, until_day=scenario.start_day, not_after=clock.now())
+        await exercise_service.backfill(s, until_day=scenario.start_day)
+        await pipeline.replay_history(s, until_day=scenario.start_day, data=data)
+        await radiation_service.seed_readings(s, data)
+        await s.commit()
+
+
+async def wipe(app: FastAPI) -> None:
+    async with db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+
+def start_tasks(app: FastAPI) -> None:
+    if not app.state.settings.background_tasks:
+        app.state.tasks = []
+        return
+    data = app.state.data
+    app.state.tasks = [
+        asyncio.create_task(mission_service.mission_ticker(), name="mission_ticker"),
+        asyncio.create_task(link_scheduler.link_scheduler(data), name="link_scheduler"),
+        asyncio.create_task(live.live_simulator(data), name="live_simulator"),
+        asyncio.create_task(alerts_service.recheck_loop(data), name="recheck_loop"),
+    ]
+
+
+async def stop_tasks(app: FastAPI) -> None:
+    tasks = getattr(app.state, "tasks", [])
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    app.state.tasks = []
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = app.state.settings
@@ -88,41 +134,24 @@ async def lifespan(app: FastAPI):
         delete_sqlite_files(settings.database_url)
     started = time.perf_counter()
     engine = db.init_engine(settings.database_url)
-    tasks: list[asyncio.Task] = []
     try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
         app.state.data = load_all(resolve_data_dir(settings.data_dir))
         app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
         link_queue.configure(app.state.keys)
-        scenario = app.state.data.scenario
-        clock.start(
-            mission_start=scenario.start,
-            day=scenario.start_day,
-            time_hhmm=scenario.start_time,
-            scale=settings.time_scale,
+        app.state.bootstrap, app.state.wipe = bootstrap, wipe
+        app.state.start_tasks, app.state.stop_tasks = start_tasks, stop_tasks
+        await bootstrap(app)
+        start_tasks(app)
+        # once per process, not restarted by /sim/reset; the thread finishes on its own
+        app.state.engine_tests = (
+            asyncio.create_task(security_log.run_engine_tests(), name="engine_tests")
+            if settings.background_tasks
+            else None
         )
-        async with db.SessionLocal() as s:
-            await seed_crew_and_users(s, str(USERS_SEED))
-            await mission_service.init_environment(s, app.state.data)
-            await seed_history(s, app.state.data, until_day=scenario.start_day, not_after=clock.now())
-            await exercise_service.backfill(s, until_day=scenario.start_day)
-            await pipeline.replay_history(s, until_day=scenario.start_day, data=app.state.data)
-            await radiation_service.seed_readings(s, app.state.data)
-            await s.commit()
-        if settings.background_tasks:
-            tasks = [
-                asyncio.create_task(mission_service.mission_ticker(), name="mission_ticker"),
-                asyncio.create_task(link_scheduler.link_scheduler(app.state.data), name="link_scheduler"),
-                asyncio.create_task(live.live_simulator(app.state.data), name="live_simulator"),
-                asyncio.create_task(alerts_service.recheck_loop(app.state.data), name="recheck_loop"),
-            ]
         startup_log.info("SHADOW startup finished in %.2f s", time.perf_counter() - started)
         yield
     finally:
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await stop_tasks(app)
         await engine.dispose()
 
 

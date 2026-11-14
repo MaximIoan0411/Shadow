@@ -1,20 +1,12 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
+from ..datafiles import DataBundle
 from ..db.session import get_session
-from ..deps import ALL, CREW, ERRORS, current_user, publish, require_roles, roles
-from ..schemas import (
-    AccessLogEntry,
-    IngestResult,
-    MeasurementIngest,
-    Parameter,
-    Rejection,
-    RejectionKind,
-    TestReport,
-    User,
-)
-from ..services import access
+from ..deps import ALL, CREW, ERRORS, current_user, get_data, require_roles, roles
+from ..schemas import AccessLogEntry, IngestResult, MeasurementIngest, Parameter, Rejection, TestReport, User
+from ..services import access, security_log
+from ..services.events import publish_all
 
 router = APIRouter(tags=["11. Security and evidence"])
 
@@ -47,9 +39,13 @@ async def access_log(
     responses={k: ERRORS[k] for k in (401, 403)},
     openapi_extra=roles(*CREW),
 )
-async def rejections(limit: int = Query(default=50, ge=1, le=500), user: User = Depends(require_roles(*CREW))):
-    """Impossible values, "frozen" sensors, invalid signatures and replayed packets."""
-    return ex.REJECTIONS[:limit]
+async def rejections(
+    limit: int = Query(default=50, ge=1, le=500),
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+):
+    """Impossible values, "frozen" sensors, invalid signatures and replayed packets, newest first."""
+    return await security_log.rejections(session, limit)
 
 
 @router.post(
@@ -59,7 +55,12 @@ async def rejections(limit: int = Query(default=50, ge=1, le=500), user: User = 
     responses={422: ERRORS[422]},
     openapi_extra={"x-roles": ["device"]},
 )
-async def ingest(body: MeasurementIngest):
+async def ingest(
+    body: MeasurementIngest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
     """**Not for the frontend.** Called by the simulator and the devices. It does not use a JWT: authentication is
     the device's Ed25519 signature, checked with the public key registered for `device_id`.
 
@@ -67,20 +68,9 @@ async def ingest(body: MeasurementIngest):
     A rejected measurement still returns 200, with `accepted = false`, and shows up in `/security/rejections`.
 
     **SSE:** `measurement.rejected` on rejection."""
-    if not (20 <= body.value <= 250) and body.metric_key.endswith("_bpm"):
-        rej = Rejection(
-            id="rj-0004",
-            at=body.measured_at,
-            kind=RejectionKind.implausible,
-            source=body.device_id,
-            crew_id=body.crew_id,
-            metric_key=body.metric_key,
-            value=body.value,
-            message=f"Impossible value: {body.value} {body.unit}",
-        )
-        publish("measurement.rejected", rej, body.crew_id)
-        return IngestResult(accepted=False, rejection=rej)
-    return IngestResult(accepted=True)
+    result, events = await security_log.ingest(session, data, request.app.state.keys, body)
+    publish_all(events)
+    return result
 
 
 @router.get(
@@ -91,8 +81,8 @@ async def ingest(body: MeasurementIngest):
     openapi_extra=roles(*ALL),
 )
 async def evidence_tests(user: User = Depends(current_user)):
-    """The latest pytest report on the protocol engine, for the Evidence screen."""
-    return ex.TEST_REPORT
+    """The latest pytest report on the protocol engine, for the Evidence screen (run once at server start)."""
+    return security_log.test_report()
 
 
 @router.get(
@@ -108,7 +98,8 @@ async def evidence_parameters(
     ),
     key_only: bool = Query(default=False, description="Only the thresholds used directly by the triage engine."),
     user: User = Depends(current_user),
+    data: DataBundle = Depends(get_data),
 ):
     """The content of `parameters.json`: every threshold with value, unit, explanation and source, marked
     verified/unverified and published/derived."""
-    return [p for p in ex.PARAMETERS if (topic is None or p.topic == topic) and (not key_only or p.is_key_threshold)]
+    return security_log.parameters(data, topic, key_only)

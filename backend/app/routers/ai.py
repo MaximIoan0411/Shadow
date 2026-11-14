@@ -1,26 +1,43 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
-from ..deps import CREW, ERRORS, ApiError, current_user, require_roles, roles
-from ..schemas import AiChatRequest, AiChatResponse, AiStatus, Role, User
+from ..config import Settings
+from ..datafiles import DataBundle
+from ..db.session import get_session
+from ..deps import CREW, ERRORS, current_user, get_app_settings, get_data, require_roles, roles
+from ..schemas import AiChatRequest, AiChatResponse, AiStatus, User
+from ..services import ai as ai_service
 
-router = APIRouter(prefix="/ai", tags=["10. Medicul AI"])
-
-
-@router.get("/status", response_model=AiStatus, summary="Starea modelului", responses={401: ERRORS[401]}, openapi_extra=roles(*CREW))
-async def ai_status(user: User = Depends(current_user)):
-    """Dacă modelul local e încărcat. Când `ready` e `false`, cardul AI afișează doar textul din catalog."""
-    return AiStatus(ready=True, model="mock", mode="mock")
+router = APIRouter(prefix="/ai", tags=["10. AI doctor"])
 
 
-@router.post("/chat", response_model=AiChatResponse, summary="Întreabă medicul AI", responses={k: ERRORS[k] for k in (401, 403, 422)}, openapi_extra=roles(*CREW))
-async def ai_chat(body: AiChatRequest, user: User = Depends(require_roles(*CREW))):
-    """Răspuns scurt, cu surse NASA (RAG), care reformulează recomandarea din catalog. **AI-ul nu decide triajul.**
+@router.get(
+    "/status", response_model=AiStatus, summary="Model status", responses={401: ERRORS[401]}, openapi_extra=roles(*CREW)
+)
+async def ai_status(user: User = Depends(current_user), settings: Settings = Depends(get_app_settings)):
+    """Whether the local model is loaded. When `ready` is `false`, the AI card shows only the catalog text."""
+    return await ai_service.status(settings)
 
-    * Poate dura 5–15 secunde pe laptop: afișați o stare de încărcare.
-    * Dacă modelul nu răspunde în 20 de secunde sau e oprit, endpoint-ul NU dă eroare: întoarce textul din catalog,
-      cu `fallback = true`. Aplicația merge și fără AI.
-    * Astronautul poate întreba doar despre propriul `crew_id`."""
-    if user.role == Role.astronaut and body.crew_id != user.crew_id:
-        raise ApiError(403, "forbidden", "Poți întreba doar despre datele tale.")
-    return ex.AI_ANSWER
+
+@router.post(
+    "/chat",
+    response_model=AiChatResponse,
+    summary="Ask the AI doctor",
+    responses={k: ERRORS[k] for k in (401, 403, 422)},
+    openapi_extra=roles(*CREW),
+)
+async def ai_chat(
+    body: AiChatRequest,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+    settings: Settings = Depends(get_app_settings),
+):
+    """A short answer, with NASA sources (RAG), that rephrases the catalog recommendation. **The AI does not decide
+    the triage.**
+
+    * It can take 5–15 seconds on a laptop: show a loading state.
+    * If the model does not answer within 20 seconds or is off, the endpoint does NOT fail: it returns the catalog
+      text, with `fallback = true`. The app works without AI.
+    * An astronaut can ask only about their own `crew_id`."""
+    return await ai_service.chat(session, data, settings, body, user)

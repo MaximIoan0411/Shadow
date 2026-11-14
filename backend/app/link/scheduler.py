@@ -16,6 +16,7 @@ from ..security.errors import SealError
 from ..services import alerts as alerts_service
 from ..services import mission as mission_service
 from ..services import radiation as radiation_service
+from ..services import security_log
 from ..services.events import Event, publish_all
 from ..services.link import to_packet
 from . import windows
@@ -73,6 +74,13 @@ async def step(session: AsyncSession, data: DataBundle) -> list[Event]:
             payload = sealing.open(p.sealed, p.header)
         except SealError as e:
             p.status, p.signature_valid, p.reject_reason, p.delivered_at = "rejected", False, e.reason, now
+            await security_log.record_rejection(
+                session,
+                kind=e.reason,
+                source=p.id,
+                crew_id=p.crew_id,
+                message=f"Packet {p.id} ({p.kind}) rejected on arrival: the seal does not verify ({e.reason}).",
+            )
             events.append(_event("packet.rejected", p))
             continue
         p.status, p.signature_valid, p.payload, p.delivered_at = "delivered", True, payload, now

@@ -387,11 +387,25 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
     "Now" is the replayed day (given as `at`), the clock is not moved. No events are published."""
     if await session.scalar(select(Alert.id).limit(1)) is not None:
         return
+    await replay_days(session, data, 1, until_day)
+
+
+async def replay_days(session: AsyncSession, data: DataBundle, first: int, last: int) -> None:
+    """The engine over days [first, last] for the whole crew, day by day: each member's rules, then the crew-wide
+    (environmental) check, then the rechecks. Used at startup (1..96) and by the day jump (T33)."""
     crew_ids = (await session.scalars(select(Crew.id).order_by(Crew.id))).all()
-    pre = {crew_id: await _crew_history(session, crew_id, until_day, data) for crew_id in crew_ids}
+    pre = {crew_id: await _crew_history(session, crew_id, last, data) for crew_id in crew_ids}
     readiness = []
-    cardio_since: dict[str, int | None] = dict.fromkeys(crew_ids)
-    for day in range(1, until_day + 1):
+    cardio_since: dict[str, int | None] = {}
+    for crew_id in crew_ids:
+        open_cardio = (await _open_alerts(session, crew_id)).get((crew_id, "cardio"))
+        cardio_since[crew_id] = open_cardio.mission_day if open_cardio else None
+    await session.execute(
+        delete(Measurement).where(
+            Measurement.metric_key == LANDING_READINESS, Measurement.mission_day.between(first, last)
+        )
+    )
+    for day in range(first, last + 1):
         at = review_time(data, day)
         signals_today: dict[str, list[Finding]] = {}
         for crew_id in crew_ids:
@@ -422,7 +436,7 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                 extra_findings=[cardio_finding] if cardio_finding else None,
             )
             for row in h.typing_by_day.get(day, []):
-                if row.is_baseline or not h.typing_base["ready"]:
+                if row.is_baseline or not h.typing_base["ready"] or row.fatigue_index is not None:
                     continue
                 row.fatigue_index, _z = behavioral.fatigue_index(behavioral.features_of(row), h.typing_base)
                 row.status = behavioral.status_for(row.fatigue_index)

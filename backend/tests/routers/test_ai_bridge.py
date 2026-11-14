@@ -1,0 +1,82 @@
+import json
+
+import httpx
+import pytest
+
+from app.services import ai as ai_service
+from tests.conftest import auth
+
+A = auth("specialist2")
+
+
+@pytest.fixture
+def ai_down(monkeypatch):
+    def refuse(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    monkeypatch.setattr(ai_service, "transport", httpx.MockTransport(refuse))
+
+
+@pytest.fixture
+def ai_up(monkeypatch):
+    seen = {}
+
+    def answer(request: httpx.Request):
+        if request.url.path == "/status":
+            return httpx.Response(200, json={"ready": True, "model": "model-3b-Q4_K_M", "mode": "local"})
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "answer": "Your night pulse is higher than your normal. Tell the crew medical officer.",
+                "citations": [{"title": "Alavi et al. (2022)", "url": "https://example.org/alavi", "snippet": "night"}],
+                "recommendation_ids": ["immune-2-1"],
+                "model": "model-3b-Q4_K_M",
+                "latency_ms": 900,
+            },
+        )
+
+    monkeypatch.setattr(ai_service, "transport", httpx.MockTransport(answer))
+    return seen
+
+
+async def immune_id(client) -> str:
+    alerts = (await client.get("/api/v1/crew/cm-2/alerts", headers=A)).json()
+    return next(a["id"] for a in alerts if a["topic"] == "immune")
+
+
+async def test_ai_down_falls_back_to_the_catalog(client, ai_down):
+    body = {"crew_id": "cm-2", "message": "Why is my night pulse up?", "alert_id": await immune_id(client)}
+    r = await client.post("/api/v1/ai/chat", headers=A, json=body)
+    assert r.status_code == 200
+    answer = r.json()
+    data = client._transport.app.state.data
+    assert answer["fallback"] is True and answer["model"] == "catalog"
+    assert answer["answer"] == data.catalog.by_id()["immune-2-1"].action
+    assert answer["recommendation_ids"] == ["immune-2-1"] and answer["citations"][0]["url"]
+    assert answer["disclaimer"] == "Decision-support prototype, not a medical device."
+    status = (await client.get("/api/v1/ai/status", headers=A)).json()
+    assert status == {"ready": False, "model": None, "mode": "fallback"}
+
+
+async def test_ai_down_without_alert_still_answers(client, ai_down):
+    r = await client.post("/api/v1/ai/chat", headers=A, json={"crew_id": "cm-2", "message": "Hello"})
+    assert r.status_code == 200 and r.json()["fallback"] is True and r.json()["citations"] == []
+
+
+async def test_ai_up_answer_comes_from_the_service(client, ai_up):
+    body = {"crew_id": "cm-2", "message": "Why is my night pulse up?", "alert_id": await immune_id(client)}
+    answer = (await client.post("/api/v1/ai/chat", headers=A, json=body)).json()
+    assert answer["fallback"] is False and answer["model"] == "model-3b-Q4_K_M"
+    assert answer["citations"][0]["title"] == "Alavi et al. (2022)"
+    context = ai_up["body"]["context"]
+    assert context["topic"] == "immune" and context["level"] == 2 and context["recommendation"]["id"] == "immune-2-1"
+    assert context["mission_day"] == 96 and context["environment"] == "mars_transit"
+    assert "cm-2" not in json.dumps(ai_up["body"]) and "Mission Specialist" not in json.dumps(ai_up["body"])
+    status = (await client.get("/api/v1/ai/status", headers=A)).json()
+    assert status["ready"] is True and status["mode"] == "local"
+
+
+async def test_astronaut_asks_only_about_themselves(client, ai_down):
+    r = await client.post("/api/v1/ai/chat", headers=A, json={"crew_id": "cm-1", "message": "Hi"})
+    assert r.status_code == 403

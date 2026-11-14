@@ -55,12 +55,22 @@ async def backfill(session: AsyncSession, until_day: int) -> None:
     and the timeline)."""
     if await session.scalar(select(Measurement.id).where(Measurement.metric_key == METRIC).limit(1)) is not None:
         return
-    rows = list((await session.scalars(select(SessionRow).order_by(SessionRow.started_at))).all())
+    await score_days(session, 1, until_day - 1)
+
+
+async def score_days(session: AsyncSession, first: int, last: int) -> None:
+    """The loading score of the simulated sessions of days [first, last] and the daily loading of those days."""
+    stmt = select(SessionRow).where(SessionRow.mission_day.between(first, last)).order_by(SessionRow.started_at)
+    rows = list((await session.scalars(stmt)).all())
     by_crew_day: dict[tuple[str, int], list[SessionRow]] = {}
     for r in rows:
-        r.loading_score = loading.session_score(r.sets)
+        if r.source != "manual":
+            r.loading_score = loading.session_score(r.sets)
         by_crew_day.setdefault((r.crew_id, r.mission_day), []).append(r)
-    crew_ids = {r.crew_id for r in rows}
+    crew_ids = set((await session.scalars(select(SessionRow.crew_id).distinct())).all())
+    await session.execute(
+        delete(Measurement).where(Measurement.metric_key == METRIC, Measurement.mission_day.between(first, last))
+    )
     measurements = [
         {
             "crew_id": crew_id,
@@ -72,7 +82,7 @@ async def backfill(session: AsyncSession, until_day: int) -> None:
             "source": "simulated",
         }
         for crew_id in sorted(crew_ids)
-        for day in range(1, until_day)
+        for day in range(first, last + 1)
     ]
     if measurements:
         await session.execute(insert(Measurement), measurements)

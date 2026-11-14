@@ -97,14 +97,27 @@ async def seed_history(
 ) -> None:
     if await session.scalar(select(func.count()).select_from(Checkin)):
         return
-    days = await asyncio.to_thread(scenario.generate, data.scenario, from_day=1, to_day=until_day)
+    await write_days(session, data, 1, until_day, after=None, not_after=not_after)
+
+
+async def write_days(
+    session: AsyncSession,
+    data: DataBundle,
+    from_day: int,
+    to_day: int,
+    *,
+    after: datetime | None,
+    not_after: datetime | None,
+) -> None:
+    """The simulated data of days [from_day, to_day] with a time in (after, not_after]. The check-in of the last day
+    is left out: on the day the clock stops at, the astronaut does it live."""
+    days = await asyncio.to_thread(scenario.generate, data.scenario, from_day=from_day, to_day=to_day)
     baseline_days = int(data.params.value("keystroke_baseline_duration"))
 
     def due(at: datetime) -> bool:
-        return not_after is None or at <= not_after
+        return (after is None or at > after) and (not_after is None or at <= not_after)
 
-    # the check-in of the start day is done live by the astronaut, so the history stops the day before
-    checkins = [d for d in days if d.checkin and d.day < until_day and due(d.checkin["created_at"])]
+    checkins = [d for d in days if d.checkin and d.day < to_day and due(d.checkin["created_at"])]
     sessions = [(d, s) for d in days for s in d.exercise if due(s["started_at"])]
     ck_ids = await next_ids(session, "ck", len(checkins))
     ex_ids = await next_ids(session, "ex", len(sessions))
