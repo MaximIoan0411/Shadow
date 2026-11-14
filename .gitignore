@@ -1,0 +1,25 @@
+# secrete și chei
+.env
+.env.local
+security/keys/*
+!security/keys/README.md
+!security/keys/generate_keys.py
+# python (uv)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# baza de date locală
+*.sqlite
+*.sqlite3
+*.db
+# node
+node_modules/
+.next/
+# AI: modele și index (mari, se refac local)
+ai/models/*
+!ai/models/README.md
+ai/index/*
+!ai/index/README.md
+# sistem
+.DS_Store

@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "Derivation": {
+      "enum": [
+        "published",
+        "derived"
+      ],
+      "title": "Derivation",
+      "type": "string"
+    },
+    "EnvironmentEntry": {
+      "description": "Un mediu. Câmpurile din EnvironmentInfo ajung direct la frontend; restul sunt doar pentru backend.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/EnvironmentId"
+        },
+        "name": {
+          "examples": [
+            "Tranzit spre Marte"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "one_way_delay_s": {
+          "description": "Întârzierea legăturii într-un sens, în secunde de MISIUNE.",
+          "examples": [
+            700
+          ],
+          "title": "One Way Delay S",
+          "type": "number"
+        },
+        "gravity_g": {
+          "description": "Gravitația, în g.",
+          "examples": [
+            0.0
+          ],
+          "title": "Gravity G",
+          "type": "number"
+        },
+        "baseline_dose_usv_h": {
+          "description": "Rata de doză de fond pentru simulator, µSv/h.",
+          "examples": [
+            65.8
+          ],
+          "title": "Baseline Dose Usv H",
+          "type": "number"
+        },
+        "emphasized_hazards": {
+          "description": "Pericolele care contează cel mai mult în acest mediu.",
+          "items": {
+            "$ref": "#/$defs/Hazard"
+          },
+          "title": "Emphasized Hazards",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "delay_range_s": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Intervalul real al întârzierii într-un sens (Marte: 3–22 min). `one_way_delay_s` e valoarea folosită în demo.",
+          "title": "Delay Range S"
+        },
+        "dose_source_param": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Id-ul din parameters.json de unde vine doza de fond.",
+          "title": "Dose Source Param"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "one_way_delay_s",
+        "gravity_g",
+        "baseline_dose_usv_h",
+        "emphasized_hazards",
+        "description"
+      ],
+      "title": "EnvironmentEntry",
+      "type": "object"
+    },
+    "EnvironmentId": {
+      "enum": [
+        "iss",
+        "moon_base",
+        "mars_transit",
+        "mars_base"
+      ],
+      "title": "EnvironmentId",
+      "type": "string"
+    },
+    "Hazard": {
+      "description": "Cele 5 pericole NASA HRP.",
+      "enum": [
+        "radiation",
+        "isolation",
+        "distance",
+        "gravity",
+        "hostile_environment"
+      ],
+      "title": "Hazard",
+      "type": "string"
+    },
+    "SourceRef": {
+      "description": "O sursă științifică. Apare lângă orice prag, text sau recomandare.",
+      "properties": {
+        "citation": {
+          "examples": [
+            "Alavi et al. (2022), Nature Medicine 28:175–184"
+          ],
+          "title": "Citation",
+          "type": "string"
+        },
+        "url": {
+          "examples": [
+            "https://www.nature.com/articles/s41591-021-01593-2"
+          ],
+          "title": "Url",
+          "type": "string"
+        },
+        "verification": {
+          "$ref": "#/$defs/Verification",
+          "default": "verified"
+        },
+        "derivation": {
+          "$ref": "#/$defs/Derivation",
+          "default": "published"
+        },
+        "evidence_strength": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "puternică / moderată / slabă / analog terestru / doar animale",
+          "examples": [
+            "moderată"
+          ],
+          "title": "Evidence Strength"
+        }
+      },
+      "required": [
+        "citation",
+        "url"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Verification": {
+      "enum": [
+        "verified",
+        "unverified"
+      ],
+      "title": "Verification",
+      "type": "string"
+    }
+  },
+  "description": "data/environments.json — cele 4 medii ale comutatorului.",
+  "properties": {
+    "default": {
+      "type": "string",
+      "description": "Id-ul mediului la pornire.",
+      "title": "Default"
+    },
+    "environments": {
+      "items": {
+        "$ref": "#/$defs/EnvironmentEntry"
+      },
+      "title": "Environments",
+      "type": "array"
+    }
+  },
+  "required": [
+    "default",
+    "environments"
+  ],
+  "title": "environments.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

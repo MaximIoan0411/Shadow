@@ -1,0 +1,238 @@
+{
+  "$defs": {
+    "CheckinIndicator": {
+      "description": "Descrierea unui câmp din check-in. Frontend-ul construiește formularul din lista asta.",
+      "properties": {
+        "key": {
+          "examples": [
+            "systolic_mmhg"
+          ],
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "examples": [
+            "Tensiunea (sistolică)"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "examples": [
+            "mmHg"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "input": {
+          "enum": [
+            "number",
+            "scale_1_5",
+            "choice"
+          ],
+          "title": "Input",
+          "type": "string"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sub această valoare, câmpul e respins ca imposibil.",
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Peste această valoare, câmpul e respins ca imposibil.",
+          "title": "Max"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Doar pentru input = choice.",
+          "title": "Choices"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "how_to_measure": {
+          "description": "Coloana „Cum se măsoară”.",
+          "title": "How To Measure",
+          "type": "string"
+        },
+        "what_it_means": {
+          "description": "Coloana „Ce înseamnă valoarea”.",
+          "title": "What It Means",
+          "type": "string"
+        },
+        "why_in_space": {
+          "description": "Coloana „De ce contează în spațiu”.",
+          "title": "Why In Space",
+          "type": "string"
+        },
+        "pillar": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pillar"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "input",
+        "how_to_measure",
+        "what_it_means",
+        "why_in_space"
+      ],
+      "title": "CheckinIndicator",
+      "type": "object"
+    },
+    "Derivation": {
+      "enum": [
+        "published",
+        "derived"
+      ],
+      "title": "Derivation",
+      "type": "string"
+    },
+    "Pillar": {
+      "description": "Cei patru piloni. Fiecare are o zonă pe corpul interactiv.",
+      "enum": [
+        "behavioral",
+        "cardio",
+        "immune",
+        "musculoskeletal"
+      ],
+      "title": "Pillar",
+      "type": "string"
+    },
+    "SourceRef": {
+      "description": "O sursă științifică. Apare lângă orice prag, text sau recomandare.",
+      "properties": {
+        "citation": {
+          "examples": [
+            "Alavi et al. (2022), Nature Medicine 28:175–184"
+          ],
+          "title": "Citation",
+          "type": "string"
+        },
+        "url": {
+          "examples": [
+            "https://www.nature.com/articles/s41591-021-01593-2"
+          ],
+          "title": "Url",
+          "type": "string"
+        },
+        "verification": {
+          "$ref": "#/$defs/Verification",
+          "default": "verified"
+        },
+        "derivation": {
+          "$ref": "#/$defs/Derivation",
+          "default": "published"
+        },
+        "evidence_strength": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "puternică / moderată / slabă / analog terestru / doar animale",
+          "examples": [
+            "moderată"
+          ],
+          "title": "Evidence Strength"
+        }
+      },
+      "required": [
+        "citation",
+        "url"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Verification": {
+      "enum": [
+        "verified",
+        "unverified"
+      ],
+      "title": "Verification",
+      "type": "string"
+    }
+  },
+  "description": "data/texts/checkin_indicators.json — câmpurile check-in-ului. `min`/`max` = limitele FIZIC posibile.",
+  "properties": {
+    "indicators": {
+      "items": {
+        "$ref": "#/$defs/CheckinIndicator"
+      },
+      "title": "Indicators",
+      "type": "array"
+    }
+  },
+  "required": [
+    "indicators"
+  ],
+  "title": "texts/checkin_indicators.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

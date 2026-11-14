@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "BodyFunction": {
+      "description": "Textele panoului unei zone a corpului (cerință din brief: funcția părții corpului).",
+      "properties": {
+        "pillar": {
+          "$ref": "#/$defs/Pillar"
+        },
+        "name": {
+          "examples": [
+            "Santinela"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "body_zone": {
+          "enum": [
+            "brain",
+            "heart",
+            "immune",
+            "bones"
+          ],
+          "title": "Body Zone",
+          "type": "string"
+        },
+        "function_text": {
+          "description": "Max. 2 propoziții.",
+          "title": "Function Text",
+          "type": "string"
+        },
+        "hazard": {
+          "$ref": "#/$defs/Hazard"
+        },
+        "hazard_text": {
+          "title": "Hazard Text",
+          "type": "string"
+        },
+        "limits_text": {
+          "title": "Limits Text",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pillar",
+        "name",
+        "body_zone",
+        "function_text",
+        "hazard",
+        "hazard_text",
+        "limits_text"
+      ],
+      "title": "BodyFunction",
+      "type": "object"
+    },
+    "Derivation": {
+      "enum": [
+        "published",
+        "derived"
+      ],
+      "title": "Derivation",
+      "type": "string"
+    },
+    "Hazard": {
+      "description": "Cele 5 pericole NASA HRP.",
+      "enum": [
+        "radiation",
+        "isolation",
+        "distance",
+        "gravity",
+        "hostile_environment"
+      ],
+      "title": "Hazard",
+      "type": "string"
+    },
+    "Pillar": {
+      "description": "Cei patru piloni. Fiecare are o zonă pe corpul interactiv.",
+      "enum": [
+        "behavioral",
+        "cardio",
+        "immune",
+        "musculoskeletal"
+      ],
+      "title": "Pillar",
+      "type": "string"
+    },
+    "SourceRef": {
+      "description": "O sursă științifică. Apare lângă orice prag, text sau recomandare.",
+      "properties": {
+        "citation": {
+          "examples": [
+            "Alavi et al. (2022), Nature Medicine 28:175–184"
+          ],
+          "title": "Citation",
+          "type": "string"
+        },
+        "url": {
+          "examples": [
+            "https://www.nature.com/articles/s41591-021-01593-2"
+          ],
+          "title": "Url",
+          "type": "string"
+        },
+        "verification": {
+          "$ref": "#/$defs/Verification",
+          "default": "verified"
+        },
+        "derivation": {
+          "$ref": "#/$defs/Derivation",
+          "default": "published"
+        },
+        "evidence_strength": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "puternică / moderată / slabă / analog terestru / doar animale",
+          "examples": [
+            "moderată"
+          ],
+          "title": "Evidence Strength"
+        }
+      },
+      "required": [
+        "citation",
+        "url"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Verification": {
+      "enum": [
+        "verified",
+        "unverified"
+      ],
+      "title": "Verification",
+      "type": "string"
+    }
+  },
+  "description": "data/texts/body_functions.json — exact 4 intrări, câte una pe pilon.",
+  "properties": {
+    "pillars": {
+      "items": {
+        "$ref": "#/$defs/BodyFunction"
+      },
+      "title": "Pillars",
+      "type": "array"
+    }
+  },
+  "required": [
+    "pillars"
+  ],
+  "title": "texts/body_functions.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

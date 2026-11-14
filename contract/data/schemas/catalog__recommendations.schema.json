@@ -1,0 +1,193 @@
+{
+  "$defs": {
+    "AlertTopic": {
+      "description": "Subiectul unei alerte: un pilon, radiațiile sau un semnal încrucișat.",
+      "enum": [
+        "behavioral",
+        "cardio",
+        "immune",
+        "musculoskeletal",
+        "radiation",
+        "cross_signal"
+      ],
+      "title": "AlertTopic",
+      "type": "string"
+    },
+    "CatalogEntry": {
+      "description": "O recomandare din catalog. Câmpurile din Recommendation ajung la frontend; `steps` și `recheck_days`\nle folosește backend-ul ca să construiască planul alertei.",
+      "properties": {
+        "id": {
+          "description": "Format: <topic>-<nivel>-<nr>, ex. `immune-2-1`.",
+          "examples": [
+            "immune-2-1"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "topic": {
+          "$ref": "#/$defs/AlertTopic"
+        },
+        "level": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Level",
+          "type": "integer"
+        },
+        "trigger": {
+          "description": "Când se aplică.",
+          "title": "Trigger",
+          "type": "string"
+        },
+        "action": {
+          "description": "Ce are de făcut.",
+          "title": "Action",
+          "type": "string"
+        },
+        "hrp_risk": {
+          "description": "Riscul NASA HRP corespunzător.",
+          "title": "Hrp Risk",
+          "type": "string"
+        },
+        "hrp_risk_url": {
+          "title": "Hrp Risk Url",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pașii planului (2–4). Lipsă = backend-ul împarte `action` în propoziții.",
+          "title": "Steps"
+        },
+        "recheck_days": {
+          "default": 2,
+          "description": "După câte zile se reverifică alerta.",
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Recheck Days",
+          "type": "integer"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "id",
+        "topic",
+        "level",
+        "trigger",
+        "action",
+        "hrp_risk",
+        "hrp_risk_url",
+        "source"
+      ],
+      "title": "CatalogEntry",
+      "type": "object"
+    },
+    "Derivation": {
+      "enum": [
+        "published",
+        "derived"
+      ],
+      "title": "Derivation",
+      "type": "string"
+    },
+    "SourceRef": {
+      "description": "O sursă științifică. Apare lângă orice prag, text sau recomandare.",
+      "properties": {
+        "citation": {
+          "examples": [
+            "Alavi et al. (2022), Nature Medicine 28:175–184"
+          ],
+          "title": "Citation",
+          "type": "string"
+        },
+        "url": {
+          "examples": [
+            "https://www.nature.com/articles/s41591-021-01593-2"
+          ],
+          "title": "Url",
+          "type": "string"
+        },
+        "verification": {
+          "$ref": "#/$defs/Verification",
+          "default": "verified"
+        },
+        "derivation": {
+          "$ref": "#/$defs/Derivation",
+          "default": "published"
+        },
+        "evidence_strength": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "puternică / moderată / slabă / analog terestru / doar animale",
+          "examples": [
+            "moderată"
+          ],
+          "title": "Evidence Strength"
+        }
+      },
+      "required": [
+        "citation",
+        "url"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Verification": {
+      "enum": [
+        "verified",
+        "unverified"
+      ],
+      "title": "Verification",
+      "type": "string"
+    }
+  },
+  "description": "data/catalog/recommendations.json.",
+  "properties": {
+    "recommendations": {
+      "items": {
+        "$ref": "#/$defs/CatalogEntry"
+      },
+      "title": "Recommendations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "recommendations"
+  ],
+  "title": "catalog/recommendations.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

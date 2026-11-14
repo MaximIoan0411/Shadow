@@ -1,0 +1,389 @@
+/*
+ * SHADOW — tokenii de design. Preluați din Quaternion (src/index.css) și adaptați:
+ *   - același negru pur, aceleași suprafețe, linii fine albe, Geist / Geist Mono, raze, umbre, aurora, orb;
+ *   - culorile de STARE ale SHADOW (ok / watch / alert / unknown) mapate pe paleta Quaternion;
+ *   - o nuanță pe fiecare pilon și pe fiecare ecran (în Quaternion: una pe model / ecran);
+ *   - fără ce ține de Electron (drag, butoanele ferestrei), de editor (Monaco, Dockview, Shiki) și fără tema deschisă.
+ *
+ * Folosire în Tailwind v4: bg-surface-2, text-fg-3, border-line-2, text-status-alert, bg-pillar-immune/10 …
+ */
+@theme {
+  /* ------------------------------------------------ suprafețe (Quaternion) */
+  --color-bg: #050507;
+  --color-surface: #0a0a0d;
+  --color-surface-2: #111115;
+  --color-surface-3: #18181d;
+  --color-surface-4: #212127;
+
+  --color-line: rgb(var(--tint) / 0.075);
+  --color-line-2: rgb(var(--tint) / 0.12);
+  --color-line-3: rgb(var(--tint) / 0.18);
+
+  --color-fg: #ededef;
+  /* fg-2 … fg-4 poartă text și rămân peste WCAG AA (4,5:1) pe orice suprafață; fg-5 e doar decor. */
+  --color-fg-2: rgb(237 237 239 / 0.8);
+  --color-fg-3: rgb(237 237 239 / 0.64);
+  --color-fg-4: rgb(237 237 239 / 0.52);
+  --color-fg-5: rgb(237 237 239 / 0.3);
+
+  /* ------------------------------------------------ paleta (Quaternion) */
+  --color-platinum: #f2f5fc;
+  --color-steel: #a9b4d0;
+  --color-violet: #7b68e8;
+  --color-cyan: #5ee7f5;
+  --color-periwinkle: #9fb4ff;
+  --color-orchid: #e9a6ff;
+  --color-mint: #7cf3d6;
+  --color-amber: #ffc078;
+  --color-coral: #ff9a85;
+  --color-warn: #f5c66b;
+  --color-danger: #ff6b6b;
+
+  --color-inset: #0b0b0d;
+  --color-inset-2: #121215;
+
+  /* ------------------------------------------------ SHADOW: stări (mereu cu formă + cuvânt, vezi StatusBadge) */
+  --color-status-ok: var(--color-mint);       /* ●  „În limite”    */
+  --color-status-watch: var(--color-warn);    /* ▲  „De urmărit”   */
+  --color-status-alert: var(--color-danger);  /* ■  „Alertă”       */
+  --color-status-unknown: var(--color-fg-4);  /* ○  „Fără date”    */
+
+  /* ------------------------------------------------ SHADOW: pilonii (aceleași familii ca în planul PDF) */
+  --color-pillar-behavioral: var(--color-violet);      /* Tastatura  · creier            */
+  --color-pillar-cardio: var(--color-coral);           /* Inima      · inimă             */
+  --color-pillar-immune: var(--color-mint);            /* Santinela  · sistem imunitar   */
+  --color-pillar-musculoskeletal: var(--color-periwinkle); /* Încărcarea · oase și mușchi */
+
+  /* ------------------------------------------------ forme, umbre, tipografie, mișcare (Quaternion) */
+  /* O singură scară de raze: controale 12, carduri interioare 16, carduri și panouri 22. */
+  --radius-card: 22px;
+  --radius-composer: 26px;
+
+  /* Pe negru, adâncimea vine dintr-un ton mai deschis și o lumină sus, mai mult decât din umbră. */
+  --shadow-card: inset 0 1px 0 rgb(var(--tint) / 0.05), 0 24px 48px -32px rgb(var(--shade) / calc(0.95 * var(--shade-k)));
+  --shadow-float: inset 0 1px 0 rgb(var(--tint) / 0.06), 0 30px 80px -30px rgb(var(--shade) / calc(0.95 * var(--shade-k))), 0 0 0 1px rgb(var(--tint) / 0.02);
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-breathe: breathe 3.2s var(--ease-in-out) infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes select-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Variantă opțională, ca în Quaternion: doar suprafețele se schimbă. <html data-theme="midnight"> */
+:root[data-theme="midnight"] {
+  --color-bg: #04060c;
+  --color-surface: #0a0f1a;
+  --color-surface-2: #101624;
+  --color-surface-3: #161e30;
+  --color-surface-4: #1d263b;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* „Cerneala” pentru linii și suprapuneri scrise în CSS, plus culoarea și puterea umbrelor. */
+    --tint: 255 255 255;
+    --shade: 0 0 0;
+    --shade-k: 1;
+    --glass-a: rgb(255 255 255 / 0.042);
+    --glass-b: rgb(255 255 255 / 0.016);
+    --glass-line: rgb(255 255 255 / 0.085);
+    --float-a: color-mix(in oklab, var(--color-surface-3) 92%, transparent);
+    --float-b: color-mix(in oklab, var(--color-surface-2) 94%, transparent);
+    /* Nuanțele ecranului curent (aurora, orb, inelul AI-ului). Fiecare ecran le suprascrie (vezi lib/hues.ts). */
+    --hue-a: var(--color-periwinkle);
+    --hue-b: var(--color-violet);
+    --hue-c: var(--color-cyan);
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgb(159 180 255 / 0.32);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(159 180 255 / 0.7);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  /* Cifrele de instrumente (ceas, coduri, valori mici): mono, aliniate (filozofia „Semnal în întuneric”).
+   * Pentru valorile MARI folosiți Geist cu `tabular-nums`: în mono, punctul zecimal ocupă o celulă întreagă. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Bare de derulare discrete, vizibile doar la hover (Quaternion). */
+  .scroll-q {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scroll-q:hover {
+    scrollbar-color: rgb(var(--tint) / 0.12) transparent;
+  }
+}
+
+/*
+ * Aurora (Quaternion): un val larg din nuanța ecranului care coboară de sus și unul mai discret de jos, ambele stinse
+ * mult înainte de mijloc, ca textul să rămână pe negru. Respiră încet și se aprinde când ceva lucrează (data-live).
+ * În SHADOW: data-live="true" cât timp un pachet e pe drum sau o furtună e activă.
+ */
+.aurora {
+  --wash: color-mix(in oklab, var(--hue-a) 62%, var(--hue-b));
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  contain: strict;
+}
+.aurora::before,
+.aurora::after,
+.aurora > i::before {
+  content: "";
+  position: absolute;
+  will-change: transform;
+  transition: opacity 1400ms var(--ease-out);
+}
+.aurora::before {
+  left: -25%;
+  right: -25%;
+  top: -12%;
+  height: 78%;
+  background:
+    radial-gradient(ellipse 58% 72% at 50% 0%, color-mix(in oklab, var(--wash) 54%, transparent) 0%, color-mix(in oklab, var(--wash) 24%, transparent) 40%, color-mix(in oklab, var(--wash) 7%, transparent) 63%, transparent 80%),
+    radial-gradient(ellipse 30% 46% at 70% 0%, color-mix(in oklab, var(--hue-b) 20%, transparent), transparent 72%);
+  transform-origin: 50% 0%;
+  opacity: 0.8;
+  animation: wash-top 17s var(--ease-in-out) infinite alternate;
+}
+.aurora::after {
+  left: -20%;
+  right: -20%;
+  bottom: -14%;
+  height: 52%;
+  background: radial-gradient(ellipse 52% 70% at 50% 100%, color-mix(in oklab, var(--wash) 40%, transparent) 0%, color-mix(in oklab, var(--wash) 15%, transparent) 46%, transparent 78%);
+  transform-origin: 50% 100%;
+  opacity: 0.7;
+  animation: wash-bottom 21s var(--ease-in-out) infinite alternate;
+}
+.aurora > i {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.aurora > i::before {
+  top: -18%;
+  left: -10%;
+  width: 46%;
+  height: 46%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in oklab, var(--hue-c) 13%, transparent), transparent 68%);
+  opacity: 0.9;
+  animation: wash-drift 29s var(--ease-in-out) infinite alternate;
+}
+.aurora[data-live="true"]::before { opacity: 1; }
+.aurora[data-live="true"]::after { opacity: 1; }
+
+@keyframes wash-top {
+  0% { transform: translate3d(-2%, 0, 0) scale(1, 1); }
+  50% { transform: translate3d(1.5%, 0, 0) scale(1.05, 1.12); }
+  100% { transform: translate3d(3%, 0, 0) scale(1.02, 0.94); }
+}
+@keyframes wash-bottom {
+  0% { transform: translate3d(2%, 0, 0) scale(1, 1); }
+  50% { transform: translate3d(-2%, 0, 0) scale(1.06, 1.14); }
+  100% { transform: translate3d(-3%, 0, 0) scale(0.98, 0.92); }
+}
+@keyframes wash-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(70%, 8%, 0) scale(1.15); }
+  100% { transform: translate3d(140%, -4%, 0) scale(0.95); }
+}
+
+/* SHADOW: rețeaua fină de puncte, „un câmp de stele măsurat” (filozofia vizuală), stinsă spre margini. */
+.starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(var(--tint) / 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(80% 80% at 50% 40%, black, transparent);
+}
+
+/* Inelul care se rotește în jurul unui element activ (Quaternion: prompt-ul cât lucrează modelul).
+ * În SHADOW: cardul medicului AI cât așteaptă răspunsul. */
+.glow-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--angle, 0deg), var(--hue-a), var(--hue-b), var(--hue-c), var(--hue-a));
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 1px;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+.glow-ring[data-on="true"] {
+  opacity: 0.9;
+  animation: spin-angle 3.5s linear infinite;
+}
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
+
+/* Text cu o lumină care trece peste el, cât un pas e în desfășurare (ex. „Pachet pe drum…”). */
+.shimmer-text {
+  background: linear-gradient(90deg, var(--color-fg-3) 0%, var(--color-fg-3) 40%, var(--color-fg) 50%, var(--color-fg-3) 60%, var(--color-fg-3) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+/* Orb-ul (Quaternion): o sferă lucioasă în nuanțele ecranului, pentru stările goale. */
+@property --orb-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes orb-spin {
+  to { --orb-angle: 360deg; }
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(0.9); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.9; }
+}
+.orb {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--orb-size, 56px);
+  height: var(--orb-size, 56px);
+  border-radius: 50%;
+  color: white;
+  isolation: isolate;
+}
+.orb::before {
+  content: "";
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  z-index: -2;
+  background: radial-gradient(circle, color-mix(in oklab, var(--hue-a) 34%, transparent) 50%, transparent 72%);
+  animation: orb-breathe 5s var(--ease-in-out) infinite;
+}
+.orb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 34% 26%, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0) 42%),
+    radial-gradient(circle at 70% 80%, rgb(0 0 0 / 0.35), rgb(0 0 0 / 0) 55%),
+    conic-gradient(from var(--orb-angle), var(--hue-a), var(--hue-b), var(--hue-c), var(--hue-a));
+  box-shadow: inset 0 -8px 18px rgb(0 0 0 / 0.3), inset 0 2px 6px rgb(255 255 255 / 0.3);
+  animation: orb-spin 10s linear infinite;
+}
+
+/* Glisorul (Radix), ca în Quaternion. */
+.slider-q { position: relative; display: flex; align-items: center; height: 20px; touch-action: none; user-select: none; }
+.slider-q [data-track] { position: relative; flex-grow: 1; height: 4px; border-radius: 999px; background: rgb(var(--tint) / 0.1); }
+.slider-q [data-range] { position: absolute; height: 100%; border-radius: 999px; background: var(--slider-hue, var(--color-fg)); }
+.slider-q [data-thumb] {
+  display: block; width: 16px; height: 16px; border-radius: 999px; background: var(--color-platinum);
+  box-shadow: 0 0 0 4px rgb(var(--shade) / calc(0.6 * var(--shade-k))), 0 2px 8px rgb(var(--shade) / calc(0.5 * var(--shade-k)));
+  transition: transform 150ms var(--ease-out);
+}
+.slider-q [data-thumb]:hover { transform: scale(1.12); }
+
+/* Răspunsurile medicului AI: tipografia Markdown din Quaternion, scurtată. */
+.prose-q { font-size: 15px; line-height: 1.72; color: var(--color-fg); }
+.prose-q :where(p, ul, ol, blockquote) { margin: 0; }
+.prose-q > * + * { margin-top: 0.85em; }
+.prose-q strong { font-weight: 600; color: var(--color-platinum); }
+.prose-q a { color: var(--color-periwinkle); text-decoration: underline; text-decoration-color: rgb(159 180 255 / 0.35); text-underline-offset: 3px; }
+.prose-q ul { padding-left: 1.3em; list-style: disc; }
+.prose-q li::marker { color: var(--color-fg-4); }
+
+/* Card de sticlă: ton mai deschis și lumină sus în loc de umbră grea; fundalul se vede prin el. */
+@utility card-q {
+  background: linear-gradient(180deg, var(--glass-a), var(--glass-b));
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+/* Același card, ridicat: meniuri, ferestre, banner-ul de adăpost. */
+@utility float-q {
+  background: linear-gradient(180deg, var(--float-a), var(--float-b));
+  border: 1px solid color-mix(in oklab, var(--glass-line) 100%, rgb(var(--tint) / 0.02));
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(24px) saturate(1.2);
+}
+
+/* Bara laterală și elementul activ din ea, colorat cu nuanța ecranului (Quaternion). */
+.sidebar-q {
+  position: relative;
+  background:
+    radial-gradient(120% 38% at 0% 0%, rgb(var(--tint) / 0.04), transparent 62%),
+    linear-gradient(180deg, var(--color-surface), color-mix(in oklab, var(--color-surface) 65%, var(--color-bg)));
+  border-right: 1px solid rgb(var(--tint) / 0.06);
+}
+.nav-q[data-active] {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--nav-hue) 15%, transparent), rgb(var(--tint) / 0.035) 75%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--nav-hue) 16%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .shimmer-text { animation: none; color: var(--color-fg-3); background: none; }
+}

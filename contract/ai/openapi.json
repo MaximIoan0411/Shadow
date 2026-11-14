@@ -1,0 +1,516 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SHADOW AI service",
+    "description": "Contractul dintre backend și serviciul AI. Singurul client: backend-ul.",
+    "version": "1.2.0"
+  },
+  "paths": {
+    "/status": {
+      "get": {
+        "summary": "Starea modelului",
+        "operationId": "status_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiServiceStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "summary": "Răspuns cu surse",
+        "description": "MOCK: reformulează direct recomandarea din context și citează sursa ei.\n\nVarianta reală: caută 3–4 fragmente în index (întrebare + subiectul alertei), construiește promptul din\nai/prompts/, cere răspunsul de la llama-server, verifică limitele (fără diagnostic, fără medicamente,\nlungime maximă) și întoarce doar citările folosite.",
+        "operationId": "chat_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiServiceChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiServiceChatResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Modelul nu răspunde (`model_unavailable`). Backend-ul trece pe catalog.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiServiceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AiCitation": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "examples": [
+              "Alavi et al. (2022), Nature Medicine"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "description": "Fragmentul din corpus folosit efectiv în răspuns."
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "url",
+          "snippet"
+        ],
+        "title": "AiCitation"
+      },
+      "AiContext": {
+        "properties": {
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "behavioral",
+                  "cardio",
+                  "immune",
+                  "musculoskeletal",
+                  "radiation",
+                  "cross_signal"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic",
+            "description": "Subiectul alertei. `null` = întrebare generală."
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "alert_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Title",
+            "examples": [
+              "Puls de noapte +7 bpm, 3 nopți la rând"
+            ]
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AiEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AiRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mission_day": {
+            "type": "integer",
+            "title": "Mission Day",
+            "examples": [
+              96
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "examples": [
+              "mars_transit"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "mission_day",
+          "environment"
+        ],
+        "title": "AiContext",
+        "description": "Construit de backend. Fără nume, fără crew_id: serviciul nu are nevoie să știe cine întreabă."
+      },
+      "AiEvidence": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "examples": [
+              "Puls de noapte"
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "examples": [
+              61
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": "",
+            "examples": [
+              "bpm"
+            ]
+          },
+          "deviation_text": {
+            "type": "string",
+            "title": "Deviation Text",
+            "examples": [
+              "+7 bpm peste mediana personală, 3 nopți"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "deviation_text"
+        ],
+        "title": "AiEvidence"
+      },
+      "AiRecommendation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "examples": [
+              "immune-2-1"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Level"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "source_citation": {
+            "type": "string",
+            "title": "Source Citation"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "level",
+          "trigger",
+          "action",
+          "source_citation",
+          "source_url"
+        ],
+        "title": "AiRecommendation",
+        "description": "Intrarea din catalog pe care răspunsul trebuie s-o reformuleze."
+      },
+      "AiServiceChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Message",
+            "examples": [
+              "De ce mi-a crescut pulsul de noapte?"
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AiTurn"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "History"
+          },
+          "context": {
+            "$ref": "#/components/schemas/AiContext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "context"
+        ],
+        "title": "AiServiceChatRequest"
+      },
+      "AiServiceChatResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "În română, 3–5 propoziții."
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/AiCitation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "Doar fragmentele folosite. Gol = fără sursă."
+          },
+          "recommendation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendation Ids",
+            "examples": [
+              [
+                "immune-2-1"
+              ]
+            ]
+          },
+          "off_topic": {
+            "type": "boolean",
+            "title": "Off Topic",
+            "description": "True = întrebarea nu ține de sănătatea în misiune; `answer` e mesajul fix.",
+            "default": false
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "examples": [
+              "model-3b-Q4_K_M"
+            ]
+          },
+          "latency_ms": {
+            "type": "integer",
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "citations",
+          "model",
+          "latency_ms"
+        ],
+        "title": "AiServiceChatResponse"
+      },
+      "AiServiceError": {
+        "properties": {
+          "error": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Error",
+            "examples": [
+              {
+                "code": "model_unavailable",
+                "message": "llama-server nu răspunde."
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "AiServiceError",
+        "description": "Corpul răspunsurilor 503 (modelul nu răspunde) și 422 (cerere invalidă)."
+      },
+      "AiServiceStatus": {
+        "properties": {
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "description": "False = modelul nu e încărcat; backend-ul trece direct pe catalog."
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "colab_simulation",
+              "mock"
+            ],
+            "title": "Mode",
+            "description": "Unde rulează modelul. Frontend-ul îl afișează onest."
+          },
+          "corpus_documents": {
+            "type": "integer",
+            "title": "Corpus Documents",
+            "description": "Câte documente sunt în index.",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "ready",
+          "mode"
+        ],
+        "title": "AiServiceStatus"
+      },
+      "AiTurn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "AiTurn"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

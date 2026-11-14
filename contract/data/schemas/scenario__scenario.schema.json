@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "ScenarioEvent": {
+      "properties": {
+        "days": {
+          "description": "Prima și ultima zi, inclusiv.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Days",
+          "type": "array"
+        },
+        "crew": {
+          "anyOf": [
+            {
+              "const": "all",
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "`all`, un crew_id sau o listă.",
+          "title": "Crew"
+        },
+        "kind": {
+          "enum": [
+            "poor_sleep",
+            "skipped_exercise",
+            "infection_onset",
+            "keystroke_slowdown",
+            "solar_storm",
+            "cardio_deconditioning"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Mărimea efectului, specifică fiecărui `kind`.",
+          "title": "Params",
+          "type": "object"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "days",
+        "crew",
+        "kind"
+      ],
+      "title": "ScenarioEvent",
+      "type": "object"
+    }
+  },
+  "description": "data/scenario/scenario.json — ce se întâmplă în fiecare zi a misiunii simulate.",
+  "properties": {
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "total_days": {
+      "default": 140,
+      "title": "Total Days",
+      "type": "integer"
+    },
+    "start": {
+      "description": "Ora 00:00 a zilei 1, UTC.",
+      "format": "date-time",
+      "title": "Start",
+      "type": "string"
+    },
+    "start_day": {
+      "default": 96,
+      "description": "Ziua în care pornește ceasul live; zilele de dinainte se generează la pornire.",
+      "title": "Start Day",
+      "type": "integer"
+    },
+    "start_time": {
+      "default": "07:00",
+      "pattern": "^\\d{2}:\\d{2}$",
+      "title": "Start Time",
+      "type": "string"
+    },
+    "environment": {
+      "default": "mars_transit",
+      "title": "Environment",
+      "type": "string"
+    },
+    "crew_baselines": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "description": "Pe crew_id: normalul personal pe fiecare cheie de metrică.",
+      "title": "Crew Baselines",
+      "type": "object"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/ScenarioEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    }
+  },
+  "required": [
+    "seed",
+    "start",
+    "crew_baselines",
+    "events"
+  ],
+  "title": "scenario/scenario.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

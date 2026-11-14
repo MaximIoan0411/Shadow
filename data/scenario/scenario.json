@@ -1,0 +1,149 @@
+{
+  "seed": 2026,
+  "total_days": 140,
+  "start": "2027-01-10T00:00:00Z",
+  "start_day": 96,
+  "start_time": "07:00",
+  "environment": "mars_transit",
+  "crew_baselines": {
+    "cm-1": {
+      "night_pulse_bpm": 58,
+      "resting_pulse_bpm": 60,
+      "sleep_hours": 6.4,
+      "temperature_c": 36.8,
+      "systolic_mmhg": 114,
+      "diastolic_mmhg": 74,
+      "hrv_lnrmssd": 3.9,
+      "glucose_mg_dl": 90,
+      "keys_per_min": 228,
+      "hold_ms_mean": 92
+    },
+    "cm-2": {
+      "night_pulse_bpm": 54,
+      "resting_pulse_bpm": 57,
+      "sleep_hours": 6.6,
+      "temperature_c": 36.9,
+      "systolic_mmhg": 110,
+      "diastolic_mmhg": 72,
+      "hrv_lnrmssd": 4.1,
+      "glucose_mg_dl": 92,
+      "keys_per_min": 214,
+      "hold_ms_mean": 96
+    },
+    "cm-3": {
+      "night_pulse_bpm": 61,
+      "resting_pulse_bpm": 63,
+      "sleep_hours": 6.1,
+      "temperature_c": 36.7,
+      "systolic_mmhg": 118,
+      "diastolic_mmhg": 76,
+      "hrv_lnrmssd": 3.6,
+      "glucose_mg_dl": 95,
+      "keys_per_min": 196,
+      "hold_ms_mean": 104
+    },
+    "cm-4": {
+      "night_pulse_bpm": 52,
+      "resting_pulse_bpm": 55,
+      "sleep_hours": 6.9,
+      "temperature_c": 36.6,
+      "systolic_mmhg": 108,
+      "diastolic_mmhg": 70,
+      "hrv_lnrmssd": 4.3,
+      "glucose_mg_dl": 88,
+      "keys_per_min": 241,
+      "hold_ms_mean": 89
+    }
+  },
+  "events": [
+    {
+      "days": [
+        40,
+        41
+      ],
+      "crew": "all",
+      "kind": "poor_sleep",
+      "params": {
+        "sleep_hours_delta": -1.6,
+        "keys_per_min_pct": -10
+      },
+      "note": "Tot echipajul doarme prost în aceleași nopți: cauză de mediu (cabina), nu individuală."
+    },
+    {
+      "days": [
+        61,
+        62
+      ],
+      "crew": "cm-2",
+      "kind": "skipped_exercise",
+      "params": {
+        "sessions": 0
+      },
+      "note": "Exerciții sărite: recomandarea de împărțire a antrenamentului."
+    },
+    {
+      "days": [
+        93,
+        100
+      ],
+      "crew": "cm-2",
+      "kind": "infection_onset",
+      "params": {
+        "night_pulse_bpm_delta_by_day": {
+          "93": 2,
+          "94": 5,
+          "95": 6.5,
+          "96": 7,
+          "97": 7,
+          "98": 6,
+          "99": 4,
+          "100": 2
+        },
+        "temperature_c_delta": 0.4,
+        "sleep_hours_delta": -1.1,
+        "noise_max_bpm": 0.8
+      },
+      "note": "Boala prinsă înainte de simptome: ziua 93 +2 (nimic), 94 +5 → NightSignal galben (o noapte ≥ +4), 95 +6,5 → roșu (a doua noapte la rând ≥ +4). Zgomotul pe puls rămâne sub 0,8 bpm, ca zilele să nu se schimbe."
+    },
+    {
+      "days": [
+        95,
+        97
+      ],
+      "crew": "cm-2",
+      "kind": "keystroke_slowdown",
+      "params": {
+        "keys_per_min_pct": -18,
+        "hold_ms_pct": 17,
+        "reported_mood": 4
+      },
+      "note": "Decalajul de percepție: spune 4/5, tastează cu 18% mai lent."
+    },
+    {
+      "days": [
+        97,
+        97
+      ],
+      "crew": "all",
+      "kind": "solar_storm",
+      "params": {
+        "event_id": "2024-05-11T02:10:00-SEP-001",
+        "onset_time": "02:10",
+        "peak_multiplier": 6.0
+      },
+      "note": "Furtuna solară reală din NASA DONKI; ora din fișier, forma curbei sintetică."
+    },
+    {
+      "days": [
+        110,
+        118
+      ],
+      "crew": "cm-2",
+      "kind": "cardio_deconditioning",
+      "params": {
+        "landing_readiness_min": 74
+      },
+      "note": "Scorul de pregătire pentru revenire scade, apoi revine după ajustarea antrenamentului."
+    }
+  ]
+}

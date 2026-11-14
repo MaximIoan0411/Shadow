@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "DonkiSep": {
+      "additionalProperties": true,
+      "properties": {
+        "sepID": {
+          "title": "Sepid",
+          "type": "string"
+        },
+        "eventTime": {
+          "title": "Eventtime",
+          "type": "string"
+        },
+        "link": {
+          "title": "Link",
+          "type": "string"
+        },
+        "instruments": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Instruments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sepID",
+        "eventTime",
+        "link",
+        "instruments"
+      ],
+      "title": "DonkiSep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "data/donki/donki_sep_event.json — evenimentul real NASA DONKI (11 mai 2024).",
+  "properties": {
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "chosen_sep": {
+      "$ref": "#/$defs/DonkiSep"
+    },
+    "linked_cme": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Linked Cme",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source",
+    "chosen_sep"
+  ],
+  "title": "donki/donki_sep_event.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

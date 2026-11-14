@@ -1,0 +1,293 @@
+{
+  "$defs": {
+    "HrpRisk": {
+      "properties": {
+        "nume": {
+          "title": "Nume",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nume",
+        "url"
+      ],
+      "title": "HrpRisk",
+      "type": "object"
+    },
+    "Param": {
+      "additionalProperties": true,
+      "description": "Un parametru. `valoare` poate fi număr, text, listă, dicționar sau null — motorul citește doar pragurile cheie.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "nume": {
+          "title": "Nume",
+          "type": "string"
+        },
+        "valoare": {
+          "title": "Valoare"
+        },
+        "unitate": {
+          "title": "Unitate",
+          "type": "string"
+        },
+        "explicatie": {
+          "title": "Explicatie",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFICAT",
+            "NEVERIFICAT"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "derivare": {
+          "enum": [
+            "publicat",
+            "derivat"
+          ],
+          "title": "Derivare",
+          "type": "string"
+        },
+        "nota_derivare": {
+          "default": "",
+          "title": "Nota Derivare",
+          "type": "string"
+        },
+        "forta_dovezii": {
+          "title": "Forta Dovezii",
+          "type": "string"
+        },
+        "relativ_la_baseline": {
+          "default": false,
+          "title": "Relativ La Baseline",
+          "type": "boolean"
+        },
+        "verificat_cum": {
+          "default": "",
+          "title": "Verificat Cum",
+          "type": "string"
+        },
+        "sursa": {
+          "$ref": "#/$defs/ParamSource"
+        },
+        "surse_suplimentare": {
+          "items": {},
+          "title": "Surse Suplimentare",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "nume",
+        "valoare",
+        "unitate",
+        "explicatie",
+        "status",
+        "derivare",
+        "forta_dovezii",
+        "sursa"
+      ],
+      "title": "Param",
+      "type": "object"
+    },
+    "ParamPillar": {
+      "properties": {
+        "titlu": {
+          "title": "Titlu",
+          "type": "string"
+        },
+        "riscuri_hrp": {
+          "items": {
+            "$ref": "#/$defs/HrpRisk"
+          },
+          "title": "Riscuri Hrp",
+          "type": "array"
+        },
+        "parametri": {
+          "items": {
+            "$ref": "#/$defs/Param"
+          },
+          "title": "Parametri",
+          "type": "array"
+        },
+        "recomandari": {
+          "items": {
+            "$ref": "#/$defs/ParamRecommendation"
+          },
+          "title": "Recomandari",
+          "type": "array"
+        }
+      },
+      "required": [
+        "titlu",
+        "riscuri_hrp",
+        "parametri",
+        "recomandari"
+      ],
+      "title": "ParamPillar",
+      "type": "object"
+    },
+    "ParamRecommendation": {
+      "additionalProperties": true,
+      "properties": {
+        "nivel": {
+          "enum": [
+            "1_singur",
+            "2_ofiter_medical",
+            "3_pamant"
+          ],
+          "title": "Nivel",
+          "type": "string"
+        },
+        "declansator": {
+          "title": "Declansator",
+          "type": "string"
+        },
+        "actiune": {
+          "title": "Actiune",
+          "type": "string"
+        },
+        "risc_hrp": {
+          "title": "Risc Hrp",
+          "type": "string"
+        },
+        "risc_hrp_url": {
+          "title": "Risc Hrp Url",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "VERIFICAT",
+            "NEVERIFICAT"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "sursa": {
+          "$ref": "#/$defs/ParamSource"
+        },
+        "nota": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nota"
+        }
+      },
+      "required": [
+        "nivel",
+        "declansator",
+        "actiune",
+        "risc_hrp",
+        "risc_hrp_url",
+        "status",
+        "sursa"
+      ],
+      "title": "ParamRecommendation",
+      "type": "object"
+    },
+    "ParamSource": {
+      "additionalProperties": true,
+      "properties": {
+        "citare": {
+          "title": "Citare",
+          "type": "string"
+        },
+        "doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doi"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "citare"
+      ],
+      "title": "ParamSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "data/parameters.json — pragurile, fiecare cu sursa lui.",
+  "properties": {
+    "meta": {
+      "additionalProperties": true,
+      "title": "Meta",
+      "type": "object"
+    },
+    "praguri_cheie_triaj": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Pe subiect: id-urile pragurilor folosite direct de motor.",
+      "title": "Praguri Cheie Triaj",
+      "type": "object"
+    },
+    "piloni": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ParamPillar"
+      },
+      "title": "Piloni",
+      "type": "object"
+    },
+    "eveniment_sep_simulator": {
+      "additionalProperties": true,
+      "title": "Eveniment Sep Simulator",
+      "type": "object"
+    },
+    "corecturi_plan": {
+      "additionalProperties": true,
+      "title": "Corecturi Plan",
+      "type": "object"
+    },
+    "note_dovezi_slabe": {
+      "additionalProperties": true,
+      "title": "Note Dovezi Slabe",
+      "type": "object"
+    }
+  },
+  "required": [
+    "meta",
+    "praguri_cheie_triaj",
+    "piloni",
+    "eveniment_sep_simulator"
+  ],
+  "title": "parameters.json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

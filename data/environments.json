@@ -1,0 +1,105 @@
+{
+  "default": "mars_transit",
+  "environments": [
+    {
+      "id": "iss",
+      "name": "Stația spațială (orbită joasă)",
+      "one_way_delay_s": 1.0,
+      "gravity_g": 0.0,
+      "baseline_dose_usv_h": 30.5,
+      "emphasized_hazards": [
+        "gravity",
+        "hostile_environment"
+      ],
+      "description": "Pământul răspunde aproape imediat; triajul trimite mai ușor la nivelul 3.",
+      "dose_source_param": "doza_iss_zilnica",
+      "delay_range_s": null,
+      "sources": [
+        {
+          "citation": "Zhang S., Wimmer-Schweingruber R.F., Yu J., Wang C., et al. (2020). First measurements of the radiation dose on the lunar surface. Science Advances 6(39): eaaz1334.",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/",
+          "verification": "verified",
+          "derivation": "published",
+          "evidence_strength": "moderată"
+        }
+      ]
+    },
+    {
+      "id": "moon_base",
+      "name": "Bază pe Lună",
+      "one_way_delay_s": 1.3,
+      "gravity_g": 0.165,
+      "baseline_dose_usv_h": 57.0,
+      "emphasized_hazards": [
+        "radiation",
+        "gravity"
+      ],
+      "description": "Gravitație redusă, dar nu zero: alte praguri pentru oase și inimă.",
+      "dose_source_param": "doza_luna_suprafata",
+      "delay_range_s": null,
+      "sources": [
+        {
+          "citation": "Zhang S., Wimmer-Schweingruber R.F., Yu J., Wang C., et al. (2020). First measurements of the radiation dose on the lunar surface. Science Advances 6(39): eaaz1334.",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/",
+          "verification": "verified",
+          "derivation": "published",
+          "evidence_strength": "moderată"
+        }
+      ]
+    },
+    {
+      "id": "mars_transit",
+      "name": "Tranzit spre Marte",
+      "one_way_delay_s": 700.0,
+      "gravity_g": 0.0,
+      "baseline_dose_usv_h": 65.8,
+      "emphasized_hazards": [
+        "radiation",
+        "distance",
+        "isolation"
+      ],
+      "description": "Întârziere de 3–22 de minute; nivelurile 1 și 2 rezolvă aproape tot la bord.",
+      "dose_source_param": "doza_tranzit_marte_revizuita",
+      "delay_range_s": [
+        182.4,
+        1339.2
+      ],
+      "sources": [
+        {
+          "citation": "Guo J., Zeitlin C., Wimmer-Schweingruber R.F., Hassler D.M., Ehresmann B., Rafkin S., Freiherr von Forstner J.L., Khaksarighiri S., Liu W., Wang Y. (2021). Radiation environment for future human exploration on the surface of Mars: the current understanding based on MSL/RAD dose measurements. The Astronomy and Astrophysics Review 29: 8.",
+          "url": "https://link.springer.com/article/10.1007/s00159-021-00136-5",
+          "verification": "verified",
+          "derivation": "published",
+          "evidence_strength": "moderată"
+        }
+      ]
+    },
+    {
+      "id": "mars_base",
+      "name": "Bază pe Marte",
+      "one_way_delay_s": 700.0,
+      "gravity_g": 0.38,
+      "baseline_dose_usv_h": 26.7,
+      "emphasized_hazards": [
+        "distance",
+        "gravity",
+        "isolation"
+      ],
+      "description": "Gravitație redusă; la conjuncția solară, circa 2 săptămâni fără comenzi de pe Pământ.",
+      "dose_source_param": "doza_suprafata_marte_hassler2014",
+      "delay_range_s": [
+        182.4,
+        1339.2
+      ],
+      "sources": [
+        {
+          "citation": "Hassler D.M., Zeitlin C., Wimmer-Schweingruber R.F., et al. (2014). Mars' surface radiation environment measured with the Mars Science Laboratory's Curiosity rover. Science 343(6169): 1244797.",
+          "url": "https://doi.org/10.1126/science.1244797",
+          "verification": "unverified",
+          "derivation": "published",
+          "evidence_strength": "moderată"
+        }
+      ]
+    }
+  ]
+}
