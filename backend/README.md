@@ -22,6 +22,7 @@ modelul `../.env.example`.
 |---|---|
 | cheile (navă, Pământ, dispozitive, legătură) | la prima pornire, cele care lipsesc sunt create în `../security/keys/keys_files/` (nu intră în git); o cheie existentă nu e înlocuită niciodată |
 | secretul tokenurilor | `JWT_SECRET`, minimum 32 de caractere; lăsat gol, se alege unul aleator la fiecare pornire |
+| baza de date | `RESET_DB_ON_START=true` (implicit): fiecare pornire reia scenariul de la ziua 96. Jurnalul de acces și tokenurile revocate se păstrează; pentru un jurnal gol, ștergeți `shadow.sqlite*` |
 | tokenurile `mock-<utilizator>` | oprite; doar testele le pornesc (`ALLOW_MOCK_TOKENS=true`). Cu ele se intră FĂRĂ parolă |
 | medicul AI | serviciul din `../ai/`, la `AI_URL` (implicit `http://127.0.0.1:8001`); dacă nu răspunde în `AI_TIMEOUT_S`, răspunsul e textul din catalog |
 

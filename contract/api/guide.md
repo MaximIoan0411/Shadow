@@ -553,7 +553,7 @@ funcționalităților, în `BACKEND_SARCINI.md`. Pe scurt:
 
 | Modul | Unde | Ce face |
 |---|---|---|
-| Fundație | `main.py` (`create_app`, `lifespan`), `config.py`, `clock.py`, `db/` | baza SQLite asincronă, recreată la fiecare pornire; `SimClock`; încărcarea `data/` cu `datafiles.load_all()` |
+| Fundație | `main.py` (`create_app`, `lifespan`), `config.py`, `clock.py`, `db/` | baza SQLite asincronă, golită la fiecare pornire (în afară de jurnalul de acces și de tokenurile revocate); `SimClock`; încărcarea `data/` cu `datafiles.load_all()` |
 | Autentificare | `routers/auth.py`, `deps.py` | conturile din `backend/seed/users.json`, tokenuri reale, revocare, jurnal (funcțiile vin din `security/`) |
 | Simulator | `simulator/` | zilele 1–96 la pornire, din `data/scenario/scenario.json`; datele live; furtuna |
 | Motor | `engine/` (funcții pure) | baseline, cei patru piloni, decalajul de percepție, cauza de mediu, triajul, cu pragurile din `data/parameters.json` |

@@ -54,8 +54,9 @@ le scrie.
 8. **Măsurătorile de la dispozitive** (`POST /ingest/measurements`): semnătura se verifică peste JSON-ul exact
    cum a sosit, nu peste modelul validat; un dispozitiv poate trimite doar pentru membrul lui de echipaj
    (`keys.DEVICE_CREW`); aceeași măsurătoare (dispozitiv + metrică + oră) primită a doua oară e respinsă ca `replay`.
-9. **Jurnalul de acces și tokenurile revocate nu se șterg la `POST /sim/reset`**; resetarea se scrie în jurnal.
-   Se pierd însă la repornirea backend-ului cât timp `RESET_DB_ON_START=true` (implicit): baza de date e ștearsă întreagă.
+9. **Jurnalul de acces și tokenurile revocate nu se șterg** nici la `POST /sim/reset` (resetarea se scrie în
+   jurnal), nici la repornire: cu `RESET_DB_ON_START=true` se golesc toate celelalte tabele. Dacă structura unuia
+   dintre cele două tabele se schimbă în cod, la pornire el e recreat gol, cu avertisment (nu există migrări).
 
 ## 3. Cine apelează ce
 

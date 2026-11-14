@@ -24,7 +24,7 @@ python security/run_tests.py                                           # prototi
 | 2 | parolele: în baza de date stă doar hash-ul (argon2id) | ✔ | `app/security/passwords.py` | `tests/routers/test_seed.py`, `tests/security/test_tokens_and_keys.py` |
 | 3 | tokenul e legat de un cont și de un `crew_id`; expiră în 12 ore | ✔ | `app/security/tokens.py` | `tests/security/test_tokens_and_keys.py` |
 | 3 | rolul și `crew_id` se citesc doar din token | ✔ | `app/deps.py`, `app/services/auth.py` | `tests/security/test_auth_flow.py` |
-| 3 | după deconectare, același token primește `401` | ✔ | `app/security/tokens.py` | `tests/security/test_auth_flow.py` |
+| 3 | după deconectare, același token primește `401`, și după repornirea backend-ului | ✔ | `app/security/tokens.py`, `app/main.py` | `tests/security/test_auth_flow.py`, `tests/routers/test_db_startup.py` |
 | 3 | tokenul stă în memorie, nu în `localStorage` | ✔ | `frontend/src/lib/api.ts` | — |
 | 4 | 5 parole greșite în 5 minute blochează contul 60 s, doar pe el | ✔ | `app/security/lockout.py` | `tests/security/test_auth_flow.py`, `scripts/smoke.py` |
 | 4 | un cont inexistent primește același răspuns | ✔ | `app/services/auth.py` | `tests/security/test_auth_flow.py` |
@@ -46,6 +46,7 @@ python security/run_tests.py                                           # prototi
 | 10 | jurnalul de acces: fiecare intrare conține hash-ul celei dinainte | ✔ | `app/security/access_log.py` | `tests/security/test_access_log_wiring.py` |
 | 10 | o intrare modificată sau ștearsă e detectată de `verify_chain` și semnalată în aplicație | ✔ | `app/security/access_log.py`, `app/services/access.py` | `tests/security/test_access_log_wiring.py` |
 | 10 | astronautul vede cine i-a citit datele; ofițerul medical vede tot | ✔ | `app/services/access.py` | `tests/security/test_access_log_wiring.py` |
+| 10 | jurnalul nu se șterge la resetarea simulării și nici la repornire | ✔ | `app/main.py` | `tests/security/test_access_log_wiring.py`, `tests/routers/test_db_startup.py` |
 | 11 | atacurile pentru demo | ◐ | `app/routers/demo.py`, `app/services/demo.py` | `tests/routers/test_demo.py` |
 | 12 | funcțiile din contract au toate corpul real, niciuna provizorie | ✔ | `app/security/`, `contract/security/README.md` | `scripts/smoke.py` |
 | 13 | auditul: ce s-a găsit și ce s-a reparat | ✔ | `security/audit/findings.md` | `security/audit/check_endpoints.py` |

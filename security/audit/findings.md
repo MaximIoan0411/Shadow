@@ -7,7 +7,7 @@ rula, apoi reparată, apoi acoperită de un test care pică pe codul vechi.
 
 ## 1. Găsite și reparate în aplicație
 
-`backend/app/`. Testele din tabel sunt din `backend/`. Primele treisprezece au fost reparate în PR #9; ultimele două,
+`backend/app/`. Testele din tabel sunt din `backend/`. Primele treisprezece au fost reparate în PR #9; ultimele trei,
 după ce au apărut la scrierea acestui raport.
 
 | Ce se putea face | Reparația | Test |
@@ -27,6 +27,7 @@ după ce au apărut la scrierea acestui raport.
 | erorile 500 nu apăreau nicăieri | se scriu în jurnalul serverului; clientul nu primește detalii | — |
 | un astronaut își trimitea propria alertă pe Pământ prin `POST /link/outbox` (`201`), deși escaladarea îi răspundea `403` | o singură regulă: doar ofițerul medical, și doar pentru o alertă ajunsă deja la nivelul 3 | `tests/link/test_enqueue.py` |
 | aplicația pornită nu verifica niciodată lanțul jurnalului: o intrare modificată în baza de date nu era semnalată nimănui | lanțul e verificat la pornire și la `GET /access-log/integrity`; rezultatul apare în *Evidence*, deasupra jurnalului | `tests/security/test_access_log_wiring.py` |
+| la fiecare pornire, baza de date era ștearsă cu tot cu jurnalul de acces și cu lista tokenurilor revocate: cu un `JWT_SECRET` fix, un token revocat la deconectare răspundea din nou `200` după repornire | la pornire se golesc toate tabelele în afară de aceste două | `tests/routers/test_db_startup.py` |
 
 ## 2. Găsite și reparate în prototipurile din `security/`
 
@@ -77,7 +78,6 @@ Nereparate.
 
 | Ce | De ce contează |
 |---|---|
-| la fiecare pornire, baza de date e ștearsă (`RESET_DB_ON_START=true`, implicit), cu tot cu jurnalul de acces și cu lista tokenurilor revocate | reprodus: cu un `JWT_SECRET` fix, un token revocat la deconectare răspunde din nou `200` după repornire, până expiră; jurnalul pornește gol. Fără `JWT_SECRET` (implicit), toate tokenurile mor la repornire |
 | nicio limită de cereri pe `/auth/login` și `/ingest/measurements` | cineva din rețea poate bloca un cont câte 60 s, la nesfârșit, sau poate umple lista de respingeri |
 | ultimele intrări din jurnal pot fi șterse fără urmă | lanțul arată doar modificările și ștergerile din mijloc; lipsește un hash păstrat în afara jurnalului |
 | retrimiterea unui pachet e oprită doar de baza de date | `(direction, seq)` e unic în tabel (cu test), dar nu există o cale de primire din afară pe care s-o încerce un atac, iar motivul de respingere `replay` nu e produs pentru pachete |

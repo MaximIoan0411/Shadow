@@ -77,7 +77,7 @@ signature  = Ed25519(cheia expeditorului, "shadow-packet-v1" + antet + nonce + c
 - Tokenul e un JWT semnat HS256, valabil 12 ore, cu `sub`, `role`, `crew_id`, `jti` (`app/security/tokens.py`).
 - La fiecare cerere (`app/deps.py`): semnătura și expirarea → lista de revocări → contul. Rolul și `crew_id` se
   citesc doar din token.
-- Deconectarea trece `jti` pe lista de revocări, în baza de date.
+- Deconectarea trece `jti` pe lista de revocări, în baza de date. Lista se păstrează la repornire.
 - În aplicație, tokenul stă doar în memoria ferestrei (`frontend/src/lib/api.ts`), nu în `localStorage`. La
   „schimbă astronautul” se opresc colectorul de tastare și fluxul live, iar datele încărcate se șterg
   (`frontend/src/lib/session.tsx`).
@@ -111,8 +111,9 @@ O intrare modificată sau ștearsă din mijloc rupe lanțul. Aplicația îl veri
 `GET /access-log/integrity`; rezultatul apare deasupra jurnalului, iar un lanț rupt e afișat ca alertă și scris în
 jurnalul serverului (`app/services/access.py`).
 
-Jurnalul și tokenurile revocate nu se șterg la resetarea simulării; resetarea se scrie și ea în jurnal. Se pierd
-însă la repornirea backend-ului, cu setarea implicită. Ce nu poate dovedi lanțul e în `threat-model.md`.
+Jurnalul și tokenurile revocate nu se șterg nici la resetarea simulării (care se scrie și ea în jurnal), nici la
+repornirea backend-ului: la pornire se golesc toate celelalte tabele (`app/main.py`). Ce nu poate dovedi lanțul e
+în `threat-model.md`.
 
 ## 7. Medicul AI
 
