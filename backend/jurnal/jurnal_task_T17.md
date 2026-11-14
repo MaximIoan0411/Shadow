@@ -1,6 +1,8 @@
 ## T17 — Alertele: endpoint-urile reale
 
-> **Stare: implementat, testele trec, dar `smoke.py` PICĂ** — aștept decizia ta (vezi „De ce pică smoke”).
+> **Actualizare (la începutul T18): smoke trece din nou.** Ai mers mai departe fără să alegi, așa că am aplicat varianta recomandată (1): `scripts/smoke.py` caută acum alertele reale înainte de exemple (`al-1042` → alerta imunitară a lui `cm-2`; `al-1039` → o alertă activă de nivel 1 a lui `cm-2`, creată de smoke prin codul backend-ului până când T19 o produce pe cea reală). Am redenumit `pipeline._create` în `pipeline.create_alert` (public), ca smoke să nu folosească o funcție privată. Detalii în `jurnal_task_T18.md`.
+>
+> ~~Stare: implementat, testele trec, dar `smoke.py` PICĂ — aștept decizia ta (vezi „De ce pică smoke”).~~
 
 ### Pe scurt, ce am făcut (pe înțeles)
 

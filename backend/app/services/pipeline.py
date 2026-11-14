@@ -14,7 +14,7 @@ from ..db.models.users import Crew
 from ..engine import triage
 from ..engine.derived import MIN_SPREAD
 from ..engine.pillars import immune
-from ..engine.types import Finding, Point, TriageDecision
+from ..engine.types import Finding, PillarScore, Point, TriageDecision
 from ..ids import next_id
 from ..schemas import AlertBrief
 from .events import Event
@@ -82,6 +82,32 @@ def _immune_finding(
     )
 
 
+@dataclass
+class ImmuneSnapshot:
+    score: PillarScore
+    finding: Finding | None
+    night_delta_bpm: float | None
+
+
+async def immune_snapshot(session: AsyncSession, crew_id: str, day: int, data: DataBundle) -> ImmuneSnapshot:
+    """The Sentinel pillar for one day, with the same rules as process() (used by the perception gap, T21)."""
+    series = await _load_immune_series(session, crew_id, day)
+    open_immune = (await _open_alerts(session, crew_id)).get((crew_id, "immune"))
+    since = open_immune.mission_day if open_immune else None
+    finding = _immune_finding(crew_id, day, series, data, since)
+    nights = series["night_pulse_bpm"]
+    excluded = set(range(since, day + 1)) if since is not None else set()
+    base = immune.baseline_before(
+        nights,
+        day,
+        min_n=data.params.value("nightsignal_min_nights_baseline"),
+        min_spread=MIN_SPREAD["night_pulse_bpm"],
+        exclude_days=excluded,
+    )
+    delta = nights[-1].value - base.median if nights and base.ready else None
+    return ImmuneSnapshot(score=immune.score(nights, base, finding), finding=finding, night_delta_bpm=delta)
+
+
 async def _open_alerts(session: AsyncSession, crew_id: str) -> dict[tuple[str, str], Alert]:
     stmt = (
         select(Alert)
@@ -125,7 +151,7 @@ def brief(alert: Alert) -> dict:
     ).model_dump(mode="json")
 
 
-async def _create(session: AsyncSession, finding: Finding, data: DataBundle, at: datetime) -> Alert:
+async def create_alert(session: AsyncSession, finding: Finding, data: DataBundle, at: datetime) -> Alert:
     entry = data.catalog.by_id()[finding.recommendation_id]
     alert = Alert(
         id=await next_id(session, "al"),
@@ -218,7 +244,7 @@ async def process(
     open_levels = {key: (a.id, a.level) for key, a in open_alerts.items()}
     for decision in triage.decide(findings, open_levels):
         if decision.action == "create":
-            alert = await _create(session, decision.finding, data, at)
+            alert = await create_alert(session, decision.finding, data, at)
             result.alerts_created.append(alert.id)
             result.events.append(Event("alert.created", brief(alert), crew_id))
         elif decision.action in ("update", "escalate"):

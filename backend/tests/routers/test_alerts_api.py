@@ -33,7 +33,7 @@ async def make_level1_alert(client, crew_id="cm-2", topic="behavioral") -> str:
         day=96,
     )
     async with db.SessionLocal() as s:
-        alert = await pipeline._create(s, finding, data, pipeline.review_time(data, 96))
+        alert = await pipeline.create_alert(s, finding, data, pipeline.review_time(data, 96))
         await s.commit()
         return alert.id
 

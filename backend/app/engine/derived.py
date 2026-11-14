@@ -4,6 +4,13 @@
 # Perception gap (T18), in points
 PERCEPTION_GAP_WATCH = 15
 PERCEPTION_GAP_ALERT = 25
+# weights of the objective scores in the perception gap, and the score below which a signal is listed as a cause
+PERCEPTION_WEIGHTS = {"keystrokes": 1.0, "pvt": 1.0, "night_pulse": 1.0, "sleep": 1.0}
+PERCEPTION_SIGNAL_BELOW = 85
+# sleep score (T18): points lost per hour of sleep below the personal median
+SLEEP_SCORE_PENALTY_PER_HOUR = 25.0
+# check-in (T18): the exact same value on this many days in a row = frozen sensor
+CHECKIN_FROZEN_DAYS = 3
 
 # Environmental cause (T29): the same deviation in at least this many crew members, on the same day
 ENVIRONMENTAL_MIN_CREW = 3
