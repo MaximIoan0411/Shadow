@@ -36,6 +36,7 @@ from .routers import (
 )
 from .security import keys as security_keys
 from .services import access
+from .services import mission as mission_service
 
 API_PREFIX = "/api/v1"
 VERSION = "1.2.0"
@@ -91,6 +92,7 @@ async def lifespan(app: FastAPI):
         )
         async with db.SessionLocal() as s:
             await seed_crew_and_users(s, str(USERS_SEED))
+            await mission_service.init_environment(s, app.state.data)
             await s.commit()
         yield
     finally:

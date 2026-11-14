@@ -1,68 +1,92 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import examples as ex
-from ..deps import ALL, CREW, ERRORS, ApiError, current_user, publish, require_roles, roles
+from ..datafiles import DataBundle
+from ..db.session import get_session
+from ..deps import ALL, CREW, ERRORS, current_user, get_data, require_roles, roles
 from ..schemas import ClockUpdate, EnvironmentInfo, EnvironmentUpdate, MissionState, User
+from ..services import mission as mission_service
+from ..services.events import publish_all
 
-router = APIRouter(tags=["2. Misiune, mediu, ceas"])
-
-
-@router.get("/mission", response_model=MissionState, summary="Starea misiunii", responses={401: ERRORS[401]}, openapi_extra=roles(*ALL))
-async def get_mission(user: User = Depends(current_user)):
-    """Ora misiunii (SimClock), ziua curentă, mediul și starea legăturii cu Pământul.
-
-    Misiunea pornește în **ziua 96, ora 07:00** (zilele 1–95 sunt istoric generat la pornirea serverului), cu
-    timpul accelerat de `time_scale` ori (implicit ×60: o zi de misiune = 24 de minute reale).
-
-    Apelați-l o dată la pornire. După aceea, ora vine prin SSE (`mission.tick`), nu prin polling."""
-    return ex.MISSION
+router = APIRouter(tags=["2. Mission, environment, clock"])
 
 
-@router.get("/environments", response_model=list[EnvironmentInfo], summary="Lista mediilor", responses={401: ERRORS[401]}, openapi_extra=roles(*ALL))
-async def list_environments(user: User = Depends(current_user)):
-    """Cele 4 medii pentru comutator: stație, Lună, tranzit spre Marte, bază pe Marte."""
-    return ex.ENVIRONMENTS
+@router.get(
+    "/mission",
+    response_model=MissionState,
+    summary="Mission state",
+    responses={401: ERRORS[401]},
+    openapi_extra=roles(*ALL),
+)
+async def get_mission(
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """Mission time (SimClock), current day, environment and the state of the link with Earth.
+
+    The mission starts on **day 96 at 07:00** (days 1–95 are history generated when the server starts), with time
+    sped up `time_scale` times (default ×60: one mission day = 24 real minutes).
+
+    Call it once at startup. After that, the time comes through SSE (`mission.tick`), not through polling."""
+    return await mission_service.state(session, data)
 
 
-@router.put("/mission/environment", response_model=MissionState, summary="Schimbă mediul",
-            responses={k: ERRORS[k] for k in (401, 403, 422)}, openapi_extra=roles(*CREW))
-async def set_environment(body: EnvironmentUpdate, user: User = Depends(require_roles(*CREW))):
-    """Comutatorul de mediu. Schimbă întârzierea legăturii, rata de doză de fond și pragurile dependente de gravitație.
-
-    **Efecte:** pachetele deja `in_transit` își păstrează ora de sosire; cele noi folosesc noua întârziere.
-    **SSE:** `environment.changed` cu noul `MissionState`."""
-    env = ex.ENV_BY_ID[body.environment]
-    scale = ex.MISSION.time_scale
-    ex.MISSION.environment = env
-    ex.MISSION.link.environment = env.id
-    ex.MISSION.link.one_way_delay_s = env.one_way_delay_s
-    ex.MISSION.link.one_way_delay_real_s = round(env.one_way_delay_s / scale, 2)
-    publish("environment.changed", ex.MISSION)
-    return ex.MISSION
+@router.get(
+    "/environments",
+    response_model=list[EnvironmentInfo],
+    summary="List of environments",
+    responses={401: ERRORS[401]},
+    openapi_extra=roles(*ALL),
+)
+async def list_environments(user: User = Depends(current_user), data: DataBundle = Depends(get_data)):
+    """The 4 environments for the switch: station, Moon, transit to Mars, base on Mars."""
+    return mission_service.environments(data)
 
 
-@router.put("/sim/clock", response_model=MissionState, summary="Schimbă viteza sau ziua ceasului (demo)",
-            responses={k: ERRORS[k] for k in (401, 403, 409, 422)}, openapi_extra=roles(*CREW))
-async def set_clock(body: ClockUpdate, user: User = Depends(require_roles(*CREW))):
-    """Doar pentru demo.
+@router.put(
+    "/mission/environment",
+    response_model=MissionState,
+    summary="Change the environment",
+    responses={k: ERRORS[k] for k in (401, 403, 422)},
+    openapi_extra=roles(*CREW),
+)
+async def set_environment(
+    body: EnvironmentUpdate,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """The environment switch. Changes the link delay, the background dose rate and the gravity-dependent thresholds.
 
-    * `time_scale` schimbă viteza; ora curentă a misiunii rămâne aceeași.
-    * `mission_day` sare **înainte** la începutul acelei zile (07:00): backend-ul generează zilele lipsă cu
-      simulatorul și rulează motorul peste ele, deci pot apărea alerte noi. **Înapoi nu se poate** (409
-      `invalid_state`); pentru o repetiție de la capăt folosiți `POST /sim/reset`.
+    **Effects:** packets already `in_transit` keep their arrival time; new ones use the new delay.
+    **SSE:** `environment.changed` with the new `MissionState`."""
+    new_state, events = await mission_service.set_environment(session, data, body.environment)
+    publish_all(events)
+    return new_state
 
-    Derulatorul NU folosește acest endpoint: el doar citește istoricul cu `?as_of_day=`.
 
-    **SSE:** `mission.tick` cu noua zi, apoi `dashboard.changed` și eventual `alert.created`."""
-    if body.mission_day is not None and body.mission_day < ex.MISSION.mission_day:
-        raise ApiError(409, "invalid_state", f"Ceasul nu poate merge înapoi (ziua curentă: {ex.MISSION.mission_day}). Folosiți /sim/reset.")
-    if body.mission_day is not None and body.mission_day > ex.MISSION.total_days:
-        raise ApiError(422, "validation_error", f"Misiunea are {ex.MISSION.total_days} de zile.",
-                       {"fields": [{"field": "mission_day", "problem": "după sfârșitul misiunii"}]})
-    if body.time_scale is not None:
-        ex.MISSION.time_scale = body.time_scale
-        ex.MISSION.link.one_way_delay_real_s = round(ex.MISSION.link.one_way_delay_s / body.time_scale, 2)
-    if body.mission_day is not None:
-        ex.MISSION.mission_day = body.mission_day
-        ex.MISSION.sim_now = ex.d(body.mission_day, 7, 0)
-    return ex.MISSION
+@router.put(
+    "/sim/clock",
+    response_model=MissionState,
+    summary="Change the clock speed or day (demo)",
+    responses={k: ERRORS[k] for k in (401, 403, 409, 422)},
+    openapi_extra=roles(*CREW),
+)
+async def set_clock(
+    body: ClockUpdate,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """Demo only.
+
+    * `time_scale` changes the speed; the current mission time stays the same.
+    * `mission_day` jumps **forward** to the start of that day (07:00): the backend generates the missing days with
+      the simulator and runs the engine over them, so new alerts can appear. **Going back is not possible** (409
+      `invalid_state`); for a rehearsal from the start use `POST /sim/reset`.
+
+    The timeline scrubber does NOT use this endpoint: it only reads the history with `?as_of_day=`.
+
+    **SSE:** `mission.tick` with the new day, then `dashboard.changed` and possibly `alert.created`."""
+    return await mission_service.set_clock(session, data, time_scale=body.time_scale, mission_day=body.mission_day)
