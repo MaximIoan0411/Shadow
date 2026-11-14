@@ -9,6 +9,7 @@ reală, FĂRĂ să schimbe semnăturile (cale, parametri, modele). Așa frontend
 
 Arhitectura țintă (create_app + lifespan + task-uri din fundal): backend/PLAN_DE_ATAC_BACKEND.md, secțiunile 5–10.
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import schemas
+from .config import get_settings
 from .deps import ApiError
 from .routers import (
     ai,
@@ -53,23 +55,26 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Aplicația se construiește aici (nu la import), ca testele să poată schimba setările înainte."""
+    settings = get_settings()  # citite la apel: testele schimbă mediul înainte de create_app()
     app = FastAPI(
         title="SHADOW API",
         version=VERSION,
-        description="Contractul dintre frontend și backend pentru SHADOW (NASA Space Apps 2026). "
-                    "Prototip de sprijin pentru decizie, nu dispozitiv medical. Documentația completă: contract/api/README.md.",
-        openapi_url=f"{API_PREFIX}/openapi.json", docs_url="/docs", redoc_url="/redoc",
+        description="The contract between the SHADOW frontend and backend (NASA Space Apps 2026). "
+        "Decision-support prototype, not a medical device. Full documentation: contract/api/README.md.",
+        openapi_url=f"{API_PREFIX}/openapi.json",
+        docs_url="/docs",
+        redoc_url="/redoc",
         lifespan=lifespan,
     )
-    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-                       allow_methods=["*"], allow_headers=["*"])
+    app.state.settings = settings
+    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"], allow_headers=["*"])
     for r in (auth, mission, crew, checkin, behavioral, exercise, alerts, link, radiation, ai, security, demo, events):
         app.include_router(r.router, prefix=API_PREFIX)
 
-    @app.get("/health", tags=["0. Sănătatea serverului"], summary="Serverul răspunde?")
+    @app.get("/health", tags=["0. Server health"], summary="Is the server up?")
     async def health():
-        """Fără autentificare. Folosit de Docker Compose și de frontend la pornire.
-        `mode` e `mock` cât timp există endpoint-uri pe date de exemplu, apoi `real`."""
+        """No authentication. Used by Docker Compose and by the frontend at startup.
+        `mode` is `mock` while some endpoints still serve example data, then `real`."""
         return {"ok": True, "version": app.version, "mode": "mock"}
 
     app.add_exception_handler(ApiError, api_error)
@@ -91,7 +96,7 @@ async def api_error(_: Request, e: ApiError):
 
 async def validation_error(_: Request, e: RequestValidationError):
     fields = [{"field": ".".join(str(p) for p in err["loc"][1:]), "problem": err["msg"]} for err in e.errors()]
-    return _err(422, "validation_error", "Datele trimise nu respectă contractul.", {"fields": fields})
+    return _err(422, "validation_error", "The submitted data does not match the contract.", {"fields": fields})
 
 
 async def http_error(_: Request, e: StarletteHTTPException):
@@ -100,7 +105,7 @@ async def http_error(_: Request, e: StarletteHTTPException):
 
 
 async def unexpected(_: Request, e: Exception):
-    return _err(500, "internal_error", "Eroare neașteptată pe server.")
+    return _err(500, "internal_error", "Unexpected server error.")
 
 
 # ------------------------------------------------------------------ OpenAPI: securitate + modelele SSE
@@ -108,6 +113,7 @@ def custom_openapi(app: FastAPI):
     if app.openapi_schema:
         return app.openapi_schema
     from fastapi.openapi.utils import get_openapi
+
     spec = get_openapi(title=app.title, version=app.version, description=app.description, routes=app.routes)
     comps = spec.setdefault("components", {})
     comps["securitySchemes"] = {"bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}}
@@ -121,9 +127,11 @@ def custom_openapi(app: FastAPI):
             if r and r != ["public"] and r != ["device"]:
                 op["security"] = [{"bearerAuth": []}]
             if r:
-                op["description"] = f"**Roluri permise:** {', '.join(f'`{x}`' for x in r)}\n\n" + op.get("description", "")
+                op["description"] = f"**Roluri permise:** {', '.join(f'`{x}`' for x in r)}\n\n" + op.get(
+                    "description", ""
+                )
     app.openapi_schema = spec
     return spec
 
 
-app = create_app()          # pentru `uvicorn app.main:app`
+app = create_app()  # pentru `uvicorn app.main:app`
