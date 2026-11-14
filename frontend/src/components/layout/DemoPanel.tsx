@@ -10,6 +10,7 @@ import { Sheet } from "@/components/ui/overlays";
 import { errorMessage, type Schemas } from "@/lib/api";
 import * as api from "@/lib/endpoints";
 import { keys } from "@/lib/queries";
+import { useSession } from "@/lib/session";
 import { useToast } from "@/lib/toast";
 
 const TIME_SCALES = [
@@ -33,6 +34,8 @@ function Row({ title, detail, children }: { readonly title: string; readonly det
   );
 }
 
+const CMO_ROLE = "cmo";
+
 export function DemoPanel({
   open,
   onClose,
@@ -44,6 +47,7 @@ export function DemoPanel({
 }): ReactElement {
   const queryClient = useQueryClient();
   const notify = useToast();
+  const { user } = useSession();
   const onError = (error: unknown): void => notify({ title: "The action failed", detail: errorMessage(error), status: "alert" });
   const onMission = (next: Schemas["MissionState"]): void => {
     queryClient.setQueryData(keys.mission, next);
@@ -70,7 +74,13 @@ export function DemoPanel({
   });
   const frozen = useMutation({
     mutationFn: api.triggerFrozenSensor,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: keys.security }),
+    onSuccess: (rejection) => {
+      void queryClient.invalidateQueries({ queryKey: keys.security });
+      // Evenimentul live ajunge doar la ofițerul medical și la astronautul al cărui senzor e; ceilalți nu văd
+      // măsurătorile unui coleg nici în lista de respingeri, așa că primesc aici doar confirmarea că a fost respinsă.
+      const getsLiveEvent = user?.role === CMO_ROLE || user?.crew_id === rejection.crew_id;
+      if (!getsLiveEvent) notify({ title: "Frozen sensor rejected", detail: "The repeated value was discarded before it reached triage.", status: "watch" });
+    },
     onError,
   });
   const clock = useMutation({ mutationFn: api.setClock, onSuccess: onMission, onError });

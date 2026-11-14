@@ -5,13 +5,18 @@
  *   1. servește frontend-ul exportat static (`out/`) de pe un server local, pe 127.0.0.1;
  *   2. duce cererile `/api/*` și `/health` la backend (inclusiv fluxul de evenimente), deci frontend-ul lucrează
  *      pe aceeași origine și nu depinde de CORS;
- *   3. dacă backend-ul nu răspunde și există folderul `../backend`, îl pornește cu `uv` și îl oprește la ieșire.
+ *   3. dacă backend-ul nu răspunde și există folderul `../backend`, îl pornește cu `uv` și îl oprește la ieșire;
+ *   4. la fel pentru serviciul AI din `../ai` (portul 8001). Fără el aplicația merge: medicul AI răspunde cu
+ *      textul din catalog. Modelul (Colab sau local) se alege în `ai/.env`.
  *
  * Variabile de mediu:
  *   SHADOW_API_URL       adresa backend-ului (implicit http://127.0.0.1:8000)
  *   SHADOW_DEV_URL       încarcă frontend-ul de la serverul Next de dezvoltare (ex. http://localhost:3000)
  *   SHADOW_BACKEND_DIR   folderul backend-ului (implicit ../backend, lângă frontend/)
  *   SHADOW_NO_BACKEND=1  nu porni backend-ul; doar conectează-te la el
+ *   SHADOW_AI_URL        adresa serviciului AI (implicit http://127.0.0.1:8001)
+ *   SHADOW_AI_DIR        folderul serviciului AI (implicit ../ai, lângă frontend/)
+ *   SHADOW_NO_AI=1       nu porni serviciul AI
  */
 const { app, BrowserWindow, Menu, ipcMain, nativeTheme, shell } = require("electron");
 const { spawn, execFile } = require("node:child_process");
@@ -23,6 +28,8 @@ const BACKEND_URL = new URL(process.env.SHADOW_API_URL ?? "http://127.0.0.1:8000
 const DEV_URL = process.env.SHADOW_DEV_URL ?? null;
 const OUT_DIR = path.join(__dirname, "..", "out");
 const BACKEND_DIR = process.env.SHADOW_BACKEND_DIR ?? path.join(__dirname, "..", "..", "backend");
+const AI_URL = new URL(process.env.SHADOW_AI_URL ?? "http://127.0.0.1:8001");
+const AI_DIR = process.env.SHADOW_AI_DIR ?? path.join(__dirname, "..", "..", "ai");
 const BACKGROUND = "#0b0a0f";
 const HEALTH_TIMEOUT_MS = 1500;
 const BACKEND_BOOT_TIMEOUT_MS = 120_000;
@@ -155,10 +162,9 @@ async function ensureBackend() {
   startBackend();
 }
 
-function stopBackend() {
-  const child = backend.process;
+/** Oprește un proces pornit de aplicație, împreună cu copiii lui (uv pornește uvicorn ca proces separat). */
+function stopChild(child) {
   if (!child?.pid) return;
-  backend.state = "disabled";
   if (process.platform === "win32") {
     execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], () => {});
     return;
@@ -168,6 +174,57 @@ function stopBackend() {
   } catch {
     child.kill("SIGTERM");
   }
+}
+
+function stopBackend() {
+  const child = backend.process;
+  if (!child?.pid) return;
+  backend.state = "disabled";
+  stopChild(child);
+}
+
+// ---------------------------------------------------------------- serviciul AI (opțional)
+
+let aiProcess = null;
+
+/** `true` dacă pe portul serviciului AI răspunde ceva (al nostru sau nu: în ambele cazuri nu pornim altul). */
+function aiPortInUse() {
+  return new Promise((resolve) => {
+    const request = http.get(new URL("/status", AI_URL), { timeout: HEALTH_TIMEOUT_MS }, (response) => {
+      response.resume();
+      resolve(true);
+    });
+    request.on("timeout", () => request.destroy());
+    request.on("error", (error) => resolve(error.code !== "ECONNREFUSED" && error.code !== "ECONNRESET"));
+  });
+}
+
+/**
+ * Pornește serviciul AI dacă nu rulează deja. Nu blochează aplicația și nu e o eroare dacă nu pornește:
+ * backend-ul răspunde atunci cu textul din catalog, iar ecranul „AI doctor” spune asta deschis.
+ */
+async function ensureAiService() {
+  if (process.env.SHADOW_NO_AI === "1" || !fs.existsSync(path.join(AI_DIR, "pyproject.toml"))) return;
+  if (await aiPortInUse()) return;
+  const child = spawn("uv", ["run", "uvicorn", "service.main:app", "--port", AI_URL.port || "8001"], {
+    cwd: AI_DIR,
+    shell: true,
+    windowsHide: true,
+    detached: process.platform !== "win32",
+    stdio: "ignore",
+  });
+  aiProcess = child;
+  child.on("error", () => {
+    aiProcess = null;
+  });
+  child.on("exit", () => {
+    aiProcess = null;
+  });
+}
+
+function stopAiService() {
+  stopChild(aiProcess);
+  aiProcess = null;
 }
 
 // ---------------------------------------------------------------- serverul local: fișiere + proxy
@@ -303,6 +360,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(buildMenu());
   ipcMain.handle("shadow:backend-status", () => ({ state: backend.state, detail: backend.detail, url: BACKEND_URL.origin }));
   await ensureBackend();
+  void ensureAiService();
   appUrl ??= await startLocalServer();
   createWindow();
   app.on("activate", () => {
@@ -311,5 +369,11 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => app.quit());
-app.on("before-quit", stopBackend);
-process.on("exit", stopBackend);
+app.on("before-quit", () => {
+  stopBackend();
+  stopAiService();
+});
+process.on("exit", () => {
+  stopBackend();
+  stopAiService();
+});

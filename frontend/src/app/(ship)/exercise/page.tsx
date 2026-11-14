@@ -40,7 +40,7 @@ const toNumber = (text: string): number => Number(text.trim().replace(",", "."))
 function Summary({ today }: { readonly today: ExerciseToday }): ReactElement {
   return (
     <Card as="section" aria-labelledby="loading-title">
-      <SectionTitle id="loading-title" right={<Tag>{`${today.completed_sessions} din ${today.planned_sessions} sesiuni`}</Tag>}>
+      <SectionTitle id="loading-title" right={<Tag>{`${today.completed_sessions} of ${today.planned_sessions} sessions`}</Tag>}>
         Today's loading
       </SectionTitle>
       <p className="flex items-baseline gap-2">

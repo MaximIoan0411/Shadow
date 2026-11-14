@@ -231,7 +231,7 @@ export function Header({ title, mission, environments, onEnvironmentChange, reco
       {mission && (
         <div className="app-no-drag hidden items-center gap-4 text-small text-fg-3 md:flex">
           {reconnecting && <Tag>Reconnecting…</Tag>}
-          <Tip label={`Day ${mission.mission_day} din ${mission.total_days}; the clock runs ${mission.time_scale} times faster`}>
+          <Tip label={`Day ${mission.mission_day} of ${mission.total_days}; the clock runs ${mission.time_scale} times faster`}>
             <span className="num flex items-center gap-2 text-fg-2">
               <span>Day {mission.mission_day}</span>
               <span className="text-fg">{formatTime(mission.sim_now)}</span>

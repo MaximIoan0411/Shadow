@@ -12,14 +12,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Conturile de pe ecranul de autentificare
+         * Accounts shown on the sign-in screen
          * @description **Roluri permise:** `public`
          *
-         *     Lista conturilor, pentru ecranul „Cine ești?”. **Fără autentificare** și fără nicio dată medicală: doar nume,
-         *     inițiale și rol.
+         *     The list of accounts for the "Who are you?" screen. **No authentication** and no medical data at all: only
+         *     names, initials and role.
          *
-         *     Frontend: afișați câte o casetă pentru fiecare cont cu `location = "ship"` pe stația de lucru de la bord și
-         *     doar contul cu `location = "earth"` pe ecranul Controlul misiunii. La click pe o casetă cereți parola acelui cont.
+         *     Frontend: show one tile per account with `location = "ship"` on the onboard workstation and only the account
+         *     with `location = "earth"` on the Mission Control screen. On click, ask for that account's password.
          */
         get: operations["accounts_api_v1_auth_accounts_get"];
         put?: never;
@@ -40,22 +40,22 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Autentificare (un cont pentru fiecare astronaut)
+         * Sign in (one account per astronaut)
          * @description **Roluri permise:** `public`
          *
-         *     **Fiecare astronaut are contul și parola lui.** Nu există cont comun de echipaj: tokenul primit e legat de un
-         *     singur `crew_id`, iar toate datele (baseline, tastare, check-in, alerte) se leagă de el.
+         *     **Every astronaut has their own account and password.** There is no shared crew account: the token is bound
+         *     to a single `crew_id`, and all data (baseline, typing, check-in, alerts) is linked to it.
          *
-         *     Conturile de test sunt în README, secțiunea 1; parolele de test sunt în fișierul de seed.
+         *     Test accounts are in the README, section 1; test passwords are in the seed file.
          *
-         *     * Parolă greșită → `401 invalid_credentials`. Mesajul e același și dacă utilizatorul nu există.
-         *     * 5 parole greșite pe același cont în 5 minute → `429 too_many_attempts`; contul se deblochează singur după
-         *       60 de secunde reale. `details.retry_after_s` spune cât mai e de așteptat.
-         *     * Fiecare autentificare, reușită sau nu, se scrie în jurnalul de acces (`login` / `login_failed`).
+         *     * Wrong password → `401 invalid_credentials`. The message is the same when the user does not exist.
+         *     * 5 wrong passwords on the same account within 5 minutes → `429 too_many_attempts`; the account unlocks by
+         *       itself after 60 real seconds. `details.retry_after_s` says how long is left.
+         *     * Every sign-in, successful or not, is written to the access log (`login` / `login_failed`).
          *
-         *     Frontend: țineți `access_token` în memorie (nu în `localStorage`) și trimiteți-l în antetul
-         *     `Authorization: Bearer <token>`. `user.role` decide ecranul: `astronaut` → corpul interactiv,
-         *     `cmo` → coada ofițerului medical, `earth` → Controlul misiunii.
+         *     Frontend: keep `access_token` in memory (not in `localStorage`) and send it in the
+         *     `Authorization: Bearer <token>` header. `user.role` decides the screen: `astronaut` → the interactive body,
+         *     `cmo` → the crew medical officer's queue, `earth` → Mission Control.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -72,10 +72,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Cine sunt
+         * Who am I
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Întoarce contul din token. Util la reîncărcarea paginii și ca să afișați mereu, vizibil, cine e autentificat.
+         *     Returns the account from the token. Useful after a page reload and to always show, visibly, who is signed in.
          */
         get: operations["me_api_v1_auth_me_get"];
         put?: never;
@@ -96,16 +96,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Deconectare (schimbarea astronautului)
+         * Sign out (switching astronaut)
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Invalidează tokenul curent (backend-ul trece `jti`-ul lui pe lista de tokenuri revocate). Se scrie în jurnal (`logout`).
+         *     Invalidates the current token (the backend puts its `jti` on the revoked-token list). Written to the access
+         *     log (`logout`).
          *
-         *     **Schimbarea astronautului pe aceeași stație de lucru:** `logout` → ștergeți din memorie tokenul și TOATE datele
-         *     încărcate → închideți conexiunea `/events` → ecranul „Cine ești?” → `login` cu alt cont → deschideți din nou
-         *     `/events`. Colectorul de tastare se oprește la deconectare, ca apăsările să nu ajungă la alt astronaut.
+         *     **Switching astronaut on the same workstation:** `logout` → delete the token and ALL loaded data from memory →
+         *     close the `/events` connection → the "Who are you?" screen → `login` with another account → open `/events`
+         *     again. The typing collector stops on sign-out, so keystrokes never reach another astronaut.
          *
-         *     În mock, tokenul rămâne valid (e textul fix `mock-<utilizator>`).
+         *     Mock tokens (`mock-<username>`) stay valid after logout.
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -122,15 +123,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Starea misiunii
+         * Mission state
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Ora misiunii (SimClock), ziua curentă, mediul și starea legăturii cu Pământul.
+         *     Mission time (SimClock), current day, environment and the state of the link with Earth.
          *
-         *     Misiunea pornește în **ziua 96, ora 07:00** (zilele 1–95 sunt istoric generat la pornirea serverului), cu
-         *     timpul accelerat de `time_scale` ori (implicit ×60: o zi de misiune = 24 de minute reale).
+         *     The mission starts on **day 96 at 07:00** (days 1–95 are history generated when the server starts), with time
+         *     sped up `time_scale` times (default ×60: one mission day = 24 real minutes).
          *
-         *     Apelați-l o dată la pornire. După aceea, ora vine prin SSE (`mission.tick`), nu prin polling.
+         *     Call it once at startup. After that, the time comes through SSE (`mission.tick`), not through polling.
          */
         get: operations["get_mission_api_v1_mission_get"];
         put?: never;
@@ -149,10 +150,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Lista mediilor
+         * List of environments
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Cele 4 medii pentru comutator: stație, Lună, tranzit spre Marte, bază pe Marte.
+         *     The 4 environments for the switch: station, Moon, transit to Mars, base on Mars.
          */
         get: operations["list_environments_api_v1_environments_get"];
         put?: never;
@@ -172,13 +173,13 @@ export interface paths {
         };
         get?: never;
         /**
-         * Schimbă mediul
+         * Change the environment
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Comutatorul de mediu. Schimbă întârzierea legăturii, rata de doză de fond și pragurile dependente de gravitație.
+         *     The environment switch. Changes the link delay, the background dose rate and the gravity-dependent thresholds.
          *
-         *     **Efecte:** pachetele deja `in_transit` își păstrează ora de sosire; cele noi folosesc noua întârziere.
-         *     **SSE:** `environment.changed` cu noul `MissionState`.
+         *     **Effects:** packets already `in_transit` keep their arrival time; new ones use the new delay.
+         *     **SSE:** `environment.changed` with the new `MissionState`.
          */
         put: operations["set_environment_api_v1_mission_environment_put"];
         post?: never;
@@ -197,19 +198,19 @@ export interface paths {
         };
         get?: never;
         /**
-         * Schimbă viteza sau ziua ceasului (demo)
+         * Change the clock speed or day (demo)
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Doar pentru demo.
+         *     Demo only.
          *
-         *     * `time_scale` schimbă viteza; ora curentă a misiunii rămâne aceeași.
-         *     * `mission_day` sare **înainte** la începutul acelei zile (07:00): backend-ul generează zilele lipsă cu
-         *       simulatorul și rulează motorul peste ele, deci pot apărea alerte noi. **Înapoi nu se poate** (409
-         *       `invalid_state`); pentru o repetiție de la capăt folosiți `POST /sim/reset`.
+         *     * `time_scale` changes the speed; the current mission time stays the same.
+         *     * `mission_day` jumps **forward** to the start of that day (07:00): the backend generates the missing days with
+         *       the simulator and runs the engine over them, so new alerts can appear. **Going back is not possible** (409
+         *       `invalid_state`); for a rehearsal from the start use `POST /sim/reset`.
          *
-         *     Derulatorul NU folosește acest endpoint: el doar citește istoricul cu `?as_of_day=`.
+         *     The timeline scrubber does NOT use this endpoint: it only reads the history with `?as_of_day=`.
          *
-         *     **SSE:** `mission.tick` cu noua zi, apoi `dashboard.changed` și eventual `alert.created`.
+         *     **SSE:** `mission.tick` with the new day, then `dashboard.changed` and possibly `alert.created`.
          */
         put: operations["set_clock_api_v1_sim_clock_put"];
         post?: never;
@@ -227,10 +228,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Lista echipajului
+         * Crew list
          * @description **Roluri permise:** `cmo`
          *
-         *     Doar pentru ofițerul medical. Conține doar starea generală, nu valori medicale.
+         *     For the crew medical officer only. Holds only the overall status, no medical values.
          */
         get: operations["list_crew_api_v1_crew_get"];
         put?: never;
@@ -249,13 +250,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Tabloul de bord al astronautului
+         * The astronaut's dashboard
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     **Apelul principal al ecranului astronautului.** Într-un singur răspuns: starea celor 4 piloni (culorile zonelor
-         *     de pe corp), decalajul de percepție, semnalele încrucișate, alerta principală, seriile de zile și reamintirile.
+         *     **The main call of the astronaut's screen.** In one response: the state of the 4 pillars (the colours of the
+         *     body zones), the perception gap, the cross signals, the main alert, the streaks and the reminders.
          *
-         *     Reîncărcați-l când primiți SSE `dashboard.changed`, `alert.created` sau `alert.updated`.
+         *     Reload it when you get SSE `dashboard.changed`, `alert.created` or `alert.updated`.
          */
         get: operations["dashboard_api_v1_crew__crew_id__dashboard_get"];
         put?: never;
@@ -274,11 +275,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Panoul unei zone a corpului
+         * The panel of a body zone
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Se apelează la click pe o zonă. Conține, în ordinea afișării: funcția părții corpului, pericolul spațial,
-         *     valorile față de baseline, graficul, explicația, planul de acțiune și sursele.
+         *     Called on a click on a zone. Holds, in display order: the function of the body part, the space hazard,
+         *     the values against the baseline, the chart, the explanation, the action plan and the sources.
          */
         get: operations["pillar_detail_api_v1_crew__crew_id__pillars__pillar__get"];
         put?: never;
@@ -297,10 +298,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Seria unei metrici (grafic)
+         * The series of a metric (chart)
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Pentru un al doilea grafic sau pentru un interval mai lung decât cel din panou (care are ultimele 10 zile).
+         *     For a second chart or for a longer interval than the panel's (which has the last 10 days).
          */
         get: operations["pillar_series_api_v1_crew__crew_id__pillars__pillar__series_get"];
         put?: never;
@@ -319,15 +320,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Istoric pe zile (derulator)
+         * History by day (timeline scrubber)
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Starea fiecărui pilon pe fiecare zi **care a avut loc**: de la `from_day` până la ziua curentă (misiunea
-         *     pornește în ziua 96, deci la început sunt 96 de zile). Zilele viitoare nu apar; bara derulatorului arată restul
-         *     până la `total_days` (din `/mission`) ca „încă nu”.
+         *     The state of every pillar on every day **that has happened**: from `from_day` to the current day (the
+         *     mission starts on day 96, so at first there are 96 days). Future days are not included; the scrubber shows the
+         *     rest up to `total_days` (from `/mission`) as "not yet".
          *
-         *     Se încarcă o dată la pornire și se reîncarcă la `mission.tick` doar când se schimbă `mission_day`.
-         *     Când utilizatorul se oprește pe o zi, reîncărcați `dashboard` și panoul deschis cu `?as_of_day=`.
+         *     Load it once at startup and reload it on `mission.tick` only when `mission_day` changes.
+         *     When the user stops on a day, reload `dashboard` and the open panel with `?as_of_day=`.
          */
         get: operations["get_timeline_api_v1_crew__crew_id__timeline_get"];
         put?: never;
@@ -346,11 +347,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Câmpurile check-in-ului
+         * Check-in fields
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Lista câmpurilor, cu textele „Cum se măsoară”, „Ce înseamnă” și „De ce contează în spațiu” și cu limitele de
-         *     plauzibilitate (`min`/`max`). Frontend-ul construiește formularul din acest răspuns; nu țineți textele în cod.
+         *     The list of fields, with the "How to measure", "What it means" and "Why it matters in space" texts and the
+         *     plausibility limits (`min`/`max`). The frontend builds the form from this response; do not keep the texts in code.
          */
         get: operations["checkin_schema_api_v1_checkin_schema_get"];
         put?: never;
@@ -369,28 +370,28 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Istoricul check-in-urilor
+         * Check-in history
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Check-in-urile din interval, cele mai noi primele.
+         *     The check-ins in the interval, newest first.
          */
         get: operations["list_checkins_api_v1_crew__crew_id__checkins_get"];
         put?: never;
         /**
-         * Trimite check-in-ul de dimineață
+         * Send the morning check-in
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Salvează check-in-ul zilei. **Un singur check-in pe zi de misiune**: al doilea îl înlocuiește pe primul.
+         *     Saves the check-in of the day. **One check-in per mission day**: a second one replaces the first.
          *
-         *     Ce face backend-ul, în ordine:
-         *     1. validează fiecare câmp față de `min`/`max` din schemă; câmpurile imposibile NU dau eroare 422, ci apar în
-         *        `rejected` și se salvează ca `null` (restul check-in-ului rămâne valid);
-         *     2. compară valorile cu baseline-ul personal;
-         *     3. recalculează decalajul de percepție;
-         *     4. rulează triajul și creează alerte, dacă e cazul;
-         *     5. actualizează seria de zile.
+         *     What the backend does, in order:
+         *     1. checks every field against `min`/`max` from the schema; impossible fields do NOT give a 422 error, they show
+         *        up in `rejected` and are saved as `null` (the rest of the check-in stays valid);
+         *     2. compares the values with the personal baseline;
+         *     3. recomputes the perception gap;
+         *     4. runs triage and creates alerts, if needed;
+         *     5. updates the streak.
          *
-         *     **SSE:** `dashboard.changed`, plus `alert.created` pentru fiecare alertă nouă.
+         *     **SSE:** `dashboard.changed`, plus `alert.created` for every new alert.
          */
         post: operations["create_checkin_api_v1_crew__crew_id__checkins_post"];
         delete?: never;
@@ -407,10 +408,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Check-in-ul de azi
+         * Today's check-in
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Întoarce check-in-ul zilei curente sau `null` dacă nu a fost făcut. Folosiți-l ca să decideți dacă afișați formularul.
+         *     Returns the check-in of the current day, or `null` if it has not been done. Use it to decide whether to show
+         *     the form.
          */
         get: operations["today_checkin_api_v1_crew__crew_id__checkins_today_get"];
         put?: never;
@@ -431,19 +433,20 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Trimite un lot de apăsări de taste
+         * Send a batch of key presses
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     **Confidențialitate: trimiteți doar timpii și clasa tastei, niciodată caracterul.** Backend-ul respinge cu 422
-         *     orice câmp în plus (ex. `key`, `code`, `text`).
+         *     **Privacy: send only the timings and the key class, never the character.** The backend rejects with 422 any
+         *     extra field (e.g. `key`, `code`, `text`).
          *
-         *     Frontend: adunați evenimentele `keydown`/`keyup` și trimiteți un lot la ~5 secunde sau la 200 de taste, cu
-         *     același `session_id` cât timp utilizatorul scrie în același câmp. Răspunsul conține trăsăturile cumulate ale
-         *     sesiunii, deci îl puteți afișa direct în barele live.
+         *     Frontend: collect the `keydown`/`keyup` events and send a batch every ~5 seconds or every 200 keys, with the
+         *     same `session_id` while the user keeps typing in the same field. The response holds the cumulative features of
+         *     the session, so you can show it directly in the live bars.
          *
-         *     Primele sesiuni construiesc baseline-ul: cât timp `baseline_ready` e `false`, `status` e `unknown`.
+         *     The first sessions build the baseline: while `baseline_ready` is `false`, `status` is `unknown`. A session is
+         *     judged only after its first 30 keys.
          *
-         *     **SSE:** `alert.created` dacă abaterea trece pragul.
+         *     **SSE:** `alert.created` (or `alert.updated`) and `dashboard.changed` when the deviation crosses the threshold.
          */
         post: operations["post_keystrokes_api_v1_crew__crew_id__keystrokes_batches_post"];
         delete?: never;
@@ -460,10 +463,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Rezumatul tastării
+         * Typing summary
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Baseline-ul personal, ultima sesiune și sesiunile recente. Pentru cardul „Ritmul tău” și pentru comparația din demo.
+         *     The personal baseline, the latest session and the recent sessions. For the "Your rhythm" card and the
+         *     comparison in the demo.
          */
         get: operations["keystroke_summary_api_v1_crew__crew_id__keystrokes_summary_get"];
         put?: never;
@@ -482,21 +486,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Istoricul testelor de reacție
+         * Reaction test history
          * @description **Roluri permise:** `astronaut`, `cmo`
+         *
+         *     The reaction tests, newest first.
          */
         get: operations["list_pvt_api_v1_crew__crew_id__pvt_get"];
         put?: never;
         /**
-         * Trimite un test de reacție (PVT-B)
+         * Send a reaction test (PVT-B)
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Testul de 3 minute rulează integral în frontend; aici trimiteți toate încercările la sfârșit.
+         *     The 3-minute test runs entirely in the frontend; send all the trials here at the end.
          *
-         *     Backend-ul calculează media 1/RT, lapsusurile (RT ≥ 355 ms) și abaterea față de baseline. Primele 2–3 teste
-         *     sunt de antrenament și nu intră în baseline.
+         *     The backend computes the mean 1/RT, the lapses (RT ≥ 355 ms) and the deviation from the baseline. The first
+         *     3 tests are practice and do not enter the baseline (`status = unknown`).
          *
-         *     **SSE:** `dashboard.changed`.
+         *     **SSE:** `dashboard.changed`, plus `alert.created` / `alert.updated` when the speed drops past the threshold.
          */
         post: operations["post_pvt_api_v1_crew__crew_id__pvt_post"];
         delete?: never;
@@ -513,10 +519,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Planul de exerciții de azi
+         * Today's exercise plan
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Sesiunile planificate și făcute, scorul de încărcare, recomandarea de împărțire în două sesiuni și seria de zile.
+         *     The planned and completed sessions, the loading score, the recommendation to split into two sessions, the
+         *     streak and the bone projection (an estimate).
          */
         get: operations["exercise_today_api_v1_crew__crew_id__exercise_today_get"];
         put?: never;
@@ -535,16 +542,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Istoricul sesiunilor
+         * Session history
          * @description **Roluri permise:** `astronaut`, `cmo`
+         *
+         *     The sessions in the interval, newest first.
          */
         get: operations["list_sessions_api_v1_crew__crew_id__exercise_sessions_get"];
         put?: never;
         /**
-         * Înregistrează o sesiune de exerciții
+         * Log an exercise session
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     În versiunea reală, jurnalul vine de la aparat. În prototip îl trimite simulatorul sau astronautul, de mână.
+         *     In the real version the log comes from the device. In the prototype the simulator or the astronaut sends it.
          *
          *     **SSE:** `dashboard.changed`.
          */
@@ -563,10 +572,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Alertele unui membru al echipajului
+         * A crew member's alerts
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Lista scurtă, cele mai grave primele. Ofițerul medical primește aici doar alertele de nivel ≥ 2 ale altor membri.
+         *     Short list, most severe first. The crew medical officer only gets level ≥ 2 alerts of other members here.
          */
         get: operations["list_alerts_api_v1_crew__crew_id__alerts_get"];
         put?: never;
@@ -585,10 +594,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Coada ofițerului medical
+         * Crew medical officer's queue
          * @description **Roluri permise:** `cmo`
          *
-         *     Toate alertele de nivel 2 și 3 nerezolvate, din tot echipajul. Ecranul principal al rolului `cmo`.
+         *     All unresolved level 2 and 3 alerts across the crew. The main screen of the `cmo` role.
          */
         get: operations["cmo_queue_api_v1_cmo_queue_get"];
         put?: never;
@@ -607,11 +616,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Alerta completă
+         * Full alert
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Dovezile, cauza (individuală sau de mediu), recomandarea din catalog cu sursa ei, planul de acțiune, data
-         *     reverificării și istoricul. Fiecare citire de către ofițerul medical se scrie în jurnalul de acces.
+         *     The evidence, the cause (individual or environmental), the catalog recommendation with its source, the action
+         *     plan, the recheck date and the history. Every read by the crew medical officer is written to the access log.
          */
         get: operations["get_alert_api_v1_alerts__alert_id__get"];
         put?: never;
@@ -632,10 +641,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Confirmă că ai văzut alerta
+         * Confirm you have seen the alert
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Trece alerta din `active` în `acknowledged`. Nu se poate apela pe o alertă deja escaladată sau rezolvată (409 `invalid_state`).
+         *     Moves the alert from `active` to `acknowledged`. Not allowed on an alert that is already escalated or
+         *     resolved (409 `invalid_state`).
          *
          *     **SSE:** `alert.updated`.
          */
@@ -655,10 +665,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Bifează un pas din plan
+         * Tick a plan step
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Bifează sau debifează un pas al planului de acțiune.
+         *     Ticks or unticks a step of the action plan.
          *
          *     **SSE:** `alert.updated`.
          */
@@ -680,18 +690,19 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Escaladează alerta
+         * Escalate the alert
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Urcă alerta un nivel.
+         *     Raises the alert by one level.
          *
-         *     * `to_level = 2` — astronautul o trimite ofițerului medical. Apare în `/cmo/queue`.
-         *     * `to_level = 3` — **doar rolul `cmo`**. Backend-ul creează automat un pachet semnat și criptat în coada spre
-         *       Pământ și pune id-ul lui în `packet_id`. Nu mai trebuie apelat `/link/outbox`.
+         *     * `to_level = 2` — the astronaut sends it to the crew medical officer. It shows up in `/cmo/queue`.
+         *     * `to_level = 3` — **only the `cmo` role**. The backend automatically creates a signed and encrypted packet in
+         *       the queue to Earth and puts its id in `packet_id`. There is no need to call `/link/outbox`.
          *
-         *     Nivelul nu poate coborî (409 `invalid_state`). Alertele critice pot fi escaladate și automat de motorul de triaj.
+         *     The level can never go down (409 `invalid_state`). Critical alerts can also be escalated automatically by the
+         *     triage engine.
          *
-         *     **SSE:** `alert.updated`, iar la nivelul 3 și `packet.sent` când se deschide fereastra.
+         *     **SSE:** `alert.updated`, and at level 3 also `packet.sent` when the window opens.
          */
         post: operations["escalate_api_v1_alerts__alert_id__escalate_post"];
         delete?: never;
@@ -710,11 +721,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Închide alerta
+         * Close the alert
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Astronautul poate închide alertele de nivel 1; cele de nivel 2 și 3 le închide ofițerul medical.
-         *     `outcome = monitoring` păstrează alerta deschisă și mută `recheck_at` cu încă o zi.
+         *     An astronaut can close level 1 alerts; level 2 and 3 alerts are closed by the crew medical officer.
+         *     `outcome = monitoring` keeps the alert open and moves `recheck_at` by one more day.
          *
          *     **SSE:** `alert.updated`.
          */
@@ -733,10 +744,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Catalogul de recomandări
+         * Recommendation catalog
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Recomandările scrise de echipă pe baza riscurilor NASA HRP, fiecare cu sursa ei. Medicul AI doar le reformulează.
+         *     Recommendations written by the team based on the NASA HRP risks, each with its source. The AI doctor only
+         *     rephrases them.
          */
         get: operations["list_recommendations_api_v1_catalog_recommendations_get"];
         put?: never;
@@ -755,7 +767,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * O recomandare din catalog
+         * One catalog recommendation
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          */
         get: operations["get_recommendation_api_v1_catalog_recommendations__rec_id__get"];
@@ -775,10 +787,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Starea legăturii
+         * Link status
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Întârzierea curentă, dacă fereastra e deschisă și câte pachete așteaptă în fiecare sens.
+         *     The current delay, whether the window is open and how many packets wait in each direction.
          */
         get: operations["link_status_api_v1_link_status_get"];
         put?: never;
@@ -797,13 +809,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Coada de pachete
+         * Packet queue
          * @description **Roluri permise:** `cmo`, `earth`
          *
-         *     Plicurile pachetelor, cele mai noi primele — tabelul din ecranul „Controlul misiunii”.
+         *     The packet envelopes, newest first — the table on the "Mission Control" screen.
          *
-         *     Câmpul `progress` e calculat la momentul răspunsului. Pentru o bară fluidă, animați local folosind
-         *     `eta_real_s` și reîncărcați lista doar la SSE `packet.sent` / `packet.arrived` / `packet.rejected`.
+         *     The `progress` field is computed at response time. For a smooth bar, animate locally using `eta_real_s` and
+         *     reload the list only on SSE `packet.sent` / `packet.arrived` / `packet.rejected`.
          */
         get: operations["list_packets_api_v1_link_packets_get"];
         put?: never;
@@ -822,11 +834,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Un pachet, cu conținutul decriptat
+         * One packet, with the decrypted content
          * @description **Roluri permise:** `cmo`, `earth`
          *
-         *     `payload` apare doar pentru pachetele `delivered`. Rolul `earth` vede conținutul pachetelor `down` ajunse;
-         *     rolul `cmo` vede conținutul pachetelor `up` ajunse și al celor trimise de el. Altfel `payload` e `null`.
+         *     `payload` appears only for `delivered` packets. The `earth` role sees the content of `down` packets that
+         *     arrived; the `cmo` role sees the content of `up` packets that arrived and of the ones they sent. Otherwise
+         *     `payload` is `null`.
          */
         get: operations["get_packet_api_v1_link_packets__packet_id__get"];
         put?: never;
@@ -847,16 +860,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Pune un mesaj în coada spre Pământ
+         * Put a message in the queue to Earth
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Pentru rezumatul săptămânal aprobat de astronaut (`weekly_summary`). Alertele de nivel 3 intră în coadă automat,
-         *     prin `/alerts/{id}/escalate`; folosiți `alert_l3` aici doar pentru retrimitere.
+         *     For the weekly summary approved by the astronaut (`weekly_summary`). Level 3 alerts enter the queue
+         *     automatically, through `/alerts/{id}/escalate`; use `alert_l3` here only to send one again.
          *
-         *     Astronautul poate trimite doar despre propriul `crew_id`. Pachetul pornește `queued` și pleacă la următoarea
-         *     fereastră de comunicare.
+         *     An astronaut can send only about their own `crew_id`. The packet starts `queued` and leaves at the next
+         *     communication window.
          *
-         *     **SSE:** `packet.sent` când pleacă, `packet.arrived` când ajunge.
+         *     **SSE:** `packet.sent` when it leaves, `packet.arrived` when it arrives.
          */
         post: operations["create_outbox_api_v1_link_outbox_post"];
         delete?: never;
@@ -875,13 +888,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Răspunsul medicului de pe Pământ
+         * The reply of the flight surgeon on Earth
          * @description **Roluri permise:** `earth`
          *
-         *     Butonul „Pune în coadă, criptat” din Controlul misiunii. Răspunsul pleacă la următoarea fereastră și ajunge la
-         *     bord după `one_way_delay_s`. Când ajunge, apare în `/crew/{id}/messages` și în `earth_reply` al alertei.
+         *     The "Queue, encrypted" button on Mission Control. The reply leaves at the next window and reaches the ship
+         *     after `one_way_delay_s`. When it arrives, it shows up in `/crew/{id}/messages` and in the alert's `earth_reply`.
          *
-         *     **SSE:** `packet.sent`, apoi `packet.arrived` (cu `crew_id`) la sosire.
+         *     **SSE:** `packet.sent`, then `packet.arrived` (with `crew_id`) on arrival.
          */
         post: operations["earth_reply_api_v1_earth_replies_post"];
         delete?: never;
@@ -898,11 +911,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Mesaje sosite de pe Pământ
+         * Messages arrived from Earth
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Răspunsurile medicului de zbor și avertizările DONKI care AU AJUNS la bord, deja decriptate și verificate.
-         *     Cele încă pe drum nu apar aici.
+         *     The flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
+         *     verified. The ones still on their way do not appear here.
          */
         get: operations["crew_messages_api_v1_crew__crew_id__messages_get"];
         put?: never;
@@ -921,15 +934,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Starea radiațiilor acum
+         * Radiation now
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Rata dozei la dozimetrul de la bord, media pe 24 h, dacă e alertă și dacă echipajul e în adăpost.
+         *     The dose rate at the on-board dosimeter, the 24-h mean, whether there is an alert and whether the crew is in
+         *     the shelter.
          *
-         *     `lead_minutes` se completează când sosește avertizarea DONKI de pe Pământ: e numărul de minute cu care SHADOW a
-         *     fost mai rapid. Afișați-l mare; e cifra din pitch.
+         *     `lead_minutes` is filled in when the DONKI warning from Earth arrives: the number of minutes SHADOW was faster.
+         *     Show it big; it is the number in the pitch.
          *
-         *     Rolul `earth` NU are acces: Pământul nu vede dozimetrul navei în timp real, ci doar ce ajunge prin coadă.
+         *     The `earth` role has NO access: Earth does not see the ship's dosimeter in real time, only what comes through
+         *     the queue.
          */
         get: operations["radiation_status_api_v1_radiation_status_get"];
         put?: never;
@@ -948,10 +963,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Curba dozei (grafic)
+         * The dose curve (chart)
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Punctele pentru graficul dozei. Reîncărcați la SSE `radiation.reading` (vine cel mult o dată la 2 secunde reale).
+         *     The points of the dose chart. Reload on SSE `radiation.reading` (at most once every 2 real seconds).
          */
         get: operations["radiation_series_api_v1_radiation_series_get"];
         put?: never;
@@ -970,10 +985,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Evenimentele DONKI disponibile
+         * The available DONKI events
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Evenimentele reale NASA DONKI încărcate din fișier (offline). Momentan unul: 11 mai 2024.
+         *     The real NASA DONKI events loaded from the file (offline). For now one: 11 May 2024.
          */
         get: operations["radiation_events_api_v1_radiation_events_get"];
         put?: never;
@@ -994,11 +1009,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * „Sunt în adăpost”
+         * "I am in the shelter"
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Astronautul confirmă că a ajuns în adăpost (sau că a ieșit). Din acest moment simulatorul aplică factorul de
-         *     ecranare, iar ora se salvează pentru calculul `lead_minutes`.
+         *     The astronaut confirms they reached the shelter (or left it). From then on the simulator applies the
+         *     shielding factor, and the time is saved.
          *
          *     **SSE:** `radiation.reading`.
          */
@@ -1017,10 +1032,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Starea modelului
+         * Model status
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Dacă modelul local e încărcat. Când `ready` e `false`, cardul AI afișează doar textul din catalog.
+         *     Whether the local model is loaded. When `ready` is `false`, the AI card shows only the catalog text.
          */
         get: operations["ai_status_api_v1_ai_status_get"];
         put?: never;
@@ -1041,15 +1056,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Întreabă medicul AI
+         * Ask the AI doctor
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Răspuns scurt, cu surse NASA (RAG), care reformulează recomandarea din catalog. **AI-ul nu decide triajul.**
+         *     A short answer, with NASA sources (RAG), that rephrases the catalog recommendation. **The AI does not decide
+         *     the triage.**
          *
-         *     * Poate dura 5–15 secunde pe laptop: afișați o stare de încărcare.
-         *     * Dacă modelul nu răspunde în 20 de secunde sau e oprit, endpoint-ul NU dă eroare: întoarce textul din catalog,
-         *       cu `fallback = true`. Aplicația merge și fără AI.
-         *     * Astronautul poate întreba doar despre propriul `crew_id`.
+         *     * It can take 5–15 seconds on a laptop: show a loading state.
+         *     * If the model does not answer within 20 seconds or is off, the endpoint does NOT fail: it returns the catalog
+         *       text, with `fallback = true`. The app works without AI.
+         *     * An astronaut can ask only about their own `crew_id`.
          */
         post: operations["ai_chat_api_v1_ai_chat_post"];
         delete?: never;
@@ -1066,11 +1082,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Jurnalul de acces
+         * Access log
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Cine a citit ce. Astronautul vede cine i-a accesat datele; ofițerul medical vede tot jurnalul.
-         *     Jurnalul doar se adaugă: fiecare intrare conține hash-ul celei dinainte (`prev_hash`), deci nu poate fi modificat pe ascuns.
+         *     Who read what, newest first. An astronaut sees who accessed their data; the crew medical officer sees the
+         *     whole log. The log is append-only: every entry holds the hash of the previous one (`prev_hash`), so it cannot be
+         *     changed silently.
          */
         get: operations["access_log_api_v1_access_log_get"];
         put?: never;
@@ -1089,10 +1106,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Date și pachete respinse
+         * Rejected data and packets
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     Valorile imposibile, senzorii „înghețați”, semnăturile invalide și pachetele retrimise.
+         *     Impossible values, "frozen" sensors, invalid signatures and replayed packets, newest first.
          */
         get: operations["rejections_api_v1_security_rejections_get"];
         put?: never;
@@ -1113,16 +1130,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Primește o măsurătoare de la un dispozitiv
+         * Receive a measurement from a device
          * @description **Roluri permise:** `device`
          *
-         *     **Nu e pentru frontend.** Îl apelează simulatorul și dispozitivele. Nu folosește JWT: autentificarea este
-         *     semnătura Ed25519 a dispozitivului, verificată cu cheia publică înregistrată pentru `device_id`.
+         *     **Not for the frontend.** Called by the simulator and the devices. It does not use a JWT: authentication is
+         *     the device's Ed25519 signature, checked with the public key registered for `device_id`.
          *
-         *     Verificări, în ordine: semnătura → plauzibilitatea valorii → senzor înghețat (aceeași valoare de prea multe ori).
-         *     O măsurătoare respinsă întoarce tot 200, cu `accepted = false`, și apare în `/security/rejections`.
+         *     Checks, in order: signature → plausibility of the value → frozen sensor (the same value too many times).
+         *     A rejected measurement still returns 200, with `accepted = false`, and shows up in `/security/rejections`.
          *
-         *     **SSE:** `measurement.rejected` la respingere.
+         *     **SSE:** `measurement.rejected` on rejection.
          */
         post: operations["ingest_api_v1_ingest_measurements_post"];
         delete?: never;
@@ -1139,10 +1156,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Rezultatele testelor automate
+         * Automated test results
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Ultimul raport pytest pe motorul de protocoale, pentru ecranul Evidence.
+         *     The latest pytest report on the protocol engine, for the Evidence screen (run once at server start).
          */
         get: operations["evidence_tests_api_v1_evidence_tests_get"];
         put?: never;
@@ -1161,10 +1178,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Pragurile și sursele lor
+         * Thresholds and their sources
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Conținutul `parameters.json`: fiecare prag cu valoare, unitate, explicație și sursă, marcat verificat/neverificat și publicat/derivat.
+         *     The content of `parameters.json`: every threshold with value, unit, explanation and source, marked
+         *     verified/unverified and published/derived.
          */
         get: operations["evidence_parameters_api_v1_evidence_parameters_get"];
         put?: never;
@@ -1185,16 +1203,18 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Pornește furtuna solară
+         * Start the solar storm
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Butonul de demo. Simulatorul redă evenimentul real din DONKI:
+         *     The demo button. The simulator replays the real event from DONKI:
          *
-         *     1. rata dozei la dozimetru urcă → la 3 citiri peste 2× media, SHADOW dă alerta de nivel 1 (`radiation.alert`);
-         *     2. avertizarea de pe Pământ pleacă în coadă ca pachet `donki_alert`, direcția `up`, și ajunge după întârzierea legăturii;
-         *     3. la sosire se completează `lead_minutes` în `/radiation/status`.
+         *     1. the dose rate at the dosimeter rises → after 3 readings above 2× the mean, SHADOW gives the level 1 alert
+         *        (`radiation.alert`);
+         *     2. Earth's warning leaves the queue as a `donki_alert` packet, direction `up`, at the time of NASA's alert
+         *        (20 minutes after the onset), and arrives after the link delay;
+         *     3. on arrival, `lead_minutes` is filled in in `/radiation/status`.
          *
-         *     **SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, apoi `packet.arrived`.
+         *     **SSE:** `radiation.alert`, `alert.created`, `radiation.reading`, `packet.sent`, then `packet.arrived`.
          */
         post: operations["sep_start_api_v1_sim_sep_start_post"];
         delete?: never;
@@ -1213,10 +1233,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Oprește furtuna solară
+         * Stop the solar storm
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Readuce rata dozei la fond. **SSE:** `radiation.cleared`.
+         *     Brings the dose rate back to the background. **SSE:** `radiation.cleared`.
          */
         post: operations["sep_stop_api_v1_sim_sep_stop_post"];
         delete?: never;
@@ -1235,13 +1255,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Injectează un pachet falsificat
+         * Inject a forged packet
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Demo de securitate: pune în coadă un pachet semnat cu o cheie greșită. La sosire e respins și apare cu
-         *     `status = rejected`, `signature_valid = false`, în jurnal și în `/security/rejections`.
+         *     Security demo: puts in the queue a packet signed with a wrong key. On arrival it is rejected and shows up with
+         *     `status = rejected`, `signature_valid = false`, in the log and in `/security/rejections`.
          *
-         *     **SSE:** `packet.rejected`.
+         *     **SSE:** `packet.sent`, then `packet.rejected` on arrival.
          */
         post: operations["inject_spoof_api_v1_demo_inject_spoof_post"];
         delete?: never;
@@ -1260,10 +1280,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Simulează un senzor înghețat
+         * Simulate a frozen sensor
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Demo de securitate: simulatorul trimite aceeași valoare de multe ori; stratul de validare o respinge.
+         *     Security demo: a device sends the same value 20 times in a row; the validation layer rejects the last one.
          *
          *     **SSE:** `measurement.rejected`.
          */
@@ -1284,16 +1304,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Readuce demo-ul la starea inițială
+         * Bring the demo back to the start
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Șterge tot ce s-a schimbat în timpul demo-ului și reîncarcă scenariul: baza se recreează, istoricul se
-         *     regenerează (același seed, deci aceleași date), ceasul repornește la ziua 96, ora 07:00, iar blocările de
-         *     cont se șterg. Durează câteva secunde. Folosiți-l între repetiții.
+         *     Removes everything changed during the demo and reloads the scenario: the database is recreated, the history is
+         *     regenerated (same seed, so the same data), the clock restarts on day 96 at 07:00, and the account lockouts are
+         *     cleared. It takes a few seconds. Use it between rehearsals.
          *
-         *     După reset, frontend-ul trebuie să reîncarce tot (ca după o reconectare). Tokenurile rămân valabile.
+         *     After a reset the frontend must reload everything (as after a reconnect). Tokens stay valid.
          *
-         *     **SSE:** `mission.tick` cu ziua 96, apoi `dashboard.changed`.
+         *     **SSE:** `mission.tick` with day 96, then `dashboard.changed`.
          */
         post: operations["reset_api_v1_sim_reset_post"];
         delete?: never;
@@ -1310,19 +1330,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Fluxul de evenimente live
+         * Live event stream
          * @description **Roluri permise:** `astronaut`, `cmo`, `earth`
          *
-         *     Conexiune Server-Sent Events, ținută deschisă cât e aplicația pornită. **Înlocuiește polling-ul.**
+         *     A Server-Sent Events connection, kept open while the app runs. **It replaces polling.**
          *
-         *     * Autentificare cu același antet `Authorization`. `EventSource` din browser nu poate trimite antete, deci folosiți
-         *       `@microsoft/fetch-event-source` (exemplu în README).
-         *     * Fiecare utilizator primește doar evenimentele la care are dreptul: astronautul doar pe ale lui și pe cele
-         *       generale; `earth` doar `mission.tick`, `environment.changed` și `packet.*`.
-         *     * La 15 secunde fără evenimente vine un comentariu `: ping`, ca să nu se închidă conexiunea.
-         *     * La reconectare, reîncărcați datele ecranului curent; evenimentele pierdute nu se retrimit.
+         *     * Authentication with the same `Authorization` header. The browser's `EventSource` cannot send headers, so use
+         *       `@microsoft/fetch-event-source` (example in the README).
+         *     * Every user gets only the events they are allowed to see: an astronaut only their own and the general ones;
+         *       `earth` only `mission.tick`, `environment.changed` and `packet.*`.
+         *     * `mission.tick` comes every real second; after 15 seconds without events a `: ping` comment keeps the
+         *       connection open.
+         *     * On reconnect, reload the data of the current screen; missed events are not sent again.
          *
-         *     Lista tipurilor și forma câmpului `data` pentru fiecare: README, secțiunea „Evenimente live”.
+         *     The list of types and the shape of `data` for each: README, section "Live events".
          */
         get: operations["events_api_v1_events_get"];
         put?: never;
@@ -1341,9 +1362,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Serverul răspunde?
-         * @description Fără autentificare. Folosit de Docker Compose și de frontend la pornire.
-         *     `mode` e `mock` cât timp există endpoint-uri pe date de exemplu, apoi `real`.
+         * Is the server up?
+         * @description No authentication. Used by Docker Compose and by the frontend at startup.
+         *     `mode` is `mock` while some endpoints still serve example data, then `real`.
+         *     `db` is `ok` when the database answers a `SELECT 1`.
          */
         get: operations["health_health_get"];
         put?: never;
@@ -1419,7 +1441,7 @@ export interface components {
             alert_id?: string | null;
             /**
              * History
-             * @description Ultimele max. 6 mesaje.
+             * @description Ultimele max. 6 mesaje sunt folosite.
              */
             history?: components["schemas"]["ChatMessage"][];
         };
@@ -3804,7 +3826,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponse"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3813,7 +3835,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3822,7 +3844,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Prea multe parole greșite pe acest cont (`too_many_attempts`). */
+            /** @description Too many wrong passwords on this account (`too_many_attempts`). */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -3853,7 +3875,7 @@ export interface operations {
                     "application/json": components["schemas"]["User"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3893,7 +3915,7 @@ export interface operations {
                     "application/json": components["schemas"]["Ok"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3933,7 +3955,7 @@ export interface operations {
                     "application/json": components["schemas"]["MissionState"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3973,7 +3995,7 @@ export interface operations {
                     "application/json": components["schemas"]["EnvironmentInfo"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4017,7 +4039,7 @@ export interface operations {
                     "application/json": components["schemas"]["MissionState"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4026,7 +4048,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4035,7 +4057,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4070,7 +4092,7 @@ export interface operations {
                     "application/json": components["schemas"]["MissionState"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4079,7 +4101,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4088,7 +4110,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Acțiunea nu e permisă în starea curentă (`invalid_state`). */
+            /** @description The action is not allowed in the current state (`invalid_state`). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4097,7 +4119,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4128,7 +4150,7 @@ export interface operations {
                     "application/json": components["schemas"]["CrewSummary"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4137,7 +4159,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4160,7 +4182,7 @@ export interface operations {
     dashboard_api_v1_crew__crew_id__dashboard_get: {
         parameters: {
             query?: {
-                /** @description Derulator: starea de la sfârșitul acestei zile. Fără parametru = acum. Trebuie să fie ≤ ziua curentă (zilele viitoare nu există încă) → altfel 422. */
+                /** @description Timeline scrubber: the state at the end of this day. Without it = now. Must be ≤ the current day (future days do not exist yet) → otherwise 422. */
                 as_of_day?: number | null;
             };
             header?: {
@@ -4182,7 +4204,7 @@ export interface operations {
                     "application/json": components["schemas"]["Dashboard"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4191,7 +4213,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4200,7 +4222,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4223,7 +4245,7 @@ export interface operations {
     pillar_detail_api_v1_crew__crew_id__pillars__pillar__get: {
         parameters: {
             query?: {
-                /** @description Derulator: starea de la sfârșitul acestei zile. Fără parametru = acum. Trebuie să fie ≤ ziua curentă (zilele viitoare nu există încă) → altfel 422. */
+                /** @description Timeline scrubber: the state at the end of this day. Without it = now. Must be ≤ the current day (future days do not exist yet) → otherwise 422. */
                 as_of_day?: number | null;
             };
             header?: {
@@ -4246,7 +4268,7 @@ export interface operations {
                     "application/json": components["schemas"]["PillarDetail"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4255,7 +4277,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4264,7 +4286,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4287,10 +4309,10 @@ export interface operations {
     pillar_series_api_v1_crew__crew_id__pillars__pillar__series_get: {
         parameters: {
             query: {
-                /** @description Cheia metricii, ex. `night_pulse_bpm`. Vezi README, „Chei de metrici”. */
+                /** @description The metric key, e.g. `night_pulse_bpm`. See README, “Metric keys”. */
                 metric: string;
                 from_day?: number;
-                /** @description Implicit: ziua curentă. */
+                /** @description Default: the current day. */
                 to_day?: number | null;
             };
             header?: {
@@ -4313,7 +4335,7 @@ export interface operations {
                     "application/json": components["schemas"]["MetricSeries"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4322,7 +4344,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4331,7 +4353,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4355,7 +4377,7 @@ export interface operations {
         parameters: {
             query?: {
                 from_day?: number;
-                /** @description Implicit și maximum: ziua curentă. */
+                /** @description Default and maximum: the current day. */
                 to_day?: number | null;
             };
             header?: {
@@ -4377,7 +4399,7 @@ export interface operations {
                     "application/json": components["schemas"]["Timeline"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4386,7 +4408,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4395,7 +4417,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4435,7 +4457,7 @@ export interface operations {
                     "application/json": components["schemas"]["CheckinSchema"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4480,7 +4502,7 @@ export interface operations {
                     "application/json": components["schemas"]["Checkin"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4489,7 +4511,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4498,7 +4520,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4507,7 +4529,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4544,7 +4566,7 @@ export interface operations {
                     "application/json": components["schemas"]["CheckinResult"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4553,7 +4575,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4562,7 +4584,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4571,7 +4593,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4604,7 +4626,7 @@ export interface operations {
                     "application/json": components["schemas"]["Checkin"] | null;
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4613,7 +4635,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4622,7 +4644,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4631,7 +4653,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4668,7 +4690,7 @@ export interface operations {
                     "application/json": components["schemas"]["KeystrokeResult"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4677,7 +4699,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4686,7 +4708,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4695,7 +4717,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4709,7 +4731,7 @@ export interface operations {
     keystroke_summary_api_v1_crew__crew_id__keystrokes_summary_get: {
         parameters: {
             query?: {
-                /** @description Câte sesiuni recente să întoarcă. */
+                /** @description How many recent sessions to return. */
                 last?: number;
             };
             header?: {
@@ -4731,7 +4753,7 @@ export interface operations {
                     "application/json": components["schemas"]["KeystrokeSummary"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4740,7 +4762,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4749,7 +4771,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4758,7 +4780,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4793,7 +4815,7 @@ export interface operations {
                     "application/json": components["schemas"]["PvtResult"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4802,7 +4824,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4811,7 +4833,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4820,7 +4842,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4857,7 +4879,7 @@ export interface operations {
                     "application/json": components["schemas"]["PvtResult"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4866,7 +4888,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4875,7 +4897,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4884,7 +4906,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4917,7 +4939,7 @@ export interface operations {
                     "application/json": components["schemas"]["ExerciseToday"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4926,7 +4948,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4935,7 +4957,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4944,7 +4966,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4980,7 +5002,7 @@ export interface operations {
                     "application/json": components["schemas"]["ExerciseSession"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4989,7 +5011,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4998,7 +5020,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5007,7 +5029,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5044,7 +5066,7 @@ export interface operations {
                     "application/json": components["schemas"]["ExerciseSession"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5053,7 +5075,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5062,7 +5084,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5071,7 +5093,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5085,7 +5107,7 @@ export interface operations {
     list_alerts_api_v1_crew__crew_id__alerts_get: {
         parameters: {
             query?: {
-                /** @description Filtru. Fără parametru = toate cele nerezolvate. */
+                /** @description Filter. Without it = all unresolved alerts. */
                 state?: components["schemas"]["AlertState"] | null;
                 topic?: components["schemas"]["AlertTopic"] | null;
             };
@@ -5108,7 +5130,7 @@ export interface operations {
                     "application/json": components["schemas"]["AlertBrief"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5117,7 +5139,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5126,7 +5148,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5135,7 +5157,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5166,7 +5188,7 @@ export interface operations {
                     "application/json": components["schemas"]["AlertBrief"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5175,7 +5197,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5217,7 +5239,7 @@ export interface operations {
                     "application/json": components["schemas"]["Alert"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5226,7 +5248,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5235,7 +5257,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5244,7 +5266,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5277,7 +5299,7 @@ export interface operations {
                     "application/json": components["schemas"]["Alert"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5286,7 +5308,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5295,7 +5317,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5304,7 +5326,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Acțiunea nu e permisă în starea curentă (`invalid_state`). */
+            /** @description The action is not allowed in the current state (`invalid_state`). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5313,7 +5335,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5351,7 +5373,7 @@ export interface operations {
                     "application/json": components["schemas"]["Alert"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5360,7 +5382,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5369,7 +5391,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5378,7 +5400,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5415,7 +5437,7 @@ export interface operations {
                     "application/json": components["schemas"]["Alert"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5424,7 +5446,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5433,7 +5455,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5442,7 +5464,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Acțiunea nu e permisă în starea curentă (`invalid_state`). */
+            /** @description The action is not allowed in the current state (`invalid_state`). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5451,7 +5473,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5488,7 +5510,7 @@ export interface operations {
                     "application/json": components["schemas"]["Alert"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5497,7 +5519,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5506,7 +5528,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5515,7 +5537,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5549,7 +5571,7 @@ export interface operations {
                     "application/json": components["schemas"]["Recommendation"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5591,7 +5613,7 @@ export interface operations {
                     "application/json": components["schemas"]["Recommendation"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5600,7 +5622,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5640,7 +5662,7 @@ export interface operations {
                     "application/json": components["schemas"]["LinkStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5684,7 +5706,7 @@ export interface operations {
                     "application/json": components["schemas"]["Packet"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5693,7 +5715,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5735,7 +5757,7 @@ export interface operations {
                     "application/json": components["schemas"]["PacketDetail"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5744,7 +5766,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5753,7 +5775,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5762,7 +5784,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5797,7 +5819,7 @@ export interface operations {
                     "application/json": components["schemas"]["Packet"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5806,7 +5828,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5815,7 +5837,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5824,7 +5846,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5859,7 +5881,7 @@ export interface operations {
                     "application/json": components["schemas"]["Packet"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5868,7 +5890,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5877,7 +5899,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5886,7 +5908,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5919,7 +5941,7 @@ export interface operations {
                     "application/json": components["schemas"]["CrewMessage"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5928,7 +5950,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5937,7 +5959,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Resursa nu există (`not_found`). */
+            /** @description The resource does not exist (`not_found`). */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5946,7 +5968,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5977,7 +5999,7 @@ export interface operations {
                     "application/json": components["schemas"]["RadiationStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5986,7 +6008,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6009,7 +6031,7 @@ export interface operations {
     radiation_series_api_v1_radiation_series_get: {
         parameters: {
             query?: {
-                /** @description Câte ore de misiune în urmă. */
+                /** @description How many mission hours back. */
                 hours?: number;
                 step_min?: number;
             };
@@ -6030,7 +6052,7 @@ export interface operations {
                     "application/json": components["schemas"]["RadiationSeries"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6039,7 +6061,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6079,7 +6101,7 @@ export interface operations {
                     "application/json": components["schemas"]["SepEvent"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6123,7 +6145,7 @@ export interface operations {
                     "application/json": components["schemas"]["RadiationStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6132,7 +6154,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6141,7 +6163,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6172,7 +6194,7 @@ export interface operations {
                     "application/json": components["schemas"]["AiStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6216,7 +6238,7 @@ export interface operations {
                     "application/json": components["schemas"]["AiChatResponse"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6225,7 +6247,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6234,7 +6256,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6248,7 +6270,7 @@ export interface operations {
     access_log_api_v1_access_log_get: {
         parameters: {
             query?: {
-                /** @description Astronaut: se ignoră, vede mereu doar accesul la datele lui. */
+                /** @description Astronaut: ignored, they always see only access to their own data. */
                 crew_id?: string | null;
                 limit?: number;
             };
@@ -6269,7 +6291,7 @@ export interface operations {
                     "application/json": components["schemas"]["AccessLogEntry"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6278,7 +6300,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6320,7 +6342,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rejection"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6329,7 +6351,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6371,7 +6393,7 @@ export interface operations {
                     "application/json": components["schemas"]["IngestResult"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6402,7 +6424,7 @@ export interface operations {
                     "application/json": components["schemas"]["TestReport"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6427,7 +6449,7 @@ export interface operations {
             query?: {
                 /** @description comportamental / cardiovascular / imunitar / oase_muschi / radiatii / comunicare */
                 topic?: string | null;
-                /** @description Doar pragurile folosite direct de motorul de triaj. */
+                /** @description Only the thresholds used directly by the triage engine. */
                 key_only?: boolean;
             };
             header?: {
@@ -6447,7 +6469,7 @@ export interface operations {
                     "application/json": components["schemas"]["Parameter"][];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6491,7 +6513,7 @@ export interface operations {
                     "application/json": components["schemas"]["RadiationStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6500,7 +6522,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6509,7 +6531,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6540,7 +6562,7 @@ export interface operations {
                     "application/json": components["schemas"]["RadiationStatus"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6549,7 +6571,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6558,7 +6580,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6589,7 +6611,7 @@ export interface operations {
                     "application/json": components["schemas"]["Packet"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6598,7 +6620,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6607,7 +6629,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6638,7 +6660,7 @@ export interface operations {
                     "application/json": components["schemas"]["Rejection"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6647,7 +6669,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6656,7 +6678,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6687,7 +6709,7 @@ export interface operations {
                     "application/json": components["schemas"]["Ok"];
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6696,7 +6718,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Rolul nu are voie (`forbidden`). */
+            /** @description This role is not allowed (`forbidden`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6705,7 +6727,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Date invalide (`validation_error`). */
+            /** @description Invalid data (`validation_error`). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6727,7 +6749,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Flux SSE. Fiecare mesaj are `event: <type>` și `data: <SseEvent JSON>`. */
+            /** @description SSE stream. Every message has `event: <type>` and `data: <SseEvent JSON>`. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6736,7 +6758,7 @@ export interface operations {
                     "text/event-stream": unknown;
                 };
             };
-            /** @description Lipsește tokenul sau e invalid (`unauthorized`). */
+            /** @description Missing or invalid token (`unauthorized`). */
             401: {
                 headers: {
                     [name: string]: unknown;
