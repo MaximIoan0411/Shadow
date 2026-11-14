@@ -2,7 +2,7 @@
   "indicators": [
     {
       "key": "mood",
-      "label": "Starea de spirit",
+      "label": "Mood",
       "unit": "",
       "input": "scale_1_5",
       "min": 1.0,
@@ -10,15 +10,21 @@
       "step": 1.0,
       "choices": null,
       "required": true,
-      "how_to_measure": "Alege de la 1 (foarte rău) la 5 (foarte bine).",
-      "what_it_means": "Cum te simți tu; intră în decalajul de percepție.",
-      "why_in_space": "Izolarea și distanța față de Pământ apasă pe sănătatea comportamentală.",
+      "how_to_measure": "Choose from 1 (very bad) to 5 (very good).",
+      "what_it_means": "How you feel; it feeds the perception gap.",
+      "why_in_space": "Isolation and distance from Earth weigh on behavioural health.",
       "pillar": "behavioral",
-      "source": null
+      "source": {
+        "citation": "NASA HRP — Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders",
+        "url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
+        "verification": "verified",
+        "derivation": "published",
+        "evidence_strength": "strong"
+      }
     },
     {
       "key": "systolic_mmhg",
-      "label": "Tensiunea (sistolică)",
+      "label": "Blood pressure (systolic)",
       "unit": "mmHg",
       "input": "number",
       "min": 60.0,
@@ -26,21 +32,21 @@
       "step": 1.0,
       "choices": null,
       "required": false,
-      "how_to_measure": "Cu manșeta, în repaus, după câteva minute de stat jos.",
-      "what_it_means": "Presiunea sângelui pe artere; o urmărim ca tendință față de normalul tău.",
-      "why_in_space": "În microgravitație fluidele se mută spre cap, iar tensiunea scade de obicei față de Pământ.",
+      "how_to_measure": "With the cuff, at rest, after a few minutes sitting down.",
+      "what_it_means": "The pressure of blood on the arteries; we follow it as a trend against your normal.",
+      "why_in_space": "In microgravity, fluids shift towards the head, and blood pressure is usually lower than on Earth.",
       "pillar": "cardio",
       "source": {
         "citation": "NASA HRP — Risk of Cardiovascular Adaptations",
         "url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
         "verification": "unverified",
         "derivation": "derived",
-        "evidence_strength": "slabă"
+        "evidence_strength": "weak"
       }
     },
     {
       "key": "diastolic_mmhg",
-      "label": "Tensiunea (diastolică)",
+      "label": "Blood pressure (diastolic)",
       "unit": "mmHg",
       "input": "number",
       "min": 30.0,
@@ -48,15 +54,21 @@
       "step": 1.0,
       "choices": null,
       "required": false,
-      "how_to_measure": "A doua valoare afișată de manșetă.",
-      "what_it_means": "Presiunea dintre bătăi.",
-      "why_in_space": "Tendința ei ajută la pregătirea pentru revenirea în gravitație.",
+      "how_to_measure": "The second value shown by the cuff.",
+      "what_it_means": "The pressure between heartbeats.",
+      "why_in_space": "Its trend helps prepare for the return to gravity.",
       "pillar": "cardio",
-      "source": null
+      "source": {
+        "citation": "Norsk et al. (2015), Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight, Journal of Physiology 593(3):573–584",
+        "url": "https://doi.org/10.1113/jphysiol.2014.284869",
+        "verification": "unverified",
+        "derivation": "published",
+        "evidence_strength": "weak"
+      }
     },
     {
       "key": "pulse_bpm",
-      "label": "Pulsul",
+      "label": "Heart rate",
       "unit": "bpm",
       "input": "number",
       "min": 30.0,
@@ -64,21 +76,21 @@
       "step": 1.0,
       "choices": null,
       "required": false,
-      "how_to_measure": "Numeri bătăile la încheietură 30 de secunde și înmulțești cu 2, în repaus.",
-      "what_it_means": "Ritmul inimii; o creștere față de normalul tău poate semnala oboseală sau o infecție.",
-      "why_in_space": "În repaus, pulsul nu crește de obicei în zbor, deci o creștere susținută e un semnal real.",
+      "how_to_measure": "Count the beats at your wrist for 30 seconds and multiply by 2, at rest.",
+      "what_it_means": "Your heart rhythm; a rise above your normal can signal tiredness or an infection.",
+      "why_in_space": "At rest, heart rate does not usually rise in flight, so a sustained rise is a real signal.",
       "pillar": "cardio",
       "source": {
         "citation": "Alavi et al. (2022), Real-time alerting system for COVID-19 and other stress events using wearable data, Nature Medicine 28:175–184",
         "url": "https://www.nature.com/articles/s41591-021-01593-2",
         "verification": "verified",
         "derivation": "published",
-        "evidence_strength": "moderată"
+        "evidence_strength": "moderate"
       }
     },
     {
       "key": "glucose_mg_dl",
-      "label": "Glicemia",
+      "label": "Blood glucose",
       "unit": "mg/dL",
       "input": "number",
       "min": 30.0,
@@ -86,15 +98,21 @@
       "step": 1.0,
       "choices": null,
       "required": false,
-      "how_to_measure": "Cu glucometrul, dimineața, înainte de masă.",
-      "what_it_means": "Nivelul de zahăr din sânge; indicator general de sănătate.",
-      "why_in_space": "Zborul lung poate reduce sensibilitatea la insulină, iar mesele sărite o dezechilibrează (dovezi slabe).",
+      "how_to_measure": "With the glucose meter, in the morning, before eating.",
+      "what_it_means": "Your blood sugar level; a general health indicator.",
+      "why_in_space": "Long flights can reduce insulin sensitivity, and skipped meals unbalance it (weak evidence).",
       "pillar": null,
-      "source": null
+      "source": {
+        "citation": "Hughson et al. (2016), Increased postflight carotid artery stiffness and inflight insulin resistance resulting from 6-mo spaceflight in male and female astronauts, Am J Physiol Heart Circ Physiol 310(5):H628–H638",
+        "url": "https://doi.org/10.1152/ajpheart.00802.2015",
+        "verification": "verified",
+        "derivation": "published",
+        "evidence_strength": "weak"
+      }
     },
     {
       "key": "temperature_c",
-      "label": "Temperatura",
+      "label": "Temperature",
       "unit": "°C",
       "input": "number",
       "min": 34.0,
@@ -102,37 +120,43 @@
       "step": 0.1,
       "choices": null,
       "required": false,
-      "how_to_measure": "Cu termometrul, la aceeași oră în fiecare zi.",
-      "what_it_means": "O creștere față de normalul tău poate semnala o infecție.",
-      "why_in_space": "Într-un spațiu închis, o infecție se poate transmite întregului echipaj.",
+      "how_to_measure": "With the thermometer, at the same time every day.",
+      "what_it_means": "A rise above your normal can signal an infection.",
+      "why_in_space": "In a closed space, an infection can spread to the whole crew.",
       "pillar": "immune",
-      "source": null
+      "source": {
+        "citation": "Stahn et al. (2017), Increased core body temperature in astronauts during long-duration space missions, Scientific Reports 7:16180",
+        "url": "https://www.nature.com/articles/s41598-017-15560-w",
+        "verification": "verified",
+        "derivation": "published",
+        "evidence_strength": "moderate"
+      }
     },
     {
       "key": "sleep_hours",
-      "label": "Somnul",
-      "unit": "ore",
+      "label": "Sleep",
+      "unit": "h",
       "input": "number",
       "min": 0.0,
       "max": 16.0,
       "step": 0.5,
       "choices": null,
       "required": false,
-      "how_to_measure": "Completat automat din senzorul de somn; îl poți corecta.",
-      "what_it_means": "Somn puțin, câteva nopți la rând, scade atenția fără să-ți dai seama.",
-      "why_in_space": "Astronauții dorm în medie cam 6 ore, din cauza luminii, a zgomotului și a programului.",
+      "how_to_measure": "Filled in automatically from the sleep sensor; you can correct it.",
+      "what_it_means": "Little sleep for a few nights in a row lowers your attention without you noticing.",
+      "why_in_space": "Astronauts sleep about 6 hours on average, because of light, noise and the schedule.",
       "pillar": "behavioral",
       "source": {
         "citation": "Van Dongen et al. (2003), The cumulative cost of additional wakefulness, Sleep 26(2):117–126",
         "url": "https://pubmed.ncbi.nlm.nih.gov/12683469/",
         "verification": "verified",
         "derivation": "published",
-        "evidence_strength": "analog terestru"
+        "evidence_strength": "terrestrial analog"
       }
     },
     {
       "key": "meals_eaten",
-      "label": "Ai mâncat toate mesele de ieri?",
+      "label": "Did you eat all your meals yesterday?",
       "unit": "",
       "input": "choice",
       "min": null,
@@ -144,11 +168,17 @@
         "none"
       ],
       "required": false,
-      "how_to_measure": "Alege: toate / o parte / niciuna.",
-      "what_it_means": "Mesele sărite pot explica o glicemie dezechilibrată sau oboseala.",
-      "why_in_space": "Exercițiul protejează oasele doar împreună cu un aport energetic suficient.",
+      "how_to_measure": "Choose: all / some / none.",
+      "what_it_means": "Skipped meals can explain unbalanced blood sugar or tiredness.",
+      "why_in_space": "Exercise protects bones only together with enough energy intake.",
       "pillar": null,
-      "source": null
+      "source": {
+        "citation": "Smith et al. (2012), Benefits for bone from resistance exercise and nutrition in long-duration spaceflight, Journal of Bone and Mineral Research 27(9):1896–1906",
+        "url": "https://doi.org/10.1002/jbmr.1647",
+        "verification": "verified",
+        "derivation": "published",
+        "evidence_strength": "moderate"
+      }
     }
   ]
 }

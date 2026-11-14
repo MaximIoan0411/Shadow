@@ -93,6 +93,17 @@ function Tests(): ReactElement {
 }
 
 /** Valoarea unui prag e de orice tip în `parameters.json`: număr, text, listă sau obiect. */
+/** Numele subiectelor din parameters.json (cheile lui, în română) așa cum apar în interfață. */
+const PARAMETER_TOPIC: Readonly<Record<string, string>> = {
+  comportamental: "Behaviour",
+  cardiovascular: "Heart",
+  imunitar: "Immune",
+  oase_muschi: "Bones and muscles",
+  radiatii: "Radiation",
+  comunicare: "Communication",
+};
+const topicLabel = (topic: string): string => PARAMETER_TOPIC[topic] ?? topic;
+
 function valueText(value: unknown): string {
   if (typeof value === "number") return formatNumber(value, TWO_DECIMALS);
   return typeof value === "string" ? value : JSON.stringify(value);
@@ -107,7 +118,7 @@ function Parameters(): ReactElement {
   return (
     <Loaded query={parameters} title="The thresholds could not be loaded">
       {(data) => {
-        const shown = data.filter((parameter) => (!keyOnly || parameter.is_key_threshold) && (!needle || `${parameter.name} ${parameter.id} ${parameter.topic}`.toLowerCase().includes(needle)));
+        const shown = data.filter((parameter) => (!keyOnly || parameter.is_key_threshold) && (!needle || `${parameter.name} ${parameter.id} ${topicLabel(parameter.topic)}`.toLowerCase().includes(needle)));
         return (
           <Card>
             <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -136,7 +147,7 @@ function Parameters(): ReactElement {
                   <p className="mt-1.5 max-w-[86ch] text-body leading-relaxed text-fg-3">{parameter.explanation}</p>
                   <ul className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                     <li>
-                      <Tag>{parameter.topic}</Tag>
+                      <Tag>{topicLabel(parameter.topic)}</Tag>
                     </li>
                     {parameter.is_key_threshold && (
                       <li>

@@ -67,7 +67,7 @@
         "sleep_hours_delta": -1.6,
         "keys_per_min_pct": -10
       },
-      "note": "Tot echipajul doarme prost în aceleași nopți: cauză de mediu (cabina), nu individuală."
+      "note": "The whole crew sleeps badly on the same nights: an environmental cause (the cabin), not an individual one."
     },
     {
       "days": [
@@ -79,7 +79,7 @@
       "params": {
         "sessions": 0
       },
-      "note": "Exerciții sărite: recomandarea de împărțire a antrenamentului."
+      "note": "Skipped exercise: the recommendation to split the training."
     },
     {
       "days": [
@@ -103,7 +103,7 @@
         "sleep_hours_delta": -1.1,
         "noise_max_bpm": 0.8
       },
-      "note": "Boala prinsă înainte de simptome: ziua 93 +2 (nimic), 94 +5 → NightSignal galben (o noapte ≥ +4), 95 +6,5 → roșu (a doua noapte la rând ≥ +4). Zgomotul pe puls rămâne sub 0,8 bpm, ca zilele să nu se schimbe."
+      "note": "Illness caught before symptoms: day 93 +2 (nothing), 94 +5 → NightSignal yellow (one night ≥ +4), 95 +6.5 → red (second night in a row ≥ +4). Heart rate noise stays below 0.8 bpm, so the days don't shift."
     },
     {
       "days": [
@@ -117,7 +117,7 @@
         "hold_ms_pct": 17,
         "reported_mood": 4
       },
-      "note": "Decalajul de percepție: spune 4/5, tastează cu 18% mai lent."
+      "note": "Perception gap: says 4/5, types 18% slower."
     },
     {
       "days": [
@@ -131,7 +131,7 @@
         "onset_time": "02:10",
         "peak_multiplier": 6.0
       },
-      "note": "Furtuna solară reală din NASA DONKI; ora din fișier, forma curbei sintetică."
+      "note": "The real solar storm from NASA DONKI; the timing comes from the file, the shape of the curve is synthetic."
     },
     {
       "days": [
@@ -143,7 +143,7 @@
       "params": {
         "landing_readiness_min": 74
       },
-      "note": "Scorul de pregătire pentru revenire scade, apoi revine după ajustarea antrenamentului."
+      "note": "The return-readiness score drops, then recovers after the training is adjusted."
     }
   ]
 }

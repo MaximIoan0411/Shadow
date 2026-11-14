@@ -4,20 +4,20 @@
       "id": "behavioral-1-1",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "PVT-B sau tastarea arată abatere față de baseline-ul personal (ex. 1/RT sub prag), chiar dacă astronautul se simte odihnit",
-      "action": "Nu te baza pe senzația subiectivă: refă PVT-B-ul de 3 minute înaintea oricărei sarcini critice și amân-o, dacă se poate, până la normalizare.",
+      "trigger": "The PVT-B or typing shows a deviation from your personal baseline (e.g. 1/RT below threshold), even if you feel rested",
+      "action": "Don't rely on how you feel: repeat the 3-minute PVT-B before any critical task and, if possible, postpone the task until your results are back to normal.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
-        "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + Evidence Report NASA 2016 (secțiunea Chronic Sleep Loss)",
+        "citation": "Van Dongen HPA, Maislin G, Mullington JM, Dinges DF. (2003). The cumulative cost of additional wakefulness: dose-response effects on neurobehavioral functions and sleep physiology from chronic sleep restriction and total sleep deprivation. Sleep 26(2):117-126. Erratum: Sleep 2004;27(4):600. + NASA Evidence Report 2016 (Chronic Sleep Loss section)",
         "url": "https://pubmed.ncbi.nlm.nih.gov/12683469/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
       "steps": [
-        "Fă testul de reacție de 3 minute.",
-        "Amână sarcinile critice cu 2 ore, dacă se poate."
+        "Take the 3-minute reaction test.",
+        "Postpone critical tasks by 2 hours, if possible."
       ],
       "recheck_days": 1,
       "note": null
@@ -26,18 +26,22 @@
       "id": "behavioral-1-2",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "Abatere susținută (mai multe sesiuni) după nopți scurte",
-      "action": "Prioritizează o oportunitate de somn mai lungă (extensie/recuperare de somn) în următoarele nopți; o singură noapte de recuperare poate să nu fie suficientă.",
+      "trigger": "A sustained deviation (several sessions) after short nights",
+      "action": "Prioritise a longer sleep opportunity (sleep extension/recovery) over the next nights; a single recovery night may not be enough.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
-        "citation": "Flynn-Evans E, Gregory K, Arsintescu L, Whitmire A. (2016). Evidence Report: Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload. NASA Human Research Program, Behavioral Health and Performance Element (Approved for Public Release: April 11, 2016). (Banks et al.: recuperare dependentă de doză; o noapte insuficientă)",
+        "citation": "Flynn-Evans E, Gregory K, Arsintescu L, Whitmire A. (2016). Evidence Report: Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload. NASA Human Research Program, Behavioral Health and Performance Element (Approved for Public Release: April 11, 2016). (Banks et al.: dose-dependent recovery; one night is not enough)",
         "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Sleep.pdf",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Go to bed an hour earlier for the next 3 nights.",
+        "Keep your sleep window free of work and screens.",
+        "Take the reaction test again after the second night."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -45,18 +49,22 @@
       "id": "behavioral-1-3",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "Somnolență/abatere în timpul zilei și există fereastră pentru pauză",
-      "action": "Dacă faci un pui de somn, păstrează-l scurt (~10 minute) și nu începe sarcini critice imediat după trezire; somnul de 30 min a afectat performanța până la o oră (inerție de somn). Programează pui de somn în mod controlat, pentru a nu deregla ritmul circadian.",
+      "trigger": "Sleepiness or a deviation during the day, with a window for a break",
+      "action": "If you take a nap, keep it short (~10 minutes) and don't start critical tasks right after waking; a 30-minute nap impaired performance for up to an hour (sleep inertia). Schedule naps deliberately, so they don't disrupt your circadian rhythm.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
-        "citation": "Flynn-Evans E, Gregory K, Arsintescu L, Whitmire A. (2016). Evidence Report: Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload. NASA Human Research Program, Behavioral Health and Performance Element (Approved for Public Release: April 11, 2016). (Hilditch et al. 2016; observații Mars-520 despre napping)",
+        "citation": "Flynn-Evans E, Gregory K, Arsintescu L, Whitmire A. (2016). Evidence Report: Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload. NASA Human Research Program, Behavioral Health and Performance Element (Approved for Public Release: April 11, 2016). (Hilditch et al. 2016; Mars-520 observations on napping)",
         "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Sleep.pdf",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Keep any nap to about 10 minutes.",
+        "Wait 30 minutes after waking before a critical task.",
+        "Log the nap in the app."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -64,8 +72,8 @@
       "id": "behavioral-1-4",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "Scădere a vitezei de răspuns înaintea unei sarcini cu cerințe mari de vigilență",
-      "action": "Folosește cofeina strategic (doză planificată înaintea sarcinii), nu aproape de ora de somn: astronauții care au folosit stimulente au raportat că adorm mai greu.",
+      "trigger": "Slower response speed before a task that demands high vigilance",
+      "action": "Time your caffeine around the task and keep it away from bedtime: astronauts who used stimulants reported falling asleep with more difficulty.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
@@ -75,7 +83,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Have your caffeine before the task, not after it.",
+        "Skip caffeine in the 6 hours before bedtime.",
+        "Take the reaction test before you start the task."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -83,18 +95,22 @@
       "id": "behavioral-1-5",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "Abateri care apar la ore neobișnuite / după schimbări de program (semn de desincronizare circadiană)",
-      "action": "Respectă programul de iluminare al stației (LED/SSLA care simulează ciclul lumină-întuneric) și orele fixe de somn; folosește timpul alocat pentru relaxare și autoîngrijire.",
+      "trigger": "Deviations at unusual hours / after schedule changes (a sign of circadian misalignment)",
+      "action": "Follow the station's lighting schedule (LED/SSLA, which simulates the light–dark cycle) and fixed sleep times; use the time set aside for relaxation and self-care.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
-        "citation": "NASA HFBP. Risk from Inadequate Sleep and Irregular Schedules (pagină de referință NASA). + Evidence Report NASA 2016 (SSLA)",
+        "citation": "NASA HFBP. Risk from Inadequate Sleep and Irregular Schedules (NASA reference page). + NASA Evidence Report 2016 (SSLA)",
         "url": "https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Follow the station's lighting schedule today.",
+        "Go to bed and get up at your scheduled times.",
+        "Use your scheduled relaxation time."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -102,18 +118,22 @@
       "id": "behavioral-1-6",
       "topic": "behavioral",
       "level": 1,
-      "trigger": "Abateri de tastare/PVT însoțite de stare de spirit scăzută sau retragere socială",
-      "action": "Aplică strategii de autoîngrijire recomandate de NASA: jurnal regulat, contact virtual cu familia, activități care reduc monotonia (ex. îngrijirea plantelor, privitul pe fereastră).",
+      "trigger": "Typing/PVT deviations together with low mood or social withdrawal",
+      "action": "Use the self-care strategies NASA recommends: a regular journal, virtual contact with family, activities that break the monotony (e.g. tending plants, looking out of the window).",
       "hrp_risk": "Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders Leading to In-mission Health and Performance and Long-term Health Effects",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
       "source": {
-        "citation": "NASA HFBP. Risk of Behavioral Changes and Psychiatric Disorders (pagină de referință NASA).",
+        "citation": "NASA HFBP. Risk of Behavioral Changes and Psychiatric Disorders (NASA reference page).",
         "url": "https://www.nasa.gov/reference/risk-of-behavioral-conditions-and-psychiatric-disorders/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Write a short journal entry today.",
+        "Book a call with your family.",
+        "Spend 15 minutes on something you enjoy."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -121,8 +141,8 @@
       "id": "behavioral-2-1",
       "topic": "behavioral",
       "level": 2,
-      "trigger": "Abatere PVT-B peste pragul derivat (≥~1,24 SD față de baseline la 1/RT sau lapsusuri) pe mai multe sesiuni/zile, sau înainte de o operațiune critică (prag de proiectare, nu publicat)",
-      "action": "Anunță ofițerul medical de la bord (CMO): evaluează somnul, volumul de muncă și orice medicație de somn sau de stimulare. Medicația de somn este contramăsura cea mai folosită pe ISS, iar efectul ei asupra inerției de somn la trezire forțată este încă studiat.",
+      "trigger": "A PVT-B deviation beyond the derived threshold (≥~1.24 SD from baseline on 1/RT or lapses) over several sessions or days, or before a critical operation (a design threshold, not a published one)",
+      "action": "Notify the crew medical officer (CMO): they assess sleep, workload and any sleep or alertness aids already in use. Sleep aids are the most used countermeasure on the ISS, and their effect on sleep inertia after a forced awakening is still being studied.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
@@ -132,7 +152,11 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send your typing and reaction results to the medical officer.",
+        "Note your recent sleep and workload.",
+        "Tell the medical officer about any sleep aids you use."
+      ],
       "recheck_days": 2,
       "note": null
     },
@@ -140,18 +164,22 @@
       "id": "behavioral-2-2",
       "topic": "behavioral",
       "level": 2,
-      "trigger": "Abateri comportamentale persistente (tastare + PVT) împreună cu modificări de dispoziție, somn sau comportament raportate de astronaut sau de echipaj",
-      "action": "CMO face o evaluare structurată și documentează; simptomele comportamentale nedetectate sau tratate inadecvat pot evolua spre tulburări psihiatrice.",
+      "trigger": "Persistent behavioural deviations (typing + PVT) together with changes in mood, sleep or behaviour reported by the astronaut or the crew",
+      "action": "The CMO carries out a structured assessment and documents it; behavioural symptoms that go undetected or are poorly managed can progress to psychiatric disorders.",
       "hrp_risk": "Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders Leading to In-mission Health and Performance and Long-term Health Effects",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
       "source": {
-        "citation": "NASA Human Research Roadmap. Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders Leading to In-mission Health and Performance and Long-term Health Effects (Short Title: Behavioral Health). Last Published 05/13/25. (Risk Statement și HSRB State of Knowledge)",
+        "citation": "NASA Human Research Roadmap. Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders Leading to In-mission Health and Performance and Long-term Health Effects (Short Title: Behavioral Health). Last Published 05/13/25. (Risk Statement and HSRB State of Knowledge)",
         "url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Book a private session with the medical officer.",
+        "Note any changes in mood, sleep or behaviour.",
+        "Share your typing and reaction results."
+      ],
       "recheck_days": 2,
       "note": null
     },
@@ -159,8 +187,8 @@
       "id": "behavioral-3-1",
       "topic": "behavioral",
       "level": 3,
-      "trigger": "Abaterea persistă în ciuda contramăsurilor de nivel 1–2 sau apare la mai mulți membri ai echipajului (suspiciune de supraîncărcare/probleme de program)",
-      "action": "Cere Pământului replanificarea programului (scăderea volumului de muncă, ferestre de somn protejate); HRR documentează supraîncărcarea și problemele de programare în zbor.",
+      "trigger": "The deviation persists despite level 1–2 countermeasures, or appears in several crew members (suspected overload or scheduling problems)",
+      "action": "Ask Earth to replan the schedule (lighter workload, protected sleep windows); the HRR documents overload and scheduling problems in flight.",
       "hrp_risk": "Risk of Performance Decrements and Adverse Health Outcomes Resulting from Sleep Loss, Circadian Desynchronization, and Work Overload",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100",
       "source": {
@@ -170,7 +198,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send your sleep and workload data to Earth.",
+        "Ask for a lighter schedule and protected sleep windows.",
+        "Follow the revised schedule when it arrives."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -178,18 +210,22 @@
       "id": "behavioral-3-2",
       "topic": "behavioral",
       "level": 3,
-      "trigger": "Semne comportamentale/psihologice care nu se ameliorează la bord",
-      "action": "Organizează o conferință privată cu profesioniștii medicali/de sănătate comportamentală de pe Pământ; în misiunile îndepărtate ia în calcul întârzierea comunicațiilor (până la 42 min în misiunile în spațiul îndepărtat, conform prezentării NASA Beard et al. 2021) și trimite pachetul de date în avans.",
+      "trigger": "Behavioural or psychological signs that do not improve on board",
+      "action": "Set up a private conference with medical and behavioural health professionals on Earth; on distant missions, allow for the communication delay (up to 42 min on deep-space missions, according to the NASA presentation by Beard et al. 2021) and send the data package in advance.",
       "hrp_risk": "Risk of Adverse Cognitive or Behavioral Changes and Psychiatric Disorders Leading to In-mission Health and Performance and Long-term Health Effects",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=99",
       "source": {
-        "citation": "NASA HFBP. Risk of Behavioral Changes and Psychiatric Disorders (pagină de referință NASA). + Beard BL, Russell B, Krihak M, Burian B, Noel J, Beaugrand D, Shaw T, Pletcher D, Martin K. (2021). Supporting Crew Medical Decisions on Deep Space Missions: Real-Time Performance Monitoring. Prezentare, 11th IAASS Conference 2021 (virtual). NASA NTRS 20210022711.",
+        "citation": "NASA HFBP. Risk of Behavioral Changes and Psychiatric Disorders (NASA reference page). + Beard BL, Russell B, Krihak M, Burian B, Noel J, Beaugrand D, Shaw T, Pletcher D, Martin K. (2021). Supporting Crew Medical Decisions on Deep Space Missions: Real-Time Performance Monitoring. Presentation, 11th IAASS Conference 2021 (virtual). NASA NTRS 20210022711.",
         "url": "https://www.nasa.gov/reference/risk-of-behavioral-conditions-and-psychiatric-disorders/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Request a private conference with Earth.",
+        "Send your data package ahead of the call.",
+        "Keep up level 1 self-care while you wait for the reply."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -197,27 +233,31 @@
       "id": "cardio-1-1",
       "topic": "cardio",
       "level": 1,
-      "trigger": "Zilnic în zbor, mai ales dacă pulsul la efort submaximal standardizat crește >3 % față de media personală sau scorul de fitness scade.",
-      "action": "Respectă prescripția zilnică de exercițiu aerob și de rezistență (~1,5 h/zi, 6–7 zile/săpt.) și include sesiunile de intensitate mare prescrise; refă testul submaximal standardizat în aceleași condiții.",
+      "trigger": "Daily in flight, especially if your heart rate at a standardised submaximal workload rises >3% above your personal average or your fitness score drops.",
+      "action": "Follow the daily aerobic and resistance exercise prescription (~1.5 h/day, 6–7 days/week) and include the prescribed high-intensity sessions; repeat the standardised submaximal test under the same conditions.",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
       "source": {
-        "citation": "NASA HRP, pagina riscului de fitness; Moore et al. 2014 (via Fitness Evidence Report p.34); CV Evidence Report p.30–31 (English 2020)",
+        "citation": "NASA HRP, fitness risk page; Moore et al. 2014 (via Fitness Evidence Report p.34); CV Evidence Report p.30–31 (English 2020)",
         "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Do today's full aerobic and resistance session.",
+        "Include the prescribed high-intensity intervals.",
+        "Repeat the submaximal test under the same conditions."
+      ],
       "recheck_days": 1,
-      "note": "Exercițiul viguros a fost asociat cu o scădere mai mică a VO2peak (CV ER: −6 % vs −15 %), dar Fitness ER raportează pentru același studiu −7 %/−10 %."
+      "note": "Vigorous exercise was associated with a smaller drop in VO2peak (CV ER: −6% vs −15%), but the Fitness ER reports −7%/−10% for the same study."
     },
     {
       "id": "cardio-1-2",
       "topic": "cardio",
       "level": 1,
-      "trigger": "La check-in: tensiune sistolică în zbor sub baseline-ul pre-zbor cu până la ~14 mmHg, fără simptome.",
-      "action": "Nu acționa: e adaptarea așteptată la microgravitație. Notează valoarea; aplicația o compară cu baseline-ul tău din zbor, nu cu cel de pe Pământ.",
+      "trigger": "At check-in: in-flight systolic pressure up to ~14 mmHg below the pre-flight baseline, with no symptoms.",
+      "action": "No action needed: it is the expected adaptation to microgravity. Record the value; the app compares it with your in-flight baseline, not the one from Earth.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
@@ -227,35 +267,42 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Record the value at check-in.",
+        "No other action needed."
+      ],
       "recheck_days": 1,
-      "note": "Cifrele sunt confirmate doar în abstract."
+      "note": "The figures are confirmed only in the abstract."
     },
     {
       "id": "cardio-1-3",
       "topic": "cardio",
       "level": 1,
-      "trigger": "În ultimele 12–20 h înainte de aterizare / revenirea în gravitație.",
-      "action": "Urmează protocolul de încărcare cu fluide și sare prescris (de ex. 18–20 ml/kg soluție salină, de 3–4 ori cu mesele) și îmbracă hainele de compresie (Kentavr/AGS/compresie graduală) conform instrucțiunilor.",
+      "trigger": "In the last 12–20 h before landing / the return to gravity.",
+      "action": "Follow the prescribed fluid and salt loading protocol (e.g. 18–20 ml/kg saline solution, 3–4 times with meals) and put on the compression garments (Kentavr/AGS/graded compression) as instructed.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "CV Evidence Report (2022) p.31–35 PDF; Lee SMC et al. 2020 Front Physiol 11:784; pagina NASA CV Risk ('Lower-body compression garments and drinking lots of fluids prior to landing')",
+        "citation": "CV Evidence Report (2022) p.31–35 PDF; Lee SMC et al. 2020 Front Physiol 11:784; NASA CV Risk page ('Lower-body compression garments and drinking lots of fluids prior to landing')",
         "url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Follow the fluid and salt loading protocol.",
+        "Put on your compression garments as instructed.",
+        "Tell the medical officer if you feel unwell."
+      ],
       "recheck_days": 1,
-      "note": "Eficacitatea încărcării cu fluide pe volumul plasmatic nu a fost demonstrată direct după misiuni lungi (CV ER p.32)."
+      "note": "The effect of fluid loading on plasma volume has not been shown directly after long missions (CV ER p.32)."
     },
     {
       "id": "cardio-1-4",
       "topic": "cardio",
       "level": 1,
-      "trigger": "În primele ore–zile după aterizare (sau după coborârea pe Lună/Marte), la orice amețeală la ridicare.",
-      "action": "Evită activitățile care provoacă hipotensiune ortostatică (ridicare bruscă, stat mult în picioare nemișcat), păstrează compresia, și așază-te/întinde-te imediat la amețeală; fă testul de ridicare din aplicație doar în prezența unui coleg.",
+      "trigger": "In the first hours to days after landing (or after descending to the Moon/Mars), at any dizziness on standing.",
+      "action": "Avoid activities that cause orthostatic hypotension (standing up suddenly, standing still for a long time), keep the compression on, and sit or lie down at once if you feel dizzy; do the app's stand test only with a crewmate present.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
@@ -265,54 +312,67 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Stand up slowly, in stages.",
+        "Keep your compression garments on.",
+        "Sit or lie down at once if you feel dizzy.",
+        "Do the stand test only with a crewmate present."
+      ],
       "recheck_days": 1,
-      "note": "Regula 'test doar cu un coleg prezent' e o alegere de siguranță a prototipului."
+      "note": "The 'test only with a crewmate present' rule is a safety choice of the prototype."
     },
     {
       "id": "cardio-1-5",
       "topic": "cardio",
       "level": 1,
-      "trigger": "Înainte de fiecare check-in de puls/HRV/tensiune.",
-      "action": "Măsoară în aceleași condiții (aceeași oră, aceeași poziție, după 5 min de repaus, înainte de exercițiu) ca abaterile față de baseline să fie interpretabile.",
+      "trigger": "Before every heart rate, HRV or blood pressure check-in.",
+      "action": "Measure under the same conditions (same time, same position, after 5 minutes of rest, before exercise) so that deviations from the baseline can be interpreted.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "Buchheit M 2014 Front Physiol 5:73 (interpretare individuală ținând cont de eroarea de măsurare și SWC; înregistrări de 5 min în repaus)",
+        "citation": "Buchheit M 2014 Front Physiol 5:73 (individual interpretation accounting for measurement error and SWC; 5-min resting recordings)",
         "url": "https://doi.org/10.3389/fphys.2014.00073",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Measure at the same time each day.",
+        "Rest for 5 minutes beforehand, in the same position.",
+        "Measure before exercise."
+      ],
       "recheck_days": 1,
-      "note": "Sursa e din medicina sportivă, nu din zboruri spațiale."
+      "note": "The source comes from sports medicine, not spaceflight."
     },
     {
       "id": "cardio-2-1",
       "topic": "cardio",
       "level": 2,
-      "trigger": "Puls de repaus cu media pe 7 zile > baseline + 1×CV individual timp de ≥3 zile, sau lnRMSSD < baseline − 0,5×CV, ÎMPREUNĂ cu simptome (palpitații, amețeală, oboseală neobișnuită).",
-      "action": "Anunță ofițerul medical de la bord (CMO) pentru reevaluare (măsurare repetată, ECG dacă e disponibil) și conferință medicală privată cu medicul de zbor.",
+      "trigger": "Resting heart rate with a 7-day mean > baseline + 1×individual CV for ≥3 days, or lnRMSSD < baseline − 0.5×CV, TOGETHER with symptoms (palpitations, dizziness, unusual tiredness).",
+      "action": "Notify the crew medical officer (CMO) for a re-assessment (repeat measurement, ECG if available) and a private medical conference with the flight surgeon.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "CV Evidence Report (2022) p.79 PDF (cel puțin doi membri ai echipajului ISS au pregătire medicală suplimentară pentru probleme mai puțin urgente, cu sprijinul medicului de zbor); Buchheit 2014 pentru logica pragului",
+        "citation": "CV Evidence Report (2022) p.79 PDF (at least two ISS crew members have extra medical training for less urgent problems, supported by the flight surgeon); Buchheit 2014 for the threshold logic",
         "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Cardio%20Risk%20EB%202022%20FINAL_4-3-2023.pdf",
         "verification": "unverified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Measure your heart rate and blood pressure again.",
+        "Note any symptoms in the app.",
+        "Send the chart to the medical officer."
+      ],
       "recheck_days": 2,
-      "note": "Pragul numeric de escaladare nu e publicat pentru astronauți; rolul CMO e verificat."
+      "note": "The numerical escalation threshold is not published for astronauts; the CMO's role is verified."
     },
     {
       "id": "cardio-2-2",
       "topic": "cardio",
       "level": 2,
-      "trigger": "Umflare, durere sau senzație de presiune nouă la gât (mai ales pe stânga), durere de cap unilaterală nouă sau umflare a feței peste cea obișnuită din zbor.",
-      "action": "Anunță CMO; acesta contactează medicii de pe Pământ pentru ecografie ghidată a venei jugulare (s-au găsit flux stagnant la 6/11 și un tromb ocluziv tratat la bord).",
+      "trigger": "New swelling, pain or a feeling of pressure in the neck (especially on the left), a new one-sided headache, or facial swelling beyond the usual in-flight puffiness.",
+      "action": "Notify the CMO, who contacts the doctors on Earth for a guided ultrasound of the jugular vein (stagnant flow was found in 6/11 and an occlusive clot was treated on board).",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/directorates/esdmd/hhp/cv-risk/",
       "source": {
@@ -322,92 +382,111 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Tell the medical officer today.",
+        "Note where it hurts and since when.",
+        "Avoid straining until you are assessed."
+      ],
       "recheck_days": 2,
-      "note": "Datele de flux și tromboză sunt verificate; lista de simptome de declanșare e derivată (trombul descris a fost asimptomatic, deci simptomele pot lipsi)."
+      "note": "The flow and thrombosis data are verified; the list of trigger symptoms is derived (the clot described had no symptoms, so symptoms may be absent)."
     },
     {
       "id": "cardio-2-3",
       "topic": "cardio",
       "level": 2,
-      "trigger": "La testul de ridicare după revenirea în gravitație: scădere TAS ≥20 mmHg sau TAD ≥10 mmHg în 3 min, ori creștere a pulsului ≥30 bpm față de valoarea în decubit, sau presincopă.",
-      "action": "Oprește testul, întinde-te, anunță CMO / medicul de zbor; nu relua activitatea în picioare până la evaluare.",
+      "trigger": "On the stand test after returning to gravity: a drop in SBP ≥20 mmHg or DBP ≥10 mmHg within 3 min, or a heart rate rise ≥30 bpm from the supine value, or presyncope.",
+      "action": "Stop the test, lie down and notify the CMO / flight surgeon; do not resume standing activity until you have been assessed.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "Freeman R et al. 2011 Clin Auton Res 21:69-72 (criterii de consens – text necitit); CV Evidence Report p.25–26 PDF (incidența presincopei)",
+        "citation": "Freeman R et al. 2011 Clin Auton Res 21:69-72 (consensus criteria – text not read); CV Evidence Report p.25–26 PDF (incidence of presyncope)",
         "url": "https://doi.org/10.1007/s10286-011-0119-5",
         "verification": "unverified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Stop the test and lie down.",
+        "Notify the medical officer.",
+        "Stay off your feet until you are assessed."
+      ],
       "recheck_days": 2,
-      "note": "Criteriile numerice trebuie confirmate pe textul consensului."
+      "note": "The numerical criteria still need to be confirmed against the consensus text."
     },
     {
       "id": "cardio-3-1",
       "topic": "cardio",
       "level": 3,
-      "trigger": "Sincopă (pierderea cunoștinței), palpitații susținute/ritm neregulat, durere toracică, sau suspiciune de tromboză venoasă.",
-      "action": "CMO inițiază răspunsul de urgență și contactează imediat medicul de zbor de pe Pământ (pe orbita joasă: întârziere ~2 s, revenire pe Pământ posibilă); pe misiuni spre Marte echipajul trebuie să poată stabiliza autonom.",
+      "trigger": "Syncope (loss of consciousness), sustained palpitations or an irregular rhythm, chest pain, or suspected venous thrombosis.",
+      "action": "The CMO starts the emergency response and immediately contacts the flight surgeon on Earth (in low Earth orbit: a ~2-s delay, return to Earth possible); on missions to Mars the crew must be able to stabilise the situation on their own.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "CV Evidence Report (2022) p.79 PDF (Distance from Earth); p.13 PDF (episod de tahicardie ventriculară nesusținută de 14 bătăi); pagina NASA CV Risk (aritmii, cheaguri)",
+        "citation": "CV Evidence Report (2022) p.79 PDF (Distance from Earth); p.13 PDF (a 14-beat episode of non-sustained ventricular tachycardia); NASA CV Risk page (arrhythmias, clots)",
         "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Cardio%20Risk%20EB%202022%20FINAL_4-3-2023.pdf",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Lie down and call a crewmate.",
+        "Alert the medical officer at once.",
+        "The medical officer contacts the flight surgeon on Earth."
+      ],
       "recheck_days": 3,
-      "note": "Nu e protocol medical NASA; prototipul doar recomandă escaladarea."
+      "note": "Not a NASA medical protocol; the prototype only recommends escalating."
     },
     {
       "id": "cardio-3-2",
       "topic": "cardio",
       "level": 3,
-      "trigger": "Pierdere de fitness aerob >20 % față de pre-zbor la testul periodic, sau puls la efort submaximal în creștere în ciuda respectării prescripției.",
-      "action": "Trimite datele specialiștilor de exercițiu de pe Pământ pentru revizuirea prescripției (intensitate, volum).",
+      "trigger": "A loss of aerobic fitness >20% vs before flight on the periodic test, or a rising heart rate at submaximal effort despite following the prescription.",
+      "action": "Send the data to the exercise specialists on Earth so they can review the prescription (intensity, volume).",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
       "source": {
-        "citation": "NASA HRP, pagina riscului de fitness (auto-evaluări periodice folosite pentru optimizarea antrenamentului; 12–38 % pierd >20 %)",
+        "citation": "NASA HRP, fitness risk page (periodic self-assessments used to optimise training; 12–38% lose >20%)",
         "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
         "verification": "unverified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send your fitness test results to Earth.",
+        "Keep following the current prescription until you get an answer."
+      ],
       "recheck_days": 3,
-      "note": "Pragul de 20 % e o categorie descriptivă NASA, nu un criteriu operațional publicat."
+      "note": "The 20% threshold is a NASA descriptive category, not a published operational criterion."
     },
     {
       "id": "cardio-3-3",
       "topic": "cardio",
       "level": 3,
-      "trigger": "Înainte de aterizare după o misiune lungă, pentru astronauți cu risc crescut (femei, presincopă anterioară, tensiune/TAD scăzute în decubit față de baseline).",
-      "action": "Echipa de pe Pământ planifică ziua aterizării: activități reduse, suport medical și recuperare prelungită.",
+      "trigger": "Before landing after a long mission, for astronauts at higher risk (women, previous presyncope, low supine blood pressure/DBP vs baseline).",
+      "action": "The team on Earth plans the landing day: reduced activities, medical support and extended recovery.",
       "hrp_risk": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
       "source": {
-        "citation": "Lee SMC et al. 2015 Aerosp Med Hum Perform 86(12 Suppl):A54-A67 (concluzie: planificatorii și medicii să anticipeze adaptarea activităților și a suportului medical); CV Evidence Report p.24–28 PDF",
+        "citation": "Lee SMC et al. 2015 Aerosp Med Hum Perform 86(12 Suppl):A54-A67 (conclusion: planners and physicians should anticipate adapting activities and medical support); CV Evidence Report p.24–28 PDF",
         "url": "https://doi.org/10.3357/AMHP.EC08.2015",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Review the landing-day plan with the medical officer.",
+        "Follow the fluid and compression protocol.",
+        "Plan for help on the first day back."
+      ],
       "recheck_days": 3,
-      "note": "Factorii de risc individuali provin din studii mici (Waters 2002, Charles 1999)."
+      "note": "The individual risk factors come from small studies (Waters 2002, Charles 1999)."
     },
     {
       "id": "immune-1-1",
       "topic": "immune",
       "level": 1,
-      "trigger": "Alertă galbenă: pulsul mediu de noapte e cu +3 bpm peste mediana personală, sau o singură noapte cu ≥ +4 bpm (prag din NightSignal; folosirea lui ca nivel 1 e o alegere SHADOW).",
-      "action": "Completează în aplicație jurnalul scurt de context: simptome (tuse, febră, durere de cap, oboseală), somn scurt, stres, efort intens. Remăsoară noaptea următoare. În studiu, alertele au fost declanșate și de stres sau alte evenimente fără legătură cu o infecție, iar participanții au adnotat alertele prin chestionare.",
+      "trigger": "Yellow alert: your mean night-time heart rate is +3 bpm above your personal median, or a single night is ≥ +4 bpm (a NightSignal threshold; using it as level 1 is a SHADOW choice).",
+      "action": "Fill in the short context journal in the app: symptoms (cough, fever, headache, tiredness), short sleep, stress, hard exercise. Measure again the next night. In the study, alerts were also triggered by stress or other events unrelated to infection, and participants annotated their alerts through questionnaires.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -418,9 +497,9 @@
         "evidence_strength": null
       },
       "steps": [
-        "Completează jurnalul scurt de simptome.",
-        "Culcă-te cu o oră mai devreme în noaptea asta.",
-        "Remăsoară noaptea următoare."
+        "Fill in the short symptom journal.",
+        "Go to bed an hour earlier tonight.",
+        "Measure again the next night."
       ],
       "recheck_days": 1,
       "note": null
@@ -429,8 +508,8 @@
       "id": "immune-1-2",
       "topic": "immune",
       "level": 1,
-      "trigger": "Orice alertă imună activă sau somn sub baseline-ul personal.",
-      "action": "Prioritizează somnul și managementul oboselii conform programului (somnul și ritmul circadian sunt legate direct de funcția imună; pe orbită somnul e redus și ritmurile sunt dezaliniate). Folosește serviciile de suport comportamental/oboseală disponibile.",
+      "trigger": "Any active immune alert, or sleep below your personal baseline.",
+      "action": "Prioritise sleep and fatigue management according to the schedule (sleep and circadian rhythm are directly linked to immune function; in orbit, sleep is shorter and rhythms are misaligned). Use the behavioural and fatigue support services available.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -440,7 +519,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Go to bed an hour earlier tonight.",
+        "Keep your sleep window free of work.",
+        "Use the fatigue support services if you need them."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -448,8 +531,8 @@
       "id": "immune-1-3",
       "topic": "immune",
       "level": 1,
-      "trigger": "Permanent, ca prevenție (nu doar la alertă).",
-      "action": "Respectă programul prescris de exerciții aerobice și de rezistență. În Evidence Report-ul HRP, un fitness pre-zbor mai bun s-a asociat cu un risc mai mic de reactivare virală (29–39%), iar regimul candidat de contramăsuri include exerciții aerobice și de rezistență, dietă, suplimente și exerciții VR pentru reducerea stresului.",
+      "trigger": "Always, as prevention (not only during an alert).",
+      "action": "Follow the prescribed aerobic and resistance exercise programme. In the HRP Evidence Report, better pre-flight fitness was associated with a lower risk of viral reactivation (29–39%), and the candidate countermeasure regime includes aerobic and resistance exercise, diet, supplements and VR exercises to reduce stress.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -459,7 +542,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Do today's aerobic and resistance session.",
+        "Use a stress-reduction session if one is scheduled."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -467,8 +553,8 @@
       "id": "immune-1-4",
       "topic": "immune",
       "level": 1,
-      "trigger": "Zilnic, mai ales în prima lună de misiune (perioada cu cele mai multe evenimente notabile).",
-      "action": "Autoverificare rapidă a pielii și buzelor (erupții, roșeață cu iritație, herpes labial) și a simptomelor respiratorii superioare; notează-le în aplicație. Erupțiile au fost evenimentul cel mai raportat pe ISS (1,12/an de zbor).",
+      "trigger": "Daily, especially in the first month of the mission (the period with the most notable events).",
+      "action": "A quick self-check of your skin and lips (rashes, irritated redness, cold sores) and of upper respiratory symptoms; record them in the app. Rashes were the most reported event on the ISS (1.12 per flight year).",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -478,7 +564,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Check your skin and lips for rashes or sores.",
+        "Note any cough, sore throat or runny nose.",
+        "Record what you find in the app."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -487,7 +577,7 @@
       "topic": "immune",
       "level": 1,
       "trigger": "Permanent.",
-      "action": "Respectă meniul și suplimentarea nutrițională prescrise. Crucian 2018 discută nutriția și alimentele funcționale ca o contramăsură imună (meniul ISS e sărac în fructe și legume).",
+      "action": "Stick to the prescribed menu and nutritional supplementation. Crucian 2018 discusses nutrition and functional foods as an immune countermeasure (the ISS menu is low in fruit and vegetables).",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -497,7 +587,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Eat the meals on your menu.",
+        "Take your scheduled nutritional supplements."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -505,8 +598,8 @@
       "id": "immune-2-1",
       "topic": "immune",
       "level": 2,
-      "trigger": "Alertă roșie NightSignal: puls mediu de noapte ≥ +4 bpm peste mediana personală două nopți la rând, mai ales dacă temperatura pielii depășește pragul SHADOW derivat sau apar simptome.",
-      "action": "Anunță ofițerul medical de la bord (CMO) cu graficul puls/temperatură vs baseline și jurnalul de simptome. Doar CMO decide evaluarea sau tratamentul simptomatic din farmacia ISS (antihistaminice, antiinflamatoare, antimicrobiene); aplicația nu recomandă medicamente.",
+      "trigger": "NightSignal red alert: mean night-time heart rate ≥ +4 bpm above your personal median two nights in a row, especially if skin temperature exceeds the derived SHADOW threshold or symptoms appear.",
+      "action": "Notify the crew medical officer (CMO) with the heart rate and temperature chart against your baseline and your symptom journal. Only the CMO decides on assessment or treatment; the app does not recommend medicines.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -517,9 +610,9 @@
         "evidence_strength": null
       },
       "steps": [
-        "Culcă-te cu o oră mai devreme în următoarele 3 nopți.",
-        "Măsoară temperatura dimineața și seara.",
-        "Completează jurnalul de simptome (tuse, durere de cap, oboseală)."
+        "Go to bed an hour earlier for the next 3 nights.",
+        "Take your temperature morning and evening.",
+        "Fill in the symptom journal (cough, headache, tiredness)."
       ],
       "recheck_days": 2,
       "note": null
@@ -528,8 +621,8 @@
       "id": "immune-2-2",
       "topic": "immune",
       "level": 2,
-      "trigger": "Erupție cutanată, herpes labial (posibilă reactivare HSV-1/VZV), simptome alergice sau respiratorii superioare apărute în misiune.",
-      "action": "Raportează la CMO și descrie localizarea și evoluția. Reactivarea herpetică e de obicei asimptomatică, dar uneori produce leziuni cu virus infecțios, deci contează și pentru ceilalți membri ai echipajului.",
+      "trigger": "A skin rash, cold sore (possible HSV-1/VZV reactivation), or allergic or upper respiratory symptoms that appeared during the mission.",
+      "action": "Report to the CMO and describe where it is and how it is changing. Herpes reactivation is usually without symptoms, but sometimes produces lesions with infectious virus, so it matters for the other crew members too.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -539,7 +632,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Tell the medical officer today.",
+        "Note where it is and how it has changed.",
+        "Avoid close contact if you have a cold sore."
+      ],
       "recheck_days": 2,
       "note": null
     },
@@ -547,8 +644,8 @@
       "id": "immune-3-1",
       "topic": "immune",
       "level": 3,
-      "trigger": "Eveniment „notabil” după definiția NASA: simptomul durează >1 săptămână, se repetă sau se intensifică, sau nu răspunde la tratament.",
-      "action": "CMO transmite cazul medicilor de zbor (flight surgeons) de pe Pământ, cu seria de date vs baseline. Pe misiuni cu întârziere de comunicare, pachetul de date se trimite asincron.",
+      "trigger": "A “notable” event by NASA's definition: the symptom lasts >1 week, recurs or worsens, or does not respond to treatment.",
+      "action": "The CMO passes the case to the flight surgeons on Earth, with the data series against the baseline. On missions with a communication delay, the data package is sent asynchronously.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -558,7 +655,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Keep filling in your symptom journal daily.",
+        "The medical officer sends your case to Earth."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -566,8 +666,8 @@
       "id": "immune-3-2",
       "topic": "immune",
       "level": 3,
-      "trigger": "Alerte roșii repetate (cluster de ≥2 zile roșii consecutive) care nu se rezolvă, sau combinate cu febră/simptome persistente (escaladare propusă de SHADOW).",
-      "action": "Escaladare la echipa medicală de la sol pentru evaluare și eventuale probe biologice (salivă/sânge/urină pentru markeri virali și imuni, conform direcției de cercetare HRP).",
+      "trigger": "Repeated red alerts (a cluster of ≥2 consecutive red days) that do not resolve, or combined with persistent fever or symptoms (escalation proposed by SHADOW).",
+      "action": "Escalate to the medical team on the ground for assessment and possible biological samples (saliva, blood or urine for viral and immune markers, following the HRP research direction).",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -577,7 +677,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Keep measuring your temperature twice a day.",
+        "Collect samples if Earth asks for them.",
+        "Follow the guidance from the ground."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -585,8 +689,8 @@
       "id": "immune-3-3",
       "topic": "immune",
       "level": 3,
-      "trigger": "După aterizare: până la ~30 de zile post-ISS (eliminare VZV/CMV documentată).",
-      "action": "Echipa medicală de la sol să fie informată despre riscul de transmitere a virusurilor eliminate către nou-născuți, adulți seronegativi sau persoane imunocompromise din jurul astronautului.",
+      "trigger": "After landing: up to ~30 days after the ISS (documented VZV/CMV shedding).",
+      "action": "The medical team on the ground should be informed about the risk of passing shed viruses to newborns, seronegative adults or immunocompromised people around the astronaut.",
       "hrp_risk": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
       "source": {
@@ -596,7 +700,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Follow the post-landing contact guidance.",
+        "Tell your family about the precautions."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -604,18 +711,22 @@
       "id": "musculoskeletal-1-1",
       "topic": "musculoskeletal",
       "level": 1,
-      "trigger": "Volumul sau sarcina zilnică de exercițiu (rezistență + aerob) sub planul personal; sau orice zi fără exercițiu",
-      "action": "Completează prescripția: ~1,5 h/zi de rezistență și aerob, 6-7 zile/săptămână, cu accent pe exerciții încărcate pentru membrele inferioare (ARED).",
+      "trigger": "Daily exercise volume or load (resistance + aerobic) below your personal plan, or any day without exercise",
+      "action": "Complete the prescription: ~1.5 h/day of resistance and aerobic exercise, 6–7 days/week, with a focus on loaded exercises for the lower limbs (ARED).",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=180",
       "source": {
-        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (pagina oficială, actualizată 16 mai 2025)",
+        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (official page, updated 16 May 2025)",
         "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Complete today's resistance and aerobic session.",
+        "Focus on loaded leg exercises on ARED.",
+        "Log the session in the app."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -623,8 +734,8 @@
       "id": "musculoskeletal-1-2",
       "topic": "musculoskeletal",
       "level": 1,
-      "trigger": "Sarcina folosită la ARED sub sarcina din baseline-ul personal",
-      "action": "Crește progresiv sarcina spre nivelul pre-zbor. ARED permite până la 600 lbf (1675 N), iar sarcina mare, împreună cu nutriția adecvată, a păstrat DMO la șold în studiul Smith 2012 (n=5).",
+      "trigger": "The load used on ARED is below the load in your personal baseline",
+      "action": "Raise the load gradually towards the pre-flight level. ARED allows up to 600 lbf (1675 N), and heavy loading together with adequate nutrition preserved hip BMD in the Smith 2012 study (n=5).",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -634,7 +745,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Raise your ARED load by one step.",
+        "Log the new load in the app."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -642,8 +756,8 @@
       "id": "musculoskeletal-1-3",
       "topic": "musculoskeletal",
       "level": 1,
-      "trigger": "Masa corporală scade față de baseline-ul personal sau aportul energetic e sub plan",
-      "action": "Respectă aportul energetic și suplimentul de vitamina D din plan. Beneficiul ARED pentru os a fost observat împreună cu menținerea masei corporale și vitamina D nominală.",
+      "trigger": "Body mass is falling from your personal baseline, or energy intake is below plan",
+      "action": "Stick to the energy intake and the vitamin D supplement in your plan. ARED's benefit for bone was seen together with maintained body mass and nominal vitamin D.",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -653,7 +767,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Eat every meal on your plan.",
+        "Take your vitamin D supplement.",
+        "Weigh yourself at the next scheduled check."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -661,8 +779,8 @@
       "id": "musculoskeletal-1-4",
       "topic": "musculoskeletal",
       "level": 1,
-      "trigger": "Planificarea sesiunilor de încărcare (impact/rezistență) în ziua respectivă",
-      "action": "Dacă orarul permite, împarte încărcarea în 2-4 sesiuni mai scurte, la câteva ore distanță, în loc de una lungă. Atenție: dovada provine DOAR din studii pe șobolani (Robling 2000-2002) și nu e o procedură NASA.",
+      "trigger": "Planning the day's loading sessions (impact/resistance)",
+      "action": "If the schedule allows, split the loading into 2–4 shorter sessions a few hours apart, instead of one long one. Note: the evidence comes ONLY from rat studies (Robling 2000–2002) and it is not a NASA procedure.",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -672,7 +790,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Split today's loading into 2–4 short sessions.",
+        "Leave a few hours between sessions."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -680,18 +801,21 @@
       "id": "musculoskeletal-1-5",
       "topic": "musculoskeletal",
       "level": 1,
-      "trigger": "Testul periodic de fitness lipsește sau e întârziat",
-      "action": "Fă autoevaluarea periodică de fitness (forță/rezistență) pentru actualizarea abaterii față de baseline.",
+      "trigger": "The periodic fitness test is missing or overdue",
+      "action": "Do the periodic fitness self-assessment (strength/endurance) to update the deviation from your baseline.",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=180",
       "source": {
-        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (pagina oficială, actualizată 16 mai 2025)",
+        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (official page, updated 16 May 2025)",
         "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Do the strength and endurance self-assessment this week.",
+        "Log the results in the app."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -699,8 +823,8 @@
       "id": "musculoskeletal-2-1",
       "topic": "musculoskeletal",
       "level": 2,
-      "trigger": "Forța (ex. 1RM ARED sau test izokinetic genunchi/gleznă) scade >10% sub baseline-ul personal la 2 teste consecutive (prag derivat)",
-      "action": "Anunță ofițerul medical de la bord pentru verificarea aderenței și a nutriției și pentru ajustarea locală a prescripției de exercițiu.",
+      "trigger": "Strength (e.g. ARED 1RM or an isokinetic knee/ankle test) falls >10% below your personal baseline on 2 consecutive tests (derived threshold)",
+      "action": "Notify the crew medical officer to check adherence and nutrition and to adjust the exercise prescription on board.",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=180",
       "source": {
@@ -710,7 +834,10 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send your strength results to the medical officer.",
+        "Review your exercise log and meals with them."
+      ],
       "recheck_days": 2,
       "note": null
     },
@@ -718,8 +845,8 @@
       "id": "musculoskeletal-2-2",
       "topic": "musculoskeletal",
       "level": 2,
-      "trigger": "Aderența la exercițiu sub plan mai multe zile consecutiv (ex. echipament defect, boală, accidentare) – prag de prototip",
-      "action": "Anunță ofițerul medical pentru un plan alternativ de încărcare. Fără rezistență cu sarcină mare, ratele de pierdere osoasă se apropie de cele pre-ARED (~1-1,5%/lună).",
+      "trigger": "Exercise adherence below plan for several days in a row (e.g. faulty equipment, illness, injury) – a prototype threshold",
+      "action": "Notify the medical officer for an alternative loading plan. Without heavy resistance exercise, bone loss rates approach the pre-ARED values (~1–1.5%/month).",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -729,7 +856,10 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Tell the medical officer why you missed sessions.",
+        "Agree on an alternative loading plan."
+      ],
       "recheck_days": 2,
       "note": null
     },
@@ -737,8 +867,8 @@
       "id": "musculoskeletal-3-1",
       "topic": "musculoskeletal",
       "level": 3,
-      "trigger": "Forța scade >20% sub baseline (prag derivat) sau pierderea cumulată estimată de DMO depășește 10% la șold/coloană (prag derivat din criteriul Bone Summit)",
-      "action": "Contactează echipa medicală de la sol (flight surgeon) pentru reevaluarea prescripției și pentru o eventuală contramăsură farmacologică. Bisfosfonatul + ARED a prevenit scăderea DMO la șold (Sibonga 2019), dar decizia aparține medicilor de pe Pământ.",
+      "trigger": "Strength falls >20% below baseline (derived threshold), or the estimated cumulative BMD loss exceeds 10% at the hip or spine (threshold derived from the Bone Summit criterion)",
+      "action": "Contact the medical team on the ground (flight surgeon) to review the prescription and any further countermeasure. In one study, a drug countermeasure combined with ARED prevented the drop in hip BMD (Sibonga 2019), but that decision belongs to the doctors on Earth.",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -748,7 +878,10 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send your strength and exercise data to Earth.",
+        "Keep up your current prescription until you get an answer."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -756,18 +889,21 @@
       "id": "musculoskeletal-3-2",
       "topic": "musculoskeletal",
       "level": 3,
-      "trigger": "Înainte de o tranziție gravitațională (aselenizare, EVA pe suprafață, întoarcere pe Pământ) cu deficite mari de forță sau os față de baseline",
-      "action": "Raportează la sol: riscul de cădere și de fractură crește la tranzițiile gravitaționale, iar FOR (sarcina aplicată / rezistența osului) crește când osul e slăbit.",
+      "trigger": "Before a gravity transition (lunar landing, surface EVA, return to Earth) with large strength or bone deficits vs baseline",
+      "action": "Report to the ground: the risk of falls and fractures rises at gravity transitions, and the FOR (applied load / bone strength) increases when bone is weakened.",
       "hrp_risk": "Risk of Mission Performance Decrements and Adverse Health Outcomes Resulting from Reduced Cardiorespiratory and Musculoskeletal Fitness",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=180",
       "source": {
-        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (pagina oficială, actualizată 16 mai 2025)",
+        "citation": "NASA HRP (2025). Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness (official page, updated 16 May 2025)",
         "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/",
         "verification": "verified",
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Report your strength and bone estimates to the ground.",
+        "Plan the transition with support from a crewmate."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -775,8 +911,8 @@
       "id": "musculoskeletal-3-3",
       "topic": "musculoskeletal",
       "level": 3,
-      "trigger": "După misiune (mai ales >6 luni): planificarea urmăririi",
-      "action": "Recomandă urmărire QCT/HR-pQCT, nu doar DXA. Recuperarea osului trabecular poate fi incompletă la 1-2 ani, chiar dacă DXA arată revenire.",
+      "trigger": "After the mission (especially >6 months): planning the follow-up",
+      "action": "Recommend QCT/HR-pQCT follow-up, not just DXA. Trabecular bone recovery can be incomplete at 1–2 years, even when DXA shows a return to normal.",
       "hrp_risk": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
       "hrp_risk_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
       "source": {
@@ -786,7 +922,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Book a QCT or HR-pQCT scan after the mission.",
+        "Keep up loaded exercise after landing."
+      ],
       "recheck_days": 3,
       "note": null
     },
@@ -794,8 +933,8 @@
       "id": "radiation-1-1",
       "topic": "radiation",
       "level": 1,
-      "trigger": "Alertă SEP: rata dozei din habitat ≥2× media pe 24 h (prag derivat) sau notificare de eveniment SEP de la sol.",
-      "action": "Mergi imediat în zona cea mai ecranată (cabina echipajului înconjurată de containere de apă / materiale bogate în hidrogen, ex. polietilenă) și rămâi acolo până când rata dozei revine la baseline.",
+      "trigger": "SEP alert: the habitat dose rate is ≥2× its 24-h average (derived threshold), or an SEP event notification from the ground.",
+      "action": "Go immediately to the most shielded area (the crew quarters surrounded by water containers / hydrogen-rich materials such as polyethylene) and stay there until the dose rate returns to baseline.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -806,9 +945,9 @@
         "evidence_strength": null
       },
       "steps": [
-        "Mergi imediat în zona cea mai ecranată.",
-        "Apasă „Sunt în adăpost” în aplicație.",
-        "Rămâi acolo până când rata dozei revine la normal."
+        "Go immediately to the most shielded area.",
+        "Press “I'm in the shelter” in the app.",
+        "Stay there until the dose rate is back to normal."
       ],
       "recheck_days": 1,
       "note": null
@@ -817,8 +956,8 @@
       "id": "radiation-1-2",
       "topic": "radiation",
       "level": 1,
-      "trigger": "Vehicul în afara orbitei joase, avertizare timpurie SEP primită înainte de sosirea particulelor.",
-      "action": "Reconfigurează adăpostul: mută containerele de apă și sacii de bagaje în jurul cabinelor (țintă: +10 cm echivalent apă); cronologia SEP lasă de obicei timp pentru reconfigurare.",
+      "trigger": "Vehicle beyond low Earth orbit, with an early SEP warning received before the particles arrive.",
+      "action": "Reconfigure the shelter: move the water containers and luggage bags around the crew quarters (target: +10 cm water equivalent); the SEP timeline usually leaves time to reconfigure.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -828,7 +967,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Move the water containers around the crew quarters.",
+        "Stack luggage bags along the walls.",
+        "Check that the shelter is ready before the particles arrive."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -836,8 +979,8 @@
       "id": "radiation-1-3",
       "topic": "radiation",
       "level": 1,
-      "trigger": "Alertă SEP în timpul unei activități extravehiculare (EVA).",
-      "action": "Oprește EVA și revino în vehicul sau la ecranare în cel mult 2 ore de la alertă.",
+      "trigger": "SEP alert during an extravehicular activity (EVA).",
+      "action": "Stop the EVA and get back into the vehicle or behind shielding within 2 hours of the alert.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -847,7 +990,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Stop the EVA now.",
+        "Return to the vehicle or to shielding within 2 hours."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -855,8 +1001,8 @@
       "id": "radiation-1-4",
       "topic": "radiation",
       "level": 1,
-      "trigger": "EVA planificată în timp ce un SEP este în desfășurare sau o alertă de vreme spațială este activă.",
-      "action": "Amână ieșirea până la încheierea alertei. Brieful NASA spune doar că SEP-urile perturbă puternic EVA-urile; regula de amânare este o extrapolare a noastră.",
+      "trigger": "An EVA is planned while an SEP is under way or a space weather alert is active.",
+      "action": "Postpone the EVA until the alert is over. The NASA brief says only that SEPs severely disrupt EVAs; the postponement rule is our extrapolation.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -866,7 +1012,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Postpone the EVA.",
+        "Wait until the alert is over before going out."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -874,8 +1023,8 @@
       "id": "radiation-1-5",
       "topic": "radiation",
       "level": 1,
-      "trigger": "Permanent (monitorizare de rutină).",
-      "action": "Poartă permanent dozimetrul personal și aplică principiul ALARA: în timpul unei alerte, limitează timpul petrecut în modulele slab ecranate.",
+      "trigger": "Always (routine monitoring).",
+      "action": "Wear your personal dosimeter at all times and apply the ALARA principle: during an alert, limit the time spent in poorly shielded modules.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -885,7 +1034,10 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Wear your dosimeter at all times.",
+        "During an alert, limit time in poorly shielded modules."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -893,9 +1045,9 @@
       "id": "radiation-2-1",
       "topic": "radiation",
       "level": 2,
-      "trigger": "După un SEP, membrul echipajului are greață, vărsături sau oboseală neobișnuită față de baseline-ul personal.",
-      "action": "Anunță ofițerul medical de la bord: aceste simptome se potrivesc cu sindromul acut de iradiere și trebuie corelate cu doza înregistrată de dozimetru.",
-      "hrp_risk": "Risk of Adverse Health Outcomes and Decrements in Performance due to Inflight Medical Conditions (sindrom acut de iradiere ca risc în misiune, conform OCHMO-TB-020)",
+      "trigger": "After an SEP, the crew member has nausea, vomiting or unusual tiredness compared with their personal baseline.",
+      "action": "Notify the crew medical officer: these symptoms match acute radiation syndrome and must be correlated with the dose recorded by the dosimeter.",
+      "hrp_risk": "Risk of Adverse Health Outcomes and Decrements in Performance due to Inflight Medical Conditions (acute radiation syndrome as an in-mission risk, per OCHMO-TB-020)",
       "hrp_risk_url": "https://www.nasa.gov/hhp/human-system-risks/",
       "source": {
         "citation": "NASA Office of the Chief Health & Medical Officer (2025). NASA-STD-3001 Technical Brief OCHMO-TB-020 Rev G (06/06/2025): Design for Ionizing Radiation Protection.",
@@ -904,7 +1056,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Tell the medical officer how you feel.",
+        "Check the dose recorded on your dosimeter.",
+        "Rest and drink fluids until you are assessed."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -912,8 +1068,8 @@
       "id": "radiation-2-2",
       "topic": "radiation",
       "level": 2,
-      "trigger": "Doza acumulată pe 30 de zile (dozimetru personal) depășește 50% din limita NASA de 250 mGy-Eq pentru organele hematopoietice sau sistemul circulator (fracția de 50% este derivată).",
-      "action": "Ofițerul medical revizuiește istoricul dozei, verifică dacă adăpostirea a fost corectă și planifică reducerea expunerii (ALARA) pentru zilele următoare.",
+      "trigger": "The 30-day accumulated dose (personal dosimeter) exceeds 50% of NASA's 250 mGy-Eq limit for the blood-forming organs or the circulatory system (the 50% fraction is derived).",
+      "action": "The medical officer reviews the dose history, checks that sheltering was done correctly and plans to reduce exposure (ALARA) over the next days.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -923,7 +1079,10 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Share your dosimeter history with the medical officer.",
+        "Follow the exposure plan for the next days."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -931,8 +1090,8 @@
       "id": "radiation-3-1",
       "topic": "radiation",
       "level": 3,
-      "trigger": "Doza acumulată de la începutul SEP ≥ 25 mGy-Eq (10% din limita pe 30 de zile pentru organele hematopoietice; prag derivat) sau proiecția dozei de carieră depășește 600 mSv.",
-      "action": "Trimite raport la Pământ (doza, durata, locul de adăpost). Pe Marte răspunsul vine cel mai devreme după ~6-45 min dus-întors, deci decizia de adăpostire nu așteaptă răspunsul.",
+      "trigger": "The dose accumulated since the start of the SEP is ≥ 25 mGy-Eq (10% of the 30-day limit for the blood-forming organs; derived threshold), or the projected career dose exceeds 600 mSv.",
+      "action": "Send a report to Earth (dose, duration, shelter location). On Mars the answer comes ~6–45 min round trip at the earliest, so the decision to shelter does not wait for it.",
       "hrp_risk": "Risk of Radiation-Induced Cancers (formal: Risk of Radiation Carcinogenesis)",
       "hrp_risk_url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/",
       "source": {
@@ -942,7 +1101,10 @@
         "derivation": "derived",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Send the dose report to Earth.",
+        "Stay in the shelter; don't wait for the reply."
+      ],
       "recheck_days": 1,
       "note": null
     },
@@ -950,8 +1112,8 @@
       "id": "radiation-3-2",
       "topic": "radiation",
       "level": 3,
-      "trigger": "Doză estimată de corp întreg care se apropie de 0.7 Gy într-un interval scurt sau simptome de sindrom acut de iradiere.",
-      "action": "Urgență medicală: notifică imediat Pământul (chirurgul de zbor) și urmează protocolul medical de la bord fără să aștepți răspunsul, din cauza întârzierii.",
+      "trigger": "An estimated whole-body dose approaching 0.7 Gy within a short time, or symptoms of acute radiation syndrome.",
+      "action": "Medical emergency: notify Earth (the flight surgeon) immediately and follow the on-board medical protocol without waiting for an answer, because of the delay.",
       "hrp_risk": "Risk of Adverse Health Outcomes and Decrements in Performance due to Inflight Medical Conditions",
       "hrp_risk_url": "https://www.nasa.gov/hhp/human-system-risks/",
       "source": {
@@ -961,7 +1123,11 @@
         "derivation": "published",
         "evidence_strength": null
       },
-      "steps": null,
+      "steps": [
+        "Alert the medical officer and Earth now.",
+        "Follow the on-board medical protocol.",
+        "Don't wait for an answer from Earth."
+      ],
       "recheck_days": 1,
       "note": null
     }
