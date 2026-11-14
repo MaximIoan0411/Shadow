@@ -3,34 +3,32 @@
 ATENȚIE, backend: ambele funcții sunt LENTE intenționat. Din cod asincron se apelează cu
 `await asyncio.to_thread(passwords.verify, parola, hash_salvat)`.
 """
-import base64
-import hashlib
-import hmac
-import os
+from argon2 import PasswordHasher
+from argon2.exceptions import Argon2Error, InvalidHashError
 
-PROVIZORIU: tuple[str, ...] = ('hash', 'verify')
+PROVIZORIU: tuple[str, ...] = ()
 """Funcțiile al căror corp e încă provizoriu. Echipa de securitate scoate numele pe măsură ce le termină."""
 
-# PROVIZORIU: scrypt din biblioteca standard. Securitatea îl înlocuiește cu argon2id (pachetul argon2-cffi);
-# formatul șirului întors se schimbă, dar semnăturile rămân.
-_N, _R, _P = 2**14, 8, 1
+MAX_PASSWORD_CHARS = 256
+"""O parolă mai lungă e refuzată înainte de hash, ca nimeni să nu țină serverul ocupat cu megabytes de text."""
+
+# argon2id, cu parametrii recomandați de bibliotecă (RFC 9106): 64 MiB, 3 treceri, 4 fire
+_hasher = PasswordHasher()
 
 
 def hash(password: str) -> str:  # noqa: A001 - numele face parte din contract
     """Întoarce hash-ul parolei, cu sare aleatoare inclusă, gata de salvat în `users.password_hash`."""
-    salt = os.urandom(16)
-    dk = hashlib.scrypt(password.encode(), salt=salt, n=_N, r=_R, p=_P)
-    return "scrypt$" + base64.b64encode(salt).decode() + "$" + base64.b64encode(dk).decode()
+    return _hasher.hash(password)
 
 
 def verify(password: str, stored: str) -> bool:
     """True dacă parola corespunde hash-ului. Durează la fel indiferent unde diferă (comparare în timp constant)."""
-    try:
-        _, salt_b64, dk_b64 = stored.split("$")
-    except ValueError:
+    if len(password) > MAX_PASSWORD_CHARS:
         return False
-    dk = hashlib.scrypt(password.encode(), salt=base64.b64decode(salt_b64), n=_N, r=_R, p=_P)
-    return hmac.compare_digest(dk, base64.b64decode(dk_b64))
+    try:
+        return _hasher.verify(stored, password)
+    except (Argon2Error, InvalidHashError):
+        return False
 
 
 DUMMY_HASH = hash("parola-inexistenta")

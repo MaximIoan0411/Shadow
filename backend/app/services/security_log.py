@@ -24,9 +24,11 @@ from ..schemas import (
     MeasurementIngest,
     Parameter,
     Rejection,
+    Role,
     SourceRef,
     TestCase,
     TestReport,
+    User,
     Verification,
 )
 from ..security import signing, validation
@@ -82,8 +84,11 @@ async def record_rejection(
     return row
 
 
-async def rejections(session: AsyncSession, limit: int) -> list[Rejection]:
+async def rejections(session: AsyncSession, limit: int, user: User | None = None) -> list[Rejection]:
     stmt = select(RejectionRow).order_by(RejectionRow.at.desc(), RejectionRow.id.desc()).limit(limit)
+    if user is not None and user.role == Role.astronaut:
+        # a rejected value is still someone's measurement: an astronaut sees their own and the ones without a person
+        stmt = stmt.where((RejectionRow.crew_id == user.crew_id) | RejectionRow.crew_id.is_(None))
     return [to_schema(r) for r in (await session.scalars(stmt)).all()]
 
 
@@ -105,16 +110,37 @@ def _range_text(metric: str, lim: dict[str, tuple[float, float]]) -> str:
     return f" (possible range {lo:g}–{hi:g})" if lo is not None else ""
 
 
+async def _already_received(session: AsyncSession, body: MeasurementIngest) -> bool:
+    stmt = (
+        select(Measurement.id)
+        .where(
+            Measurement.device_id == body.device_id,
+            Measurement.metric_key == body.metric_key,
+            Measurement.measured_at == body.measured_at,
+        )
+        .limit(1)
+    )
+    return await session.scalar(stmt) is not None
+
+
 async def ingest(
-    session: AsyncSession, data: DataBundle, keys: Keys, body: MeasurementIngest
+    session: AsyncSession, data: DataBundle, keys: Keys, body: MeasurementIngest, signed: dict | None = None
 ) -> tuple[IngestResult, list[Event]]:
     """Signature → plausibility → frozen sensor; a rejected measurement is saved as a Rejection and the answer is
     still 200 with `accepted = false`. An accepted one is saved (`source = device`) and goes through the pipeline."""
-    obj = body.model_dump(mode="json")
+    # the signature is checked over the JSON exactly as it arrived (`signed`): after validation `61` becomes
+    # `61.0` and the timestamp is written differently, so the canonical form would no longer be the signed one
+    obj = signed if signed is not None else body.model_dump(mode="json")
     kind, message = None, ""
     crew_known = await session.get(Crew, body.crew_id) is not None
     if not crew_known or not signing.verify(obj, body.signature_b64, keys.device_public.get(body.device_id)):
         kind, message = "bad_signature", f"Invalid signature from {body.device_id}: the measurement was discarded."
+    elif keys.device_crew.get(body.device_id) != body.crew_id:
+        kind = "bad_signature"
+        message = f"{body.device_id} is not registered for {body.crew_id}: the measurement was discarded."
+    elif await _already_received(session, body):
+        kind = "replay"
+        message = f"{body.device_id} already sent this {body.metric_key} measurement: the copy was discarded."
     else:
         lim = limits(data)
         recent = await repos.recent_device_values(

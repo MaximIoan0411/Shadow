@@ -143,6 +143,12 @@ async def escalate(
 
     **SSE:** `alert.updated`, and at level 3 also `packet.sent` when the window opens."""
     alert, events = await alerts_service.escalate(session, data, alert_id, body.to_level, body.note, user)
+    if user.role == Role.cmo and alert.crew_id != user.crew_id:
+        # the crew member can see in the access log who moved their alert up, and that it went to Earth
+        await access.record(
+            session, user, action="escalate", resource=f"alerts/{alert_id}", crew_id=alert.crew_id, outcome="allowed"
+        )
+        await session.commit()
     publish_all(events)
     return alert
 

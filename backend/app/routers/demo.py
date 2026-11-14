@@ -117,5 +117,6 @@ async def reset(
     **SSE:** `mission.tick` with day 96, then `dashboard.changed`."""
     await session.close()  # the request's own session must not hold the database while the tables are emptied
     _seconds, events = await demo_service.reset(request.app)
+    await demo_service.log_reset(user)
     publish_all(events)
     return Ok()
