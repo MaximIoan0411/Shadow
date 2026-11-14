@@ -1,49 +1,110 @@
-"""SHADOW — serviciul AI. Varianta MOCK: răspunde după contract, fără model.
+"""SHADOW — serviciul AI (medicul de bord). Singurul client: backend-ul.
 
     cd ai && uv run uvicorn service.main:app --port 8001
 
-Echipa de AI înlocuiește corpul funcțiilor (RAG + llama-server), fără să schimbe căile sau modelele.
-Backend-ul îl poate folosi din primul minut ca să-și scrie puntea (/ai/chat cu limită de 20 s și fallback).
+Pentru o întrebare: caută 3–4 fragmente în baza de cunoștințe (rag/), construiește promptul (prompts/), cere
+răspunsul de la llama-server (local sau pe Colab, prin tunel; vezi colab/), verifică regulile (guard.py) și
+întoarce doar citările folosite. Fără `SHADOW_LLM_URL` rulează ca mock: reformulează recomandarea din catalog.
+Dacă modelul nu răspunde, întoarce repede 503 `model_unavailable`; fallback-ul pe catalog îl face backend-ul.
 """
+import logging
 import time
+from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
-from .schemas import AiCitation, AiServiceChatRequest, AiServiceChatResponse, AiServiceError, AiServiceStatus
+from rag.retrieve import Passage, index_ready, load_index, retrieve
 
-app = FastAPI(title="SHADOW AI service", version="1.2.0",
+from . import guard
+from .config import load_settings
+from .llm import LlmClient, LlmUnavailable
+from .prompting import build_messages
+from .schemas import AiServiceChatRequest, AiServiceChatResponse, AiServiceError, AiServiceStatus
+
+log = logging.getLogger("shadow.ai")
+SETTINGS = load_settings()
+STATE: dict = {"llm": None}
+
+
+def warm_index() -> None:
+    """Încarcă indexul și modelul de embedding la pornire, ca prima întrebare din demo să nu fie cea lentă."""
+    if not index_ready():
+        log.warning("Indexul lipsește: rulați `uv run python -m rag.ingest`. Medicul AI răspunde fără surse.")
+        return
+    load_index()
+    retrieve("warm up", None)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await anyio.to_thread.run_sync(warm_index)
+    if SETTINGS.llm_url:
+        client = LlmClient(SETTINGS)
+        STATE["llm"] = client
+        name = await client.model()
+        log.warning("Model %s la %s (%s)", name or "INDISPONIBIL", SETTINGS.llm_url, SETTINGS.mode)
+    yield
+    if STATE["llm"]:
+        await STATE["llm"].close()
+
+
+app = FastAPI(title="SHADOW AI service", version="1.2.0", lifespan=lifespan,
               description="Contractul dintre backend și serviciul AI. Singurul client: backend-ul.")
 
-OFF_TOPIC = "Pot ajuta doar cu întrebări despre sănătatea ta în misiune."
-HEALTH_WORDS = ("puls", "somn", "obosi", "temperat", "tensiun", "inim", "oase", "mușchi", "muschi", "radia",
-                "adăpost", "adapost", "alert", "tast", "stres", "febr", "simptom", "exerci", "doz", "ameț")
+
+def ms_since(start: float) -> int:
+    return int((time.perf_counter() - start) * 1000)
+
+
+def unavailable(message: str) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"error": {"code": "model_unavailable", "message": message}})
 
 
 @app.get("/status", response_model=AiServiceStatus, summary="Starea modelului")
 async def status() -> AiServiceStatus:
-    return AiServiceStatus(ready=True, model="mock", mode="mock", corpus_documents=0)
+    documents = load_index().documents if index_ready() else 0
+    client: LlmClient | None = STATE["llm"]
+    if client is None:
+        return AiServiceStatus(ready=True, model="mock", mode="mock", corpus_documents=documents)
+    name = await client.model()
+    return AiServiceStatus(ready=name is not None, model=name, mode=SETTINGS.mode, corpus_documents=documents)
 
 
 @app.post("/chat", response_model=AiServiceChatResponse, summary="Răspuns cu surse",
           responses={503: {"model": AiServiceError, "description": "Modelul nu răspunde (`model_unavailable`). Backend-ul trece pe catalog."}})
-async def chat(body: AiServiceChatRequest) -> AiServiceChatResponse:
-    """MOCK: reformulează direct recomandarea din context și citează sursa ei.
+async def chat(body: AiServiceChatRequest):
+    started = time.perf_counter()
+    context = body.context
+    rec = context.recommendation
+    hint = " ".join(part for part in (context.alert_title, rec.trigger if rec else None) if part)
+    passages: list[Passage] = await anyio.to_thread.run_sync(retrieve, body.message, context.topic, hint) if index_ready() else []
+    client: LlmClient | None = STATE["llm"]
+    model = client.model_name if client and client.model_name else "mock"
 
-    Varianta reală: caută 3–4 fragmente în index (întrebare + subiectul alertei), construiește promptul din
-    ai/prompts/, cere răspunsul de la llama-server, verifică limitele (fără diagnostic, fără medicamente,
-    lungime maximă) și întoarce doar citările folosite."""
-    t0 = time.perf_counter()
-    rec = body.context.recommendation
-    if body.context.topic is None and not any(w in body.message.lower() for w in HEALTH_WORDS):
-        return AiServiceChatResponse(answer=OFF_TOPIC, citations=[], off_topic=True, model="mock",
-                                     latency_ms=int((time.perf_counter() - t0) * 1000))
-    if rec is None:
-        answer = "Nu am o recomandare din catalog pentru această întrebare. Dacă te îngrijorează ceva, anunță ofițerul medical."
-        cites, ids = [], []
+    if guard.looks_off_topic(body.message, context.topic, passages):
+        return AiServiceChatResponse(answer=guard.OFF_TOPIC, citations=[], off_topic=True, model=model, latency_ms=ms_since(started))
+
+    evidence = [item.deviation_text for item in context.evidence]
+    if client is None:
+        # mock: reformularea fixă a recomandării (sau fraza din sursă), cu sursa ei
+        answer, citations = guard.fallback(rec, evidence, passages, body.message)
+        return AiServiceChatResponse(answer=answer, citations=citations, recommendation_ids=[rec.id] if rec else [],
+                                     model="mock", latency_ms=ms_since(started))
+
+    try:
+        raw = await client.complete(build_messages(body, passages))
+    except LlmUnavailable as error:
+        log.warning("Modelul nu răspunde: %s", error)
+        return unavailable("Modelul nu răspunde.")
+    if not raw:
+        return unavailable("Modelul a întors un răspuns gol.")
+
+    if guard.violates_rules(raw):
+        log.warning("Răspuns respins (medicament, doză, diagnostic sau raționament scăpat): %s", raw[:200])
+        answer, citations = guard.fallback(rec, evidence, passages, body.message)
     else:
-        evid = "; ".join(e.deviation_text for e in body.context.evidence) or "datele tale s-au abătut de la normalul tău"
-        answer = f"Ce s-a observat: {evid}. Ce poți face acum: {rec.action}"
-        cites = [AiCitation(title=rec.source_citation, url=rec.source_url, snippet=rec.trigger)]
-        ids = [rec.id]
-    return AiServiceChatResponse(answer=answer, citations=cites, recommendation_ids=ids, model="mock",
-                                 latency_ms=int((time.perf_counter() - t0) * 1000))
+        answer, citations = guard.attach_citations(guard.clip(raw), passages, rec)
+    return AiServiceChatResponse(answer=answer, citations=citations, recommendation_ids=[rec.id] if rec else [],
+                                 model=client.model_name or model, latency_ms=ms_since(started))

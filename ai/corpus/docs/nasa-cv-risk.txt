@@ -1,0 +1,17 @@
+Exposure to the spaceflight environment can contribute to cardiovascular deconditioning, dysfunction, and remodeling. There is a possibility that crews will experience impaired performance and negative cardiovascular health outcomes during and after spaceflight and planetary operations. Manifestation of the cardiovascular risk outcomes varies depending upon the phase of the mission.
+- Orthostatic intolerance during acceleration is considered the primary risk during mission, particularly those missions in Low Earth Orbit (LEO) or concerning lunar surface operations.
+- Cardiovascular disease is considered a significant Long-Term Health (LTH) risk and concern for fitness for future flights, particularly for long-duration missions beyond LEO.
+The effect of interactions between altered gravity and prolonged exposures to space radiation beyond LEO on the function of the cardiovascular system needs to be understood for their effects on long-term health, separate from the risk of developing cancer.
+Directed Acyclic Graph Files
++ DAG File Information (HSRB Home Page)
++ Cardiovascular Risk DAG and Narrative (PDF)
++ Cardiovascular Med Risk DAG Code (TXT)
+Human Research Roadmap
++ Risk of Cardiovascular Adaptations
+Multiple Evidence Reports are available for this Risk. Please see the relevant section on the Human Research Roadmap Evidence page for all of the Evidence Reports.
+Historical Information – for reference only
+The VTE Concern is now a component of the Cardiovascular Risk
+Concern of Venous Thromboembolism
+Stagnant or reverse flow in the internal jugular vein has been observed in 6 of 11 crew members (55%) tested in-mission on approximately flight day 50; one crewmember was found to have an occlusive internal jugular vein thrombus requiring treatment in-mission. This is an emerging finding and has potential impacts on flight participants with cardiovascular conditions.
+Directed Acyclic Graph Files
++ DAG File Information (HSRB Home Page)
