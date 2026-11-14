@@ -58,6 +58,7 @@ async def current_user(
         session, token, secret=settings.jwt_secret, allow_mock=settings.allow_mock_tokens
     )
     request.state.token = token
+    request.state.user = user
     return user
 
 
@@ -72,11 +73,29 @@ def require_roles(*allowed: Role):
     return dep
 
 
-def crew_access(crew_id: str, user: User = Depends(require_roles(*CREW))) -> User:
+async def crew_access(
+    crew_id: str,
+    request: Request,
+    user: User = Depends(require_roles(*CREW)),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    from .services import access
+
     if crew_id not in ex.CREW_BY_ID:
         raise ApiError(404, "not_found", f"Crew member {crew_id} does not exist.")
     if user.role == Role.astronaut and user.crew_id != crew_id:
         raise ApiError(403, "forbidden", "You do not have access to another crew member's data.")
+    if user.role == Role.cmo and user.crew_id != crew_id:
+        path = request.url.path
+        await access.record(
+            session,
+            user,
+            action=access.read_action_for(path),
+            resource=access.resource_for(path),
+            crew_id=crew_id,
+            outcome="allowed",
+        )
+        await session.commit()
     return user
 
 

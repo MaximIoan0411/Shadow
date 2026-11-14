@@ -35,6 +35,7 @@ from .routers import (
     security,
 )
 from .security import keys as security_keys
+from .services import access
 
 API_PREFIX = "/api/v1"
 VERSION = "1.2.0"
@@ -132,7 +133,9 @@ def _err(status: int, code: str, message: str, details=None) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details}})
 
 
-async def api_error(_: Request, e: ApiError):
+async def api_error(request: Request, e: ApiError):
+    if e.status == 403:
+        await access.record_denied(request)
     return _err(e.status, e.code, e.message, e.details)
 
 
