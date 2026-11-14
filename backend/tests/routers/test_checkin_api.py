@@ -55,13 +55,13 @@ async def test_perception_gap_for_cm2_on_day_96(client):
     body = (await client.post(URL, headers=A, json=BODY)).json()
     gap = body["perception_gap"]
     assert gap["self_reported_mood"] == 4 and gap["self_score"] == 80
-    # until T19/T20 only the night pulse and sleep scores exist: night +7 bpm → 58, sleep −1.1 h → ~72
-    assert 60 <= gap["objective_score"] <= 70 and gap["gap"] == pytest.approx(80 - gap["objective_score"])
-    assert gap["contributing_signals"][0].startswith("Night pulse: +")
-    assert any(s.startswith("Sleep: -") for s in gap["contributing_signals"])
-    expected = "alert" if gap["gap"] >= 25 else "watch" if gap["gap"] >= 15 else "ok"
-    assert gap["status"] == expected
-    # with the typing score (T19) the gap passes 25 and becomes "alert"
+    # typing 18% slower (score ~28), night pulse +7 bpm (58), sleep −1.1 h (~72) → objective ~53
+    assert gap["gap"] == pytest.approx(80 - gap["objective_score"])
+    assert gap["gap"] >= 25 and gap["status"] == "alert"
+    signals = gap["contributing_signals"]
+    assert signals[0].startswith("Typing: -") and signals[0].endswith("% speed")
+    assert signals[1].startswith("Night pulse: +") and signals[2].startswith("Sleep: -")
+    assert gap["explanation"].startswith("You rate yourself 4/5 (80/100), but your objective data score")
 
 
 async def test_streak_and_message(client):

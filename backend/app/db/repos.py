@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..engine.types import Point
-from .models.measurements import Checkin, Measurement
+from .models.measurements import Checkin, KeystrokeSession, Measurement
 
 CHECKIN_METRICS = {
     "mood": Checkin.mood,
@@ -71,3 +71,32 @@ async def recent_device_values(session: AsyncSession, device_id: str, metric_key
     )
     values = (await session.scalars(stmt)).all()
     return [float(v) for v in reversed(values)]
+
+
+async def keystroke_sessions(session: AsyncSession, crew_id: str, from_day: int, to_day: int) -> list[KeystrokeSession]:
+    stmt = (
+        select(KeystrokeSession)
+        .where(KeystrokeSession.crew_id == crew_id, KeystrokeSession.mission_day.between(from_day, to_day))
+        .order_by(KeystrokeSession.started_at, KeystrokeSession.session_id)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
+async def keystroke_baseline_sessions(session: AsyncSession, crew_id: str) -> list[KeystrokeSession]:
+    stmt = (
+        select(KeystrokeSession)
+        .where(KeystrokeSession.crew_id == crew_id, KeystrokeSession.is_baseline.is_(True))
+        .order_by(KeystrokeSession.started_at, KeystrokeSession.session_id)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
+async def latest_keystroke_session(
+    session: AsyncSession, crew_id: str, up_to_day: int, *, from_day: int = 1, judged_only: bool = False
+) -> KeystrokeSession | None:
+    stmt = select(KeystrokeSession).where(
+        KeystrokeSession.crew_id == crew_id, KeystrokeSession.mission_day.between(from_day, up_to_day)
+    )
+    if judged_only:
+        stmt = stmt.where(KeystrokeSession.fatigue_index.is_not(None))
+    return await session.scalar(stmt.order_by(KeystrokeSession.updated_at.desc()).limit(1))

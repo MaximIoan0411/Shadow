@@ -10,10 +10,11 @@ from ..clock import clock
 from ..datafiles import DataBundle
 from ..db import repos
 from ..db.models.alerts import Alert, AlertHistory, PlanStep
+from ..db.models.measurements import KeystrokeSession
 from ..db.models.users import Crew
 from ..engine import triage
 from ..engine.derived import MIN_SPREAD
-from ..engine.pillars import immune
+from ..engine.pillars import behavioral, immune
 from ..engine.types import Finding, PillarScore, Point, TriageDecision
 from ..ids import next_id
 from ..schemas import AlertBrief
@@ -108,6 +109,26 @@ async def immune_snapshot(session: AsyncSession, crew_id: str, day: int, data: D
     return ImmuneSnapshot(score=immune.score(nights, base, finding), finding=finding, night_delta_bpm=delta)
 
 
+async def typing_baseline(session: AsyncSession, crew_id: str, data: DataBundle) -> dict:
+    rows = await repos.keystroke_baseline_sessions(session, crew_id)
+    return behavioral.typing_baseline(
+        [behavioral.features_of(r) for r in rows], min_sessions=int(data.params.value("keystroke_baseline_duration"))
+    )
+
+
+async def _typing_finding(
+    session: AsyncSession, crew_id: str, day: int, data: DataBundle, preloaded: tuple[KeystrokeSession, dict] | None
+) -> Finding | None:
+    if preloaded is not None:
+        row, base = preloaded
+    else:
+        row = await repos.latest_keystroke_session(session, crew_id, day, from_day=day)
+        base = await typing_baseline(session, crew_id, data)
+    if row is None or not base["ready"]:
+        return None
+    return behavioral.typing_finding(crew_id, behavioral.features_of(row), base, row.fatigue_index, day=day)
+
+
 async def _open_alerts(session: AsyncSession, crew_id: str) -> dict[tuple[str, str], Alert]:
     stmt = (
         select(Alert)
@@ -193,6 +214,8 @@ async def _update(
     alert.explanation = f.explanation
     alert.evidence = _evidence(f)
     alert.updated_at = at
+    if f.status == "alert":
+        alert.status = "alert"
     if decision.action == "escalate":
         alert.level = decision.new_level
         alert.status = f.status
@@ -225,6 +248,7 @@ async def process(
     at: datetime | None = None,
     reason: str | None = None,
     _series: dict[str, list[Point]] | None = None,
+    _typing: tuple[KeystrokeSession, dict] | None = None,
 ) -> PipelineResult:
     """Runs only the rules of the pillars touched by `changed`, then triage, then writes the alerts.
     Returns the events to publish AFTER commit. Does not commit."""
@@ -238,6 +262,10 @@ async def process(
         series = _series or await _load_immune_series(session, crew_id, day)
         open_immune = open_alerts.get((crew_id, "immune"))
         finding = _immune_finding(crew_id, day, series, data, open_immune.mission_day if open_immune else None)
+        if finding:
+            findings.append(finding)
+    if "behavioral" in pillars:
+        finding = await _typing_finding(session, crew_id, day, data, _typing)
         if finding:
             findings.append(finding)
 
@@ -267,6 +295,10 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
     crew_ids = (await session.scalars(select(Crew.id).order_by(Crew.id))).all()
     for crew_id in crew_ids:
         series = await _load_immune_series(session, crew_id, until_day)
+        typing_base = await typing_baseline(session, crew_id, data)
+        typing_by_day: dict[int, list[KeystrokeSession]] = {}
+        for row in await repos.keystroke_sessions(session, crew_id, 1, until_day):
+            typing_by_day.setdefault(row.mission_day, []).append(row)
         for day in range(1, until_day + 1):
             await process(
                 session,
@@ -277,3 +309,18 @@ async def replay_history(session: AsyncSession, *, until_day: int, data: DataBun
                 at=review_time(data, day),
                 _series={m: _up_to(points, day) for m, points in series.items()},
             )
+            for row in typing_by_day.get(day, []):
+                if row.is_baseline or not typing_base["ready"]:
+                    continue
+                row.fatigue_index, _z = behavioral.fatigue_index(behavioral.features_of(row), typing_base)
+                row.status = behavioral.status_for(row.fatigue_index)
+                if row.status in ("watch", "alert"):
+                    await process(
+                        session,
+                        crew_id,
+                        {"keys_per_min"},
+                        day=day,
+                        data=data,
+                        at=row.updated_at,
+                        _typing=(row, typing_base),
+                    )

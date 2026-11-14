@@ -22,6 +22,7 @@ from ..schemas import (
 )
 from ..security import validation
 from . import alerts as alerts_service
+from . import behavioral as behavioral_service
 from . import pipeline
 from .events import Event
 
@@ -164,9 +165,12 @@ async def gap_for(
 ) -> PerceptionGap:
     snapshot = await pipeline.immune_snapshot(session, crew_id, day, data)
     sleep, sleep_delta = await _sleep_score(session, data, crew_id, day, sleep_hours)
-    scores = {"night_pulse": snapshot.score.score, "sleep": sleep}
-    # TODO T19 / T20: add the "keystrokes" and "pvt" scores
+    typing, typing_text = await behavioral_service.typing_snapshot(session, data, crew_id, day)
+    scores = {"night_pulse": snapshot.score.score, "sleep": sleep, "keystrokes": typing}
+    # TODO T20: add the "pvt" score
     details = {}
+    if typing_text is not None:
+        details["keystrokes"] = typing_text
     if snapshot.night_delta_bpm is not None:
         details["night_pulse"] = f"Night pulse: {snapshot.night_delta_bpm:+.1f} bpm"
     if sleep_delta is not None:

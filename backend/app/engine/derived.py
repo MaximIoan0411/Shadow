@@ -22,12 +22,28 @@ SEP_CONSECUTIVE_READINGS = 3
 FLIGHT_PAUSE_MS = 2000
 KEYSTROKE_WATCH_FATIGUE = 50
 KEYSTROKE_ALERT_FATIGUE = 75
+# fatigue index: weight of each feature (sum = 1), the weighted deviation (in personal spreads) that gives 100,
+# the most one feature can count, and the keys a session needs before it is judged
+KEYSTROKE_WEIGHTS = {"hold_ms_mean": 0.4, "keys_per_min": 0.4, "flight_ms_mean": 0.1, "backspace_rate": 0.1}
+KEYSTROKE_FULL_Z = 5.0
+KEYSTROKE_Z_CAP = 6.0
+KEYSTROKE_MIN_KEYS = 30
+# behavioral pillar score: points lost per personal spread below the baseline reaction speed (PVT, T20)
+PVT_SCORE_PENALTY_PER_SD = 20.0
 
 # Cross signals (T29): window in days
 CROSS_SIGNAL_WINDOW_DAYS = 3
 
 # Baseline (T12): minimum spread, so a very steady person does not raise alarms on noise
-MIN_SPREAD = {"night_pulse_bpm": 1.5, "temperature_c": 0.15, "sleep_hours": 0.4, "keys_per_min": 8.0}
+MIN_SPREAD = {
+    "night_pulse_bpm": 1.5,
+    "temperature_c": 0.15,
+    "sleep_hours": 0.4,
+    "keys_per_min": 8.0,
+    "hold_ms_mean": 6.0,
+    "flight_ms_mean": 15.0,
+    "backspace_rate": 0.02,
+}
 
 # Sentinel pillar (T14): stress index weights (sum = 1) and the scale of each component
 STRESS_WEIGHTS = {"fatigue": 0.5, "isolation": 0.2, "dose": 0.3}

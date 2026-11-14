@@ -4,7 +4,6 @@ from sqlalchemy import select
 from app import deps
 from app.db import session as db
 from app.db.models.alerts import Alert as AlertRow
-from app.services import pipeline
 from tests.conftest import auth
 
 A = auth("specialist2")
@@ -16,26 +15,10 @@ async def immune_id(client) -> str:
     return next(a["id"] for a in alerts if a["topic"] == "immune")
 
 
-async def make_level1_alert(client, crew_id="cm-2", topic="behavioral") -> str:
-    """A fresh level 1 alert, created through the same code the engine uses."""
-    from app.engine.types import Finding
-
-    data = client._transport.app.state.data
-    finding = Finding(
-        crew_id=crew_id,
-        topic=topic,
-        level=1,
-        status="watch",
-        title="Typing 18% slower than usual",
-        explanation="Test alert.",
-        evidence=(),
-        recommendation_id=f"{topic}-1-1",
-        day=96,
-    )
-    async with db.SessionLocal() as s:
-        alert = await pipeline.create_alert(s, finding, data, pipeline.review_time(data, 96))
-        await s.commit()
-        return alert.id
+async def typing_alert_id(client) -> str:
+    """cm-2's level 1 typing alert, produced by the engine at startup (day 95 of the scenario)."""
+    alerts = (await client.get("/api/v1/crew/cm-2/alerts", headers=A)).json()
+    return next(a["id"] for a in alerts if a["topic"] == "behavioral")
 
 
 @pytest.fixture
@@ -47,7 +30,7 @@ def events():
 
 async def test_list_and_detail_come_from_database(client):
     alerts = (await client.get("/api/v1/crew/cm-2/alerts", headers=A)).json()
-    assert [a["topic"] for a in alerts] == ["immune"]
+    assert [(a["topic"], a["level"]) for a in alerts] == [("immune", 2), ("behavioral", 1)]
     alert_id = alerts[0]["id"]
     detail = (await client.get(f"/api/v1/alerts/{alert_id}", headers=A)).json()
     assert detail["level"] == 2 and detail["state"] == "escalated"
@@ -58,7 +41,7 @@ async def test_list_and_detail_come_from_database(client):
 
 
 async def test_cmo_queue_and_level_filter(client):
-    low = await make_level1_alert(client)
+    low = await typing_alert_id(client)
     queue = (await client.get("/api/v1/cmo/queue", headers=C)).json()
     assert [a["topic"] for a in queue] == ["immune"]
     mine = (await client.get("/api/v1/crew/cm-2/alerts", headers=A)).json()
@@ -71,7 +54,7 @@ async def test_cmo_queue_and_level_filter(client):
 
 
 async def test_full_flow_ack_step_escalate_resolve(client, events):
-    alert_id = await make_level1_alert(client)
+    alert_id = await typing_alert_id(client)
 
     r = await client.post(f"/api/v1/alerts/{alert_id}/ack", headers=A)
     assert r.status_code == 200 and r.json()["state"] == "acknowledged"
@@ -152,7 +135,7 @@ async def test_catalog_comes_from_data(client):
 
 
 async def test_actions_are_saved(client):
-    alert_id = await make_level1_alert(client)
+    alert_id = await typing_alert_id(client)
     await client.post(f"/api/v1/alerts/{alert_id}/ack", headers=A)
     async with db.SessionLocal() as s:
         row = await s.scalar(select(AlertRow).where(AlertRow.id == alert_id))

@@ -1,47 +1,91 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import examples as ex
-from ..deps import CREW, ERRORS, crew_access, roles
-from ..schemas import KeystrokeBatch, KeystrokeResult, KeystrokeSummary, PvtResult, PvtSubmit, Status, User
+from ..datafiles import DataBundle
+from ..db.session import get_session
+from ..deps import CREW, ERRORS, crew_access, get_data, roles
+from ..schemas import KeystrokeBatch, KeystrokeResult, KeystrokeSummary, PvtResult, PvtSubmit, User
+from ..services import behavioral as behavioral_service
+from ..services.events import publish_all
 
-router = APIRouter(tags=["5. Tastare și test de reacție"])
+router = APIRouter(tags=["5. Typing and reaction test"])
 E = {k: ERRORS[k] for k in (401, 403, 404, 422)}
 
 
-@router.post("/crew/{crew_id}/keystrokes/batches", response_model=KeystrokeResult, summary="Trimite un lot de apăsări de taste", responses=E, openapi_extra=roles(*CREW))
-async def post_keystrokes(crew_id: str, body: KeystrokeBatch, user: User = Depends(crew_access)):
-    """**Confidențialitate: trimiteți doar timpii și clasa tastei, niciodată caracterul.** Backend-ul respinge cu 422
-    orice câmp în plus (ex. `key`, `code`, `text`).
+@router.post(
+    "/crew/{crew_id}/keystrokes/batches",
+    response_model=KeystrokeResult,
+    summary="Send a batch of key presses",
+    responses=E,
+    openapi_extra=roles(*CREW),
+)
+async def post_keystrokes(
+    crew_id: str,
+    body: KeystrokeBatch,
+    user: User = Depends(crew_access),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """**Privacy: send only the timings and the key class, never the character.** The backend rejects with 422 any
+    extra field (e.g. `key`, `code`, `text`).
 
-    Frontend: adunați evenimentele `keydown`/`keyup` și trimiteți un lot la ~5 secunde sau la 200 de taste, cu
-    același `session_id` cât timp utilizatorul scrie în același câmp. Răspunsul conține trăsăturile cumulate ale
-    sesiunii, deci îl puteți afișa direct în barele live.
+    Frontend: collect the `keydown`/`keyup` events and send a batch every ~5 seconds or every 200 keys, with the
+    same `session_id` while the user keeps typing in the same field. The response holds the cumulative features of
+    the session, so you can show it directly in the live bars.
 
-    Primele sesiuni construiesc baseline-ul: cât timp `baseline_ready` e `false`, `status` e `unknown`.
+    The first sessions build the baseline: while `baseline_ready` is `false`, `status` is `unknown`. A session is
+    judged only after its first 30 keys.
 
-    **SSE:** `alert.created` dacă abaterea trece pragul."""
-    return KeystrokeResult(session_id=body.session_id, features=ex.KS_NOW.model_copy(update={"n_keys": len(body.events)}), baseline=ex.KS_BASE,
-                           deviation_z={"hold_ms_mean": 1.9, "flight_ms_mean": 1.5, "keys_per_min": -1.6, "backspace_rate": 0.3},
-                           fatigue_index=68, status=Status.watch, baseline_ready=True, baseline_sessions=9)
-
-
-@router.get("/crew/{crew_id}/keystrokes/summary", response_model=KeystrokeSummary, summary="Rezumatul tastării", responses=E, openapi_extra=roles(*CREW))
-async def keystroke_summary(crew_id: str, last: int = Query(default=10, ge=1, le=100, description="Câte sesiuni recente să întoarcă."), user: User = Depends(crew_access)):
-    """Baseline-ul personal, ultima sesiune și sesiunile recente. Pentru cardul „Ritmul tău” și pentru comparația din demo."""
-    return ex.KS_SUMMARY
+    **SSE:** `alert.created` (or `alert.updated`) and `dashboard.changed` when the deviation crosses the threshold."""
+    result, events = await behavioral_service.add_batch(session, data, crew_id, body)
+    publish_all(events)
+    return result
 
 
-@router.post("/crew/{crew_id}/pvt", response_model=PvtResult, status_code=201, summary="Trimite un test de reacție (PVT-B)", responses=E, openapi_extra=roles(*CREW))
+@router.get(
+    "/crew/{crew_id}/keystrokes/summary",
+    response_model=KeystrokeSummary,
+    summary="Typing summary",
+    responses=E,
+    openapi_extra=roles(*CREW),
+)
+async def keystroke_summary(
+    crew_id: str,
+    last: int = Query(default=10, ge=1, le=100, description="How many recent sessions to return."),
+    user: User = Depends(crew_access),
+    session: AsyncSession = Depends(get_session),
+    data: DataBundle = Depends(get_data),
+):
+    """The personal baseline, the latest session and the recent sessions. For the "Your rhythm" card and the
+    comparison in the demo."""
+    return await behavioral_service.summary(session, data, crew_id, last)
+
+
+@router.post(
+    "/crew/{crew_id}/pvt",
+    response_model=PvtResult,
+    status_code=201,
+    summary="Send a reaction test (PVT-B)",
+    responses=E,
+    openapi_extra=roles(*CREW),
+)
 async def post_pvt(crew_id: str, body: PvtSubmit, user: User = Depends(crew_access)):
-    """Testul de 3 minute rulează integral în frontend; aici trimiteți toate încercările la sfârșit.
+    """The 3-minute test runs entirely in the frontend; send all the trials here at the end.
 
-    Backend-ul calculează media 1/RT, lapsusurile (RT ≥ 355 ms) și abaterea față de baseline. Primele 2–3 teste
-    sunt de antrenament și nu intră în baseline.
+    The backend computes the mean 1/RT, the lapses (RT ≥ 355 ms) and the deviation from the baseline. The first
+    2–3 tests are practice and do not enter the baseline.
 
     **SSE:** `dashboard.changed`."""
     return ex.PVT.model_copy(update={"crew_id": crew_id})
 
 
-@router.get("/crew/{crew_id}/pvt", response_model=list[PvtResult], summary="Istoricul testelor de reacție", responses=E, openapi_extra=roles(*CREW))
+@router.get(
+    "/crew/{crew_id}/pvt",
+    response_model=list[PvtResult],
+    summary="Reaction test history",
+    responses=E,
+    openapi_extra=roles(*CREW),
+)
 async def list_pvt(crew_id: str, limit: int = Query(default=20, ge=1, le=200), user: User = Depends(crew_access)):
     return [ex.PVT.model_copy(update={"crew_id": crew_id})]
