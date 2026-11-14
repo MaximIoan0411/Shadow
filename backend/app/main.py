@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import schemas
 from .config import get_settings
+from .datafiles import load_all
 from .db import models  # noqa: F401  (registers every table on Base.metadata)
 from .db import session as db
 from .db.base import Base
@@ -31,11 +32,19 @@ from .routers import (
     radiation,
     security,
 )
+from .security import keys as security_keys
 
 API_PREFIX = "/api/v1"
 VERSION = "1.2.0"
 
 log = logging.getLogger(__name__)
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+
+def resolve_data_dir(data_dir: str) -> Path:
+    path = Path(data_dir)
+    return path if path.is_absolute() else (BACKEND_DIR / path).resolve()
 
 
 def delete_sqlite_files(url: str) -> None:
@@ -64,9 +73,11 @@ async def lifespan(app: FastAPI):
     if settings.reset_db_on_start:
         delete_sqlite_files(settings.database_url)
     engine = db.init_engine(settings.database_url)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        app.state.data = load_all(resolve_data_dir(settings.data_dir))
+        app.state.keys = security_keys.load_keys(link_aes_key_b64=settings.link_aes_key_b64)
         yield
     finally:
         await engine.dispose()
