@@ -1,0 +1,34 @@
+In addition to producing auroras, a recent extreme storm provided more detail on how much radiation future astronauts could encounter on the Red Planet.
+Mars scientists have been anticipating epic solar storms ever since the Sun entered a period of peak activity earlier this year called solar maximum. Over the past month, NASA’s Mars rovers and orbiters have provided researchers with front-row seats to a series of solar flares and coronal mass ejections that have reached Mars — in some cases, even causing Martian auroras.
+This science bonanza has offered an unprecedented opportunity to study how such events unfold in deep space, as well as how much radiation exposure the first astronauts on Mars could encounter.
+The biggest event occurred on May 20 with a solar flare later estimated to be an X12 — X-class solar flares are the strongest of several types — based on data from the Solar Orbiter spacecraft, a joint mission between ESA (European Space Agency) and NASA. The flare sent out X-rays and gamma rays toward the Red Planet, while a subsequent coronal mass ejection launched charged particles. Moving at the speed of light, the X-rays and gamma rays from the flare arrived first, while the charged particles trailed slightly behind, reaching Mars in just tens of minutes.
+The unfolding space weather was closely tracked by analysts at the Moon to Mars Space Weather Analysis Office at NASA’s Goddard Space Flight Center in Greenbelt, Maryland, which flagged the possibility of incoming charged particles following the coronal mass ejection.
+If astronauts had been standing next to NASA’s Curiosity Mars rover at the time, they would have received a radiation dose of 8,100 micrograys — equivalent to 30 chest X-rays. While not deadly, it was the biggest surge measured by Curiosity’s Radiation Assessment Detector, or RAD, since the rover landed 12 years ago.
+RAD’s data will help scientists plan for the highest level of radiation exposure that might be encountered by astronauts, who could use on the Martian landscape for protection.
+“Cliffsides or lava tubes would provide additional shielding for an astronaut from such an event. In Mars orbit or deep space, the dose rate would be significantly more,” said RAD’s principal investigator, Don Hassler of Southwest Research Institute’s Solar System Science and Exploration Division in Boulder, Colorado. “I wouldn’t be surprised if this active region on the Sun continues to erupt, meaning even more solar storms at both Earth and Mars over the coming weeks.”
+During the May 20 event, so much energy from the storm struck the surface that black-and-white images from Curiosity’s navigation cameras danced with “snow” — white streaks and specks caused by charged particles hitting the cameras.
+Similarly, the star camera NASA’s 2001 Mars Odyssey orbiter uses for orientation was inundated with energy from solar particles, momentarily going out. (Odyssey has other ways to orient itself, and recovered the camera within an hour.) Even with the brief lapse in its star camera, the orbiter collected vital data on X-rays, gamma rays, and charged particles using its High-Energy Neutron Detector.
+This wasn’t Odyssey’s first brush with a solar flare: In 2003, solar particles from a solar flare that was ultimately estimated to be an X45 fried Odyssey’s radiation detector, which was designed to measure such events.
+Auroras Over Mars
+High above Curiosity, NASA’s MAVEN (Mars Atmosphere and Volatile EvolutioN) orbiter captured another effect of the recent solar activity: glowing auroras over the planet. The way these auroras occur is different than those seen on Earth.
+Our home planet is shielded from charged particles by a robust magnetic field, which normally limits auroras to regions near the poles. (Solar maximum is the reason behind the recent auroras seen as far south as Alabama.) Mars lost its internally generated magnetic field in the ancient past, so there’s no protection from the barrage of energetic particles. When charged particles hit the Martian atmosphere, it results in auroras that engulf the entire planet.
+During solar events, the Sun releases a wide range of energetic particles. Only the most energetic can reach the surface to be measured by RAD. Slightly less energetic particles, those that cause auroras, are sensed by MAVEN’s Solar Energetic Particle instrument.
+Scientists can use that instrument’s data to rebuild a timeline of each minute as the solar particles screamed past, meticulously teasing apart how the event evolved.
+“This was the largest solar energetic particle event that MAVEN has ever seen,” said MAVEN Space Weather Lead, Christina Lee of the University of California, Berkeley’s Space Sciences Laboratory. “There have been several solar events in past weeks, so we were seeing wave after wave of particles hitting Mars.”
+New Spacecraft to Mars
+The data coming in from NASA’s spacecraft won’t only help future planetary missions to the Red Planet. It’s contributing to a wealth of information being gathered by the agency’s other heliophysics missions, including Voyager, Parker Solar Probe, and the forthcoming ESCAPADE (Escape and Plasma Acceleration and Dynamics Explorers) mission.
+Targeting a late-2024 launch, ESCAPADE’s twin small satellites will orbit Mars and observe space weather from a unique dual perspective that is more detailed than what MAVEN can currently measure alone.
+More About the Missions
+Curiosity was built by NASA’s Jet Propulsion Laboratory, which is managed by Caltech in Pasadena, California. JPL leads the mission on behalf of NASA’s Science Mission Directorate in Washington.
+MAVEN’s principal investigator is based at the Laboratory for Atmospheric and Space Physics (LASP) at the University of Colorado Boulder. LASP is also responsible for managing science operations and public outreach and communications. NASA’s Goddard Space Flight Center in Greenbelt, Maryland, manages the MAVEN mission. Lockheed Martin Space built the spacecraft and is responsible for mission operations. NASA’s Jet Propulsion Laboratory in Southern California provides navigation and Deep Space Network support. The MAVEN team is preparing to celebrate the spacecraft’s 10th year at Mars in September 2024.
+For more about these missions, visit:
+News Media Contacts
+Andrew Good
+Jet Propulsion Laboratory, Pasadena, Calif.
+818-393-2433
+andrew.c.good@jpl.nasa.gov
+Karen Fox / Charles Blue
+NASA Headquarters, Washington
+202-358-1600 / 202-802-5345
+karen.c.fox@nasa.gov / charles.e.blue@nasa.gov
+2024-080

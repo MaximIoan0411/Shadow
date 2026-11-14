@@ -35,14 +35,40 @@ def log_access(actor, role, action, target, path=LOG_FILE):
     return entry
 
 
-def verify(path=LOG_FILE):
+def head(path=LOG_FILE):
+    """The number and hash of the last entry. Keep it somewhere the log's writer cannot reach
+    (for example in every packet sent to Earth) and give it back to verify()."""
+    entries = read_entries(path)
+    if not entries:
+        return {"n": 0, "hash": START}
+    return {"n": entries[-1]["n"], "hash": entries[-1]["hash"]}
+
+
+def verify(path=LOG_FILE, anchor=None):
+    """(True, None) if the log is intact, else (False, number of the first broken entry).
+
+    The chain alone shows an edited or deleted entry in the middle. It cannot show that the LAST entries
+    were deleted, or that the whole log was rewritten with fresh hashes. For that, pass an `anchor`:
+    a head() saved earlier, outside the log."""
     previous = START
-    for position, entry in enumerate(read_entries(path), start=1):
+    position = 0
+    lines = [line for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+    for position, line in enumerate(lines, start=1):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            return False, position
+        if not isinstance(entry, dict):
+            return False, position
         body = {k: v for k, v in entry.items() if k != "hash"}
         good_hash = hashlib.sha256(canon(body)).hexdigest()
         if entry.get("n") != position or entry.get("prev") != previous or entry.get("hash") != good_hash:
             return False, position
+        if anchor and position == anchor["n"] and entry["hash"] != anchor["hash"]:
+            return False, position
         previous = entry["hash"]
+    if anchor and position < anchor["n"]:
+        return False, position + 1
     return True, None
 
 

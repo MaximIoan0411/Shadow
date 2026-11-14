@@ -7,7 +7,8 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from pydantic import BaseModel, Field, ValidationError
 
-KEYS_DIR = Path(__file__).resolve().parent.parent / "keys" / "keys_files"
+# keys come from security/keys/generate_keys.py; SHADOW_KEYS_DIR lets the tests use throwaway keys
+KEYS_DIR = Path(os.environ.get("SHADOW_KEYS_DIR") or Path(__file__).resolve().parent.parent / "keys" / "keys_files")
 
 SENSORS = ["sensor-keyboard", "sensor-checkin", "sensor-sim"]
 
@@ -62,27 +63,37 @@ def sign_reading(reading, key_name):
 
 class Checker:
     def __init__(self):
-        self.seen_nonces = set()
+        self.seen_nonces = {}   # nonce -> the moment after which a replay is stale anyway
         self.history = {}
 
     def check(self, message):
-        kid = message.get("kid")
+        # anything that is not {"kid": text, "sig": text, "reading": {...}} is rejected, never a crash
+        if not isinstance(message, dict):
+            raise Rejected("malformed message")
+        kid, sig, raw = message.get("kid"), message.get("sig"), message.get("reading")
+        if not isinstance(kid, str) or not isinstance(sig, str) or not isinstance(raw, dict):
+            raise Rejected("malformed message")
+
         if kid not in PUBLIC_KEYS:
             raise Rejected("unknown key")
 
         try:
-            PUBLIC_KEYS[kid].verify(bytes.fromhex(message["sig"]),
-                                    canon(message["reading"]))
+            PUBLIC_KEYS[kid].verify(bytes.fromhex(sig), canon(raw))
         except (InvalidSignature, ValueError):
             raise Rejected("bad signature")
 
         try:
-            reading = Reading(**message["reading"])
+            reading = Reading(**raw)
         except ValidationError:
             raise Rejected("impossible value")
 
-        if abs(time.time() - reading.ts) > MAX_AGE:
+        now = time.time()
+        if abs(now - reading.ts) > MAX_AGE:
             raise Rejected("stale timestamp")
+
+        # forget the nonces of readings that are too old to be replayed, so memory stays small
+        for old in [nonce for nonce, expires in self.seen_nonces.items() if expires < now]:
+            del self.seen_nonces[old]
 
         if reading.nonce in self.seen_nonces:
             raise Rejected("replay")
@@ -92,8 +103,9 @@ class Checker:
         if len(last) >= FROZEN_COUNT and len(set(last[-FROZEN_COUNT:] + [reading.hr])) == 1:
             raise Rejected("frozen sensor")
 
-        self.seen_nonces.add(reading.nonce)
+        self.seen_nonces[reading.nonce] = reading.ts + MAX_AGE
         last.append(reading.hr)
+        del last[:-FROZEN_COUNT]   # only the last values matter for the frozen-sensor check
         return reading
 
 

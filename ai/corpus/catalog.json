@@ -1,0 +1,29 @@
+{
+  "_about": "Documentele oficiale din care medicul AI are voie să citeze. `python -m rag.fetch` le descarcă în corpus/docs/ și scrie corpus/sources.json. Doar surse care apar deja în data/ sau în resursele oficiale ale challenge-ului.",
+  "documents": [
+    {"id": "nasa-5-hazards", "title": "NASA HRP — 5 Hazards of Human Spaceflight", "url": "https://www.nasa.gov/hrp/hazards/", "topics": ["general"]},
+    {"id": "nasa-human-body-in-space", "title": "NASA — The Human Body in Space", "url": "https://www.nasa.gov/humans-in-space/the-human-body-in-space/", "topics": ["general"]},
+    {"id": "nasa-hrp-risks", "title": "NASA HRP — Risks of Human Spaceflight", "url": "https://www.nasa.gov/hrp/risks/", "topics": ["general"]},
+    {"id": "nasa-human-system-risks", "title": "NASA — Human System Risks", "url": "https://www.nasa.gov/hhp/human-system-risks/", "topics": ["general"]},
+    {"id": "nasa-hrp-research", "title": "NASA HRP — Ongoing Research", "url": "https://www.nasa.gov/hrp/research/", "topics": ["general"]},
+    {"id": "csa-space-medicine", "title": "Canadian Space Agency — Space medicine", "url": "https://www.asc-csa.gc.ca/eng/astronauts/space-medicine/", "topics": ["general"]},
+
+    {"id": "nasa-risk-sleep", "title": "NASA — Risk from Inadequate Sleep and Irregular Schedules", "url": "https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/", "topics": ["behavioral"]},
+    {"id": "nasa-risk-behavioral", "title": "NASA — Risk of Behavioral Conditions and Psychiatric Disorders", "url": "https://www.nasa.gov/reference/risk-of-behavioral-conditions-and-psychiatric-disorders/", "topics": ["behavioral"]},
+    {"id": "nasa-risk-immune", "title": "NASA — Risk of Altered Immune System Responses", "url": "https://www.nasa.gov/reference/risk-of-altered-immune-system-responses/", "topics": ["immune"]},
+    {"id": "nasa-risk-cardiovascular", "title": "NASA — Risk of Cardiovascular Adaptations", "url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/", "topics": ["cardio"]},
+    {"id": "nasa-cv-risk", "title": "NASA — Cardiovascular Risk (HHP)", "url": "https://www.nasa.gov/directorates/esdmd/hhp/cv-risk/", "topics": ["cardio"]},
+    {"id": "nasa-risk-fitness", "title": "NASA — Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness", "url": "https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/", "topics": ["cardio", "musculoskeletal"]},
+    {"id": "nasa-risk-bone", "title": "NASA — Risk of Spaceflight-Induced Bone Changes", "url": "https://www.nasa.gov/reference/risk-of-spaceflight-induced-bone-changes/", "topics": ["musculoskeletal"]},
+    {"id": "nasa-risk-radiation", "title": "NASA — Risk of Radiation-Induced Cancers", "url": "https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/", "topics": ["radiation"]},
+    {"id": "nasa-radiation-exploration", "title": "NASA — Space Radiation Won't Stop NASA's Human Exploration", "url": "https://www.nasa.gov/humans-in-space/space-radiation-wont-stop-nasas-human-exploration/", "topics": ["radiation"]},
+    {"id": "nasa-mars-solar-storm", "title": "NASA — NASA Watches Mars Light Up During Epic Solar Storm", "url": "https://www.nasa.gov/solar-system/planets/mars/nasa-watches-mars-light-up-during-epic-solar-storm", "topics": ["radiation"]},
+    {"id": "nasa-ochmo-radiation", "title": "NASA OCHMO Technical Brief — Radiation Protection (OCHMO-TB-020)", "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-020-radiation-protection.pdf", "topics": ["radiation"]},
+
+    {"id": "hrr-evidence-sleep", "title": "NASA HRP Evidence Report — Sleep Loss, Circadian Desynchronization, and Work Overload (2016)", "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Sleep.pdf", "topics": ["behavioral"]},
+    {"id": "hrr-evidence-cardio", "title": "NASA HRP Evidence Report — Cardiovascular Adaptations (2022)", "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Cardio%20Risk%20EB%202022%20FINAL_4-3-2023.pdf", "topics": ["cardio"]},
+    {"id": "hrr-evidence-fitness", "title": "NASA HRP Evidence Report — Reduced Aerobic and Muscle Fitness (2024)", "url": "https://humanresearchroadmap.nasa.gov/Evidence/reports/Evidence%20report%20aerobic%20and%20muscle_FINAL%204-3-2024.pdf", "topics": ["cardio", "musculoskeletal"]},
+    {"id": "hrr-evidence-bone", "title": "NASA HRP Evidence Report — Bone Fracture (2024)", "url": "https://humanresearchroadmap.nasa.gov/evidence/reports/Bone%20Fracture%20Evidence%20Report_07-18-2024.pdf", "topics": ["musculoskeletal"]},
+    {"id": "hrr-evidence-immune", "title": "NASA HRP Evidence Report — Altered Immune Response (2021 update)", "url": "https://humanresearchroadmap.nasa.gov/evidence/reports/IMMUNE%20EB%20Update%202021%20v02%20FINAL_6-15-22.pdf", "topics": ["immune"]}
+  ]
+}

@@ -4,7 +4,8 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-KEYS_DIR = Path(__file__).resolve().parent.parent / "keys" / "keys_files"
+# keys come from security/keys/generate_keys.py; SHADOW_KEYS_DIR lets the tests use throwaway keys
+KEYS_DIR = Path(os.environ.get("SHADOW_KEYS_DIR") or Path(__file__).resolve().parent.parent / "keys" / "keys_files")
 
 STORAGE_KEY = (KEYS_DIR / "private" / "storage.key").read_bytes()
 
