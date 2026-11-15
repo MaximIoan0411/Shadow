@@ -11,6 +11,7 @@ import {
   FlaskConical,
   Keyboard,
   LogOut,
+  Menu,
   MessageCircleQuestion,
   PanelLeft,
   Radiation,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactElement, ReactNode } from "react";
+import { useEffect, type ReactElement, type ReactNode } from "react";
 import { IconButton, StatusMark, Tag, Tip, cx } from "@/components/ui";
 import { RoleIcon, hasRoleIcon } from "@/components/login/RoleIcon";
 import { Select } from "@/components/ui/Select";
@@ -209,6 +210,50 @@ export function Sidebar({
   );
 }
 
+/**
+ * Meniul pe ecran îngust (telefon): bara laterală nu încape lângă conținut, așa că se deschide peste el, din
+ * butonul din antet. Se închide la Escape, la un clic pe fundal sau la schimbarea ecranului (vezi AppShell).
+ */
+export function MobileNav({
+  open,
+  onClose,
+  items,
+  account,
+  onSwitchAccount,
+}: {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly items: readonly NavItem[];
+  readonly account: Account;
+  readonly onSwitchAccount: () => void;
+}): ReactElement | null {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+      <button type="button" aria-label="Close the menu" className="absolute inset-0 bg-black/60" onClick={onClose} />
+      {/* un link atins închide meniul, și când duce la ecranul deschis deja (adresa nu se schimbă). Se închide după ce
+          linkul și-a făcut navigarea: închis înainte, în faza de captură, linkul ajungea o navigare completă */}
+      <div
+        className="relative flex h-full max-w-[85vw] bg-bg shadow-2xl"
+        onClick={(event) => {
+          if (event.target instanceof Element && event.target.closest("a")) onClose();
+        }}
+      >
+        <Sidebar items={items} account={account} collapsed={false} onToggle={onClose} onSwitchAccount={onSwitchAccount} />
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- antetul
 
 interface HeaderProps {
@@ -220,14 +265,26 @@ interface HeaderProps {
   /** Fluxul de evenimente a căzut și se reîncearcă: datele de pe ecran pot fi vechi. */
   readonly reconnecting: boolean;
   readonly onOpenDemo?: () => void;
+  /** Pe ecran îngust: deschide meniul (bara laterală e ascunsă). */
+  readonly onOpenMenu?: () => void;
 }
 
 /** Antetul: titlul ecranului în stânga; ziua și ora misiunii, mediul și legătura cu Pământul în dreapta. */
-export function Header({ title, mission, environments, onEnvironmentChange, reconnecting, onOpenDemo }: HeaderProps): ReactElement {
+export function Header({ title, mission, environments, onEnvironmentChange, reconnecting, onOpenDemo, onOpenMenu }: HeaderProps): ReactElement {
   return (
-    <header className="app-drag relative z-20 flex h-[52px] shrink-0 items-center gap-4 px-6">
+    <header className="app-drag relative z-20 flex h-[52px] shrink-0 items-center gap-3 px-4 md:gap-4 md:px-6">
+      {onOpenMenu && (
+        <IconButton label="Open the menu" size="sm" onClick={onOpenMenu} className="app-no-drag -ml-1 md:hidden">
+          <Menu size={17} strokeWidth={1.8} />
+        </IconButton>
+      )}
       <h1 className="truncate text-body font-medium text-fg">{title}</h1>
       <span className="flex-1" />
+      {mission && (
+        <span className="num text-small text-fg-3 md:hidden">
+          Day {mission.mission_day} <span className="text-fg-2">{formatTime(mission.sim_now)}</span>
+        </span>
+      )}
       {mission && (
         <div className="app-no-drag hidden items-center gap-4 text-small text-fg-3 md:flex">
           {reconnecting && <Tag>Reconnecting…</Tag>}
@@ -272,7 +329,7 @@ export function Header({ title, mission, environments, onEnvironmentChange, reco
 export function Page({ children, narrow }: { readonly children: ReactNode; readonly narrow?: boolean }): ReactElement {
   return (
     <div className="scroll-q min-h-0 flex-1 overflow-y-auto">
-      <div className={cx("mx-auto flex flex-col gap-5 px-6 pb-16 pt-4", narrow ? "max-w-[860px]" : "max-w-[1240px]")}>{children}</div>
+      <div className={cx("mx-auto flex flex-col gap-5 px-4 pb-16 pt-4 md:px-6", narrow ? "max-w-[860px]" : "max-w-[1240px]")}>{children}</div>
     </div>
   );
 }

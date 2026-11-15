@@ -4,7 +4,7 @@
  * Ofițerul medical ajunge aici și din coada lui, cu alerta altui membru al echipajului.
  */
 import { useSearchParams } from "next/navigation";
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { AlertDetail } from "@/components/alerts/AlertDetail";
 import { AlertList, sortAlerts } from "@/components/alerts/AlertList";
 import { Page } from "@/components/layout/Shell";
@@ -16,11 +16,20 @@ import { useSession } from "@/lib/session";
 
 const ID_PARAM = "id";
 const RESOLVED = "resolved";
+/** Sub această lățime lista și alerta stau una sub alta (vezi `xl:grid-cols` mai jos). */
+const STACKED = "(max-width: 1279px)";
 
 export default function AlertsPage(): ReactElement | null {
   const { user, crewId } = useSession();
   const requestedId = useSearchParams().get(ID_PARAM);
   const alerts = useAlerts(crewId);
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  // pe ecran îngust alerta aleasă e sub listă: o aducem în ecran, altfel atingerea pare să nu facă nimic
+  useEffect(() => {
+    if (requestedId && window.matchMedia(STACKED).matches) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [requestedId]);
+
   if (!user) return null;
 
   const list = alerts.data ?? [];
@@ -47,7 +56,7 @@ export default function AlertsPage(): ReactElement | null {
           </Card>
           {crewId && <SummaryOutbox crewId={crewId} />}
         </div>
-        <div className="min-w-0">
+        <div ref={detailRef} className="min-w-0 scroll-mt-4">
           {selectedId ? (
             <AlertDetail key={selectedId} alertId={selectedId} role={user.role} crewId={crewId} />
           ) : (
