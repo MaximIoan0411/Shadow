@@ -133,7 +133,7 @@ export function TypingCard({ crewId }: { readonly crewId: string }): ReactElemen
             <h3 className="mb-2.5 text-caption font-medium uppercase tracking-[0.06em] text-fg-4">Your speed, session by session</h3>
             <LineChart
               title="Typing speed per session, in keys per minute"
-              unit="taste/min"
+              unit="keys/min"
               baseline={baseline?.keys_per_min}
               series={[
                 {
@@ -159,7 +159,7 @@ export function TypingCard({ crewId }: { readonly crewId: string }): ReactElemen
             </Notice>
           )}
           <div className="grid grid-cols-2 gap-2.5">
-            <Compare label="Speed" value={current?.keys_per_min} baseline={baseline?.keys_per_min} unit="taste/min" />
+            <Compare label="Speed" value={current?.keys_per_min} baseline={baseline?.keys_per_min} unit="keys/min" />
             <Compare label="Hold" value={current?.hold_ms_mean} baseline={baseline?.hold_ms_mean} unit="ms" />
             <Compare label="Between keys" value={current?.flight_ms_mean} baseline={baseline?.flight_ms_mean} unit="ms" />
             <div className="rounded-2xl border border-line bg-white/[0.02] p-3.5">
