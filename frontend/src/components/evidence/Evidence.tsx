@@ -70,7 +70,7 @@ function Tests(): ReactElement {
             <thead>
               <tr className="text-left text-caption text-fg-4">
                 <th scope="col" className="pb-2 font-medium">Test</th>
-                <th scope="col" className="pb-2 font-medium">File</th>
+                <th scope="col" className="hidden pb-2 font-medium md:table-cell">File</th>
                 <th scope="col" className="pb-2 text-right font-medium">Duration</th>
                 <th scope="col" className="pb-2 text-right font-medium">Result</th>
               </tr>
@@ -78,10 +78,10 @@ function Tests(): ReactElement {
             <tbody>
               {data.tests.map((test) => (
                 <tr key={test.module + test.name} className="border-t border-line">
-                  <td className="code py-2.5 text-fg">{test.name}</td>
-                  <td className="code py-2.5 text-fg-3">{test.module}</td>
+                  <td className="code break-all py-2.5 pr-3 text-fg">{test.name}</td>
+                  <td className="code hidden py-2.5 text-fg-3 md:table-cell">{test.module}</td>
                   <td className="num py-2.5 text-right text-fg-3">{formatNumber(test.duration_ms)} ms</td>
-                  <td className="py-2.5 text-right">
+                  <td className="py-2.5 pl-3 text-right">
                     {test.outcome === "skipped" ? <Tag>skipped</Tag> : <StatusBadge status={test.outcome === "passed" ? "ok" : "alert"} label={test.outcome === "passed" ? "Passed" : "Failed"} compact />}
                   </td>
                 </tr>
@@ -142,7 +142,7 @@ function Parameters(): ReactElement {
                 <li key={parameter.id} className="border-t border-line py-4 first:border-t-0 first:pt-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <p className="text-base font-medium text-fg">{parameter.name}</p>
-                    <p className="num text-base text-fg">
+                    <p className="num max-w-full text-base text-fg [overflow-wrap:anywhere]">
                       {valueText(parameter.value)} <span className="text-small text-fg-4">{parameter.unit}</span>
                     </p>
                   </div>
@@ -255,7 +255,7 @@ function AccessLog(): ReactElement {
                 <span className="text-body text-fg-2">{ACTION_LABEL[entry.action] ?? entry.action}</span>
                 <span className="code text-small text-fg-3">{entry.resource}</span>
                 <span className="ml-auto">{entry.outcome === "denied" ? <StatusBadge status="alert" label="Refused" compact /> : <Tag>allowed</Tag>}</span>
-                <span className="code w-full pl-[124px] text-caption text-fg-4">
+                <span className="code w-full break-all text-caption text-fg-4 md:pl-[124px]">
                   fingerprint {entry.prev_hash} → {entry.hash}
                 </span>
               </li>

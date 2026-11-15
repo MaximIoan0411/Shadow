@@ -16,7 +16,7 @@ import { HOME_BY_ROLE, LOGIN_PATH, useSession } from "@/lib/session";
 import { statusRank } from "@/lib/status";
 import { useToast } from "@/lib/toast";
 import { DemoPanel } from "./DemoPanel";
-import { Backdrop, Header, Sidebar, navFor } from "./Shell";
+import { Backdrop, Header, MobileNav, Sidebar, navFor } from "./Shell";
 
 type Role = Schemas["Role"];
 
@@ -48,6 +48,7 @@ function Frame({ user, children }: { readonly user: Schemas["User"]; readonly ch
   const notify = useToast();
   const [collapsed, setCollapsed] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const onShip = SHIP_ROLES.includes(user.role);
 
   const mission = useMission();
@@ -64,6 +65,9 @@ function Frame({ user, children }: { readonly user: Schemas["User"]; readonly ch
     onError: (error) => notify({ title: "The environment did not change", detail: errorMessage(error), status: "alert" }),
   });
 
+  // pe telefon, meniul se închide când ai ales un ecran
+  useEffect(() => setMenuOpen(false), [pathname]);
+
   useHotkey(
     (event) => event.ctrlKey && event.shiftKey && event.code === DEMO_KEY,
     () => setDemoOpen((open) => !open),
@@ -73,16 +77,20 @@ function Frame({ user, children }: { readonly user: Schemas["User"]; readonly ch
   const worst = openAlerts.reduce<Schemas["Status"]>((current, alert) => (statusRank(alert.status) > statusRank(current) ? alert.status : current), "unknown");
   const items = navFor(user.role, { count: openAlerts.length, status: worst });
   const stormActive = Boolean(radiation.data?.alert_active);
+  const account = { username: user.username, displayName: user.display_name, initials: user.initials, role: user.role };
 
   return (
     <div className="relative flex h-full overflow-hidden bg-bg">
-      <Sidebar
-        items={items}
-        account={{ username: user.username, displayName: user.display_name, initials: user.initials, role: user.role }}
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((value) => !value)}
-        onSwitchAccount={() => void logout()}
-      />
+      <div className="hidden md:flex">
+        <Sidebar
+          items={items}
+          account={account}
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((value) => !value)}
+          onSwitchAccount={() => void logout()}
+        />
+      </div>
+      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} items={items} account={account} onSwitchAccount={() => void logout()} />
       <div className="relative flex min-w-0 flex-1 flex-col">
         <Backdrop alert={stormActive} />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -93,6 +101,7 @@ function Frame({ user, children }: { readonly user: Schemas["User"]; readonly ch
             onEnvironmentChange={onShip ? (id) => changeEnvironment.mutate(id) : undefined}
             reconnecting={connection === "lost"}
             onOpenDemo={() => setDemoOpen(true)}
+            onOpenMenu={() => setMenuOpen(true)}
           />
           {radiation.data && <RadiationBanner status={radiation.data} />}
           <main className="flex min-h-0 flex-1 flex-col">

@@ -120,12 +120,12 @@ export function Tabs<TValue extends string>({
         if (chosen) onChange(chosen.value);
       }}
     >
-      <RTabs.List aria-label={label} className="flex gap-1 border-b border-line">
+      <RTabs.List aria-label={label} className="flex gap-1 overflow-x-auto border-b border-line [scrollbar-width:none]">
         {items.map((item) => (
           <RTabs.Trigger
             key={item.value}
             value={item.value}
-            className="relative -mb-px flex h-10 items-center gap-2 border-b-2 border-transparent px-3 text-body font-medium text-fg-3 transition-colors hover:text-fg data-[state=active]:border-solid data-[state=active]:text-fg"
+            className="relative -mb-px flex h-10 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-body font-medium text-fg-3 transition-colors hover:text-fg data-[state=active]:border-solid data-[state=active]:text-fg"
           >
             {item.label}
             {item.count !== undefined && <span className="num text-caption text-fg-4">{item.count}</span>}
