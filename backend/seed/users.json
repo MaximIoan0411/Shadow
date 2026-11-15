@@ -5,6 +5,6 @@
     {"id": "u-cm-2", "username": "specialist2", "display_name": "Mission Specialist 2", "initials": "S2", "role": "astronaut", "crew_id": "cm-2", "test_password": "cm2-shadow"},
     {"id": "u-cm-3", "username": "medic",       "display_name": "Crew Medical Officer", "initials": "OM", "role": "cmo",       "crew_id": "cm-3", "test_password": "cm3-shadow"},
     {"id": "u-cm-4", "username": "inginer",     "display_name": "Flight Engineer",      "initials": "IZ", "role": "astronaut", "crew_id": "cm-4", "test_password": "cm4-shadow"},
-    {"id": "u-earth", "username": "earth",      "display_name": "Flight Surgeon",       "initials": "MZ", "role": "earth",     "crew_id": null,   "test_password": "earth-shadow"}
+    {"id": "u-earth", "username": "earth",      "display_name": "Earth Doctor",       "initials": "MZ", "role": "earth",     "crew_id": null,   "test_password": "earth-shadow"}
   ]
 }

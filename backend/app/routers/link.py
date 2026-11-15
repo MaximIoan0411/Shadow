@@ -109,7 +109,7 @@ async def create_outbox(
     "/earth/replies",
     response_model=Packet,
     status_code=201,
-    summary="The reply of the flight surgeon on Earth",
+    summary="The reply of the Earth doctor",
     responses=E,
     openapi_extra=roles(Role.earth),
 )
@@ -133,6 +133,6 @@ async def earth_reply(
     openapi_extra=roles(*CREW),
 )
 async def crew_messages(crew_id: str, user: User = Depends(crew_access), session: AsyncSession = Depends(get_session)):
-    """The flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
+    """The Earth doctor's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
     verified. The ones still on their way do not appear here."""
     return await link_service.messages(session, crew_id)

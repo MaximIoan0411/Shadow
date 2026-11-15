@@ -3717,7 +3717,7 @@
         "tags": [
           "8. Link with Earth"
         ],
-        "summary": "The reply of the flight surgeon on Earth",
+        "summary": "The reply of the Earth doctor",
         "description": "**Roluri permise:** `earth`\n\nThe \"Queue, encrypted\" button on Mission Control. The reply leaves at the next window and reaches the ship\nafter `one_way_delay_s`. When it arrives, it shows up in `/crew/{id}/messages` and in the alert's `earth_reply`.\n\n**SSE:** `packet.sent`, then `packet.arrived` (with `crew_id`) on arrival.",
         "operationId": "earth_reply_api_v1_earth_replies_post",
         "parameters": [
@@ -3816,7 +3816,7 @@
           "8. Link with Earth"
         ],
         "summary": "Messages arrived from Earth",
-        "description": "**Roluri permise:** `astronaut`, `cmo`\n\nThe flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and\nverified. The ones still on their way do not appear here.",
+        "description": "**Roluri permise:** `astronaut`, `cmo`\n\nThe Earth doctor's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and\nverified. The ones still on their way do not appear here.",
         "operationId": "crew_messages_api_v1_crew__crew_id__messages_get",
         "parameters": [
           {

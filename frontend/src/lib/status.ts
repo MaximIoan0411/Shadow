@@ -88,5 +88,5 @@ export const HAZARD_LABEL = {
 export const ROLE_LABEL = {
   astronaut: "Astronaut",
   cmo: "Crew medical officer",
-  earth: "Flight surgeon on Earth",
+  earth: "Earth doctor",
 } as const satisfies Record<Schemas["Role"], string>;

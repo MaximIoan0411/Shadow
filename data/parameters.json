@@ -1721,7 +1721,7 @@
     {
      "nivel": "2_ofiter_medical",
      "declansator": "Resting heart rate with a 7-day mean > baseline + 1×individual CV for ≥3 days, or lnRMSSD < baseline − 0.5×CV, TOGETHER with symptoms (palpitations, dizziness, unusual tiredness).",
-     "actiune": "Notify the crew medical officer (CMO) for a re-assessment (repeat measurement, ECG if available) and a private medical conference with the flight surgeon.",
+     "actiune": "Notify the crew medical officer (CMO) for a re-assessment (repeat measurement, ECG if available) and a private medical conference with the Earth doctor.",
      "risc_hrp": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
      "risc_hrp_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
      "status": "NEVERIFICAT",
@@ -1747,7 +1747,7 @@
     {
      "nivel": "2_ofiter_medical",
      "declansator": "On the stand test after returning to gravity: a drop in SBP ≥20 mmHg or DBP ≥10 mmHg within 3 min, or a heart rate rise ≥30 bpm from the supine value, or presyncope.",
-     "actiune": "Stop the test, lie down and notify the CMO / flight surgeon; do not resume standing activity until you have been assessed.",
+     "actiune": "Stop the test, lie down and notify the CMO / Earth doctor; do not resume standing activity until you have been assessed.",
      "risc_hrp": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
      "risc_hrp_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
      "status": "NEVERIFICAT",
@@ -1760,7 +1760,7 @@
     {
      "nivel": "3_pamant",
      "declansator": "Syncope (loss of consciousness), sustained palpitations or an irregular rhythm, chest pain, or suspected venous thrombosis.",
-     "actiune": "The CMO starts the emergency response and immediately contacts the flight surgeon on Earth (in low Earth orbit: a ~2-s delay, return to Earth possible); on missions to Mars the crew must be able to stabilise the situation on their own.",
+     "actiune": "The CMO starts the emergency response and immediately contacts the Earth doctor (in low Earth orbit: a ~2-s delay, return to Earth possible); on missions to Mars the crew must be able to stabilise the situation on their own.",
      "risc_hrp": "Risk of Cardiovascular Adaptations Contributing to Adverse Mission Performance and Health Outcomes",
      "risc_hrp_url": "https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/",
      "status": "VERIFICAT",
@@ -2495,7 +2495,7 @@
     {
      "nivel": "3_pamant",
      "declansator": "A “notable” event by NASA's definition: the symptom lasts >1 week, recurs or worsens, or does not respond to treatment.",
-     "actiune": "The CMO passes the case to the flight surgeons on Earth, with the data series against the baseline. On missions with a communication delay, the data package is sent asynchronously.",
+     "actiune": "The CMO passes the case to the doctors on Earth, with the data series against the baseline. On missions with a communication delay, the data package is sent asynchronously.",
      "risc_hrp": "Risk of In Mission Impacts, Adverse Health Events or Long-Term Health Impacts due to Altered Immune Response",
      "risc_hrp_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=85",
      "status": "VERIFICAT",
@@ -3385,7 +3385,7 @@
     {
      "nivel": "3_pamant",
      "declansator": "Strength falls >20% below baseline (derived threshold), or the estimated cumulative BMD loss exceeds 10% at the hip or spine (threshold derived from the Bone Summit criterion)",
-     "actiune": "Contact the medical team on the ground (flight surgeon) to review the prescription and any further countermeasure. In one study, a drug countermeasure combined with ARED prevented the drop in hip BMD (Sibonga 2019), but that decision belongs to the doctors on Earth.",
+     "actiune": "Contact the medical team on the ground (the Earth doctor) to review the prescription and any further countermeasure. In one study, a drug countermeasure combined with ARED prevented the drop in hip BMD (Sibonga 2019), but that decision belongs to the doctors on Earth.",
      "risc_hrp": "Risk of Bone Fracture due to Spaceflight-induced Changes to Bone",
      "risc_hrp_url": "https://humanresearchroadmap.nasa.gov/Risks/?i=77",
      "status": "VERIFICAT",
@@ -4103,7 +4103,7 @@
     {
      "nivel": "3_pamant",
      "declansator": "An estimated whole-body dose approaching 0.7 Gy within a short time, or symptoms of acute radiation syndrome.",
-     "actiune": "Medical emergency: notify Earth (the flight surgeon) immediately and follow the on-board medical protocol without waiting for an answer, because of the delay.",
+     "actiune": "Medical emergency: notify the Earth doctor immediately and follow the on-board medical protocol without waiting for an answer, because of the delay.",
      "risc_hrp": "Risk of Adverse Health Outcomes and Decrements in Performance due to Inflight Medical Conditions",
      "risc_hrp_url": "https://www.nasa.gov/hhp/human-system-risks/",
      "status": "VERIFICAT",

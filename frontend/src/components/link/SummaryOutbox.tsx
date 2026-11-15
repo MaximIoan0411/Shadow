@@ -43,7 +43,7 @@ export function SummaryOutbox({ crewId }: { readonly crewId: string }): ReactEle
         {send.isError && <ProblemCard title="The summary did not leave" detail={errorMessage(send.error)} />}
         {send.isSuccess && (
           <Notice tone="ok" title={`The summary is in the queue (${send.data.id})`}>
-            The flight surgeon sees it once it has made the trip to Earth.
+            The Earth doctor sees it once it has made the trip to Earth.
           </Notice>
         )}
         <Button type="submit" className="self-start" busy={send.isPending}>
