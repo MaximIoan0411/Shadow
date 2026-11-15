@@ -106,6 +106,22 @@ components:
           anyOf:
           - $ref: '#/components/schemas/AiRecommendation'
           - type: 'null'
+        open_alerts:
+          items:
+            $ref: '#/components/schemas/AiOpenAlert'
+          type: array
+          maxItems: 5
+          title: Open Alerts
+          description: 'La o întrebare generală: alertele deschise ale astronautului, cea mai gravă prima. Gol =
+            niciuna.'
+        zones:
+          items:
+            $ref: '#/components/schemas/AiZone'
+          type: array
+          maxItems: 4
+          title: Zones
+          description: 'La o întrebare generală: starea celor patru zone de pe corp. Gol la o întrebare despre o
+            alertă.'
         mission_day:
           type: integer
           title: Mission Day
@@ -152,6 +168,56 @@ components:
       - label
       - deviation_text
       title: AiEvidence
+    AiOpenAlert:
+      properties:
+        topic:
+          type: string
+          enum:
+          - behavioral
+          - cardio
+          - immune
+          - musculoskeletal
+          - radiation
+          - cross_signal
+          title: Topic
+        level:
+          type: integer
+          enum:
+          - 1
+          - 2
+          - 3
+          title: Level
+        title:
+          type: string
+          title: Title
+          examples:
+          - Puls de noapte +7 bpm, 3 nopți la rând
+        observed:
+          items:
+            type: string
+          type: array
+          maxItems: 3
+          title: Observed
+          examples:
+          - - +7 bpm peste mediana personală, 3 nopți
+        recommendation_id:
+          type: string
+          title: Recommendation Id
+          examples:
+          - immune-2-1
+        action:
+          type: string
+          title: Action
+          description: Ce spune catalogul să faci, pentru această alertă.
+      type: object
+      required:
+      - topic
+      - level
+      - title
+      - recommendation_id
+      - action
+      title: AiOpenAlert
+      description: O alertă deschisă a astronautului, pe scurt. Trimisă doar la o întrebare generală (fără `topic`).
     AiRecommendation:
       properties:
         id:
@@ -309,6 +375,33 @@ components:
       - role
       - content
       title: AiTurn
+    AiZone:
+      properties:
+        name:
+          type: string
+          title: Name
+          examples:
+          - Sentinel
+        status:
+          type: string
+          enum:
+          - ok
+          - watch
+          - alert
+          - unknown
+          title: Status
+        headline:
+          type: string
+          title: Headline
+          examples:
+          - Puls de noapte crescut 3 nopți la rând
+      type: object
+      required:
+      - name
+      - status
+      - headline
+      title: AiZone
+      description: Starea unei zone de pe corp azi. Trimisă doar la o întrebare generală.
     HTTPValidationError:
       properties:
         detail:

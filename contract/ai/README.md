@@ -63,8 +63,13 @@ Din cererea frontend-ului (`AiChatRequest`: `crew_id`, `message`, `alert_id`, `h
 | `context.evidence` | `evidence` al alertei: eticheta, valoarea, unitatea, textul abaterii |
 | `context.recommendation` | intrarea din `data/catalog/recommendations.json` a alertei: `id`, `level`, `trigger`, `action`, sursa |
 | `context.mission_day`, `context.environment` | ceasul misiunii și mediul curent |
+| `context.open_alerts` | doar fără `alert_id`: alertele nerezolvate ale membrului (cel mult 5, cea mai gravă prima), fiecare cu ce spune catalogul să facă. Ofițerul medical primește alertele unui coleg doar de la nivelul 2 |
+| `context.zones` | doar fără `alert_id`: starea celor patru zone de pe corp, din tabloul de bord |
 
-Fără `alert_id`, contextul are doar ziua și mediul; serviciul răspunde general sau marchează `off_topic`.
+Fără `alert_id`, serviciul răspunde din alertele deschise și din zone (când întrebarea e despre starea
+astronautului) sau din surse (când sursele găsite sunt despre alt subiect decât alertele), ori marchează
+`off_topic`. Un răspuns care spune că astronautul e bine, cu o alertă deschisă, e înlocuit în cod cu lista
+alertelor (`guard.hides_open_alert`), ca un răspuns cu medicament.
 
 ## 4. Ce face backend-ul cu răspunsul
 
@@ -223,6 +228,29 @@ Intrarea din catalog pe care răspunsul trebuie s-o reformuleze.
 | `source_citation` | text | da |  |
 | `source_url` | text | da |  |
 
+#### AiOpenAlert
+
+O alertă deschisă a astronautului, pe scurt. Trimisă doar la o întrebare generală (fără `topic`).
+
+| Câmp | Tip | Obligatoriu | Descriere |
+|---|---|---|---|
+| `topic` | `"behavioral"` \| `"cardio"` \| `"immune"` \| `"musculoskeletal"` \| `"radiation"` \| `"cross_signal"` | da |  |
+| `level` | `1` \| `2` \| `3` | da |  |
+| `title` | text | da |  Ex.: `"Puls de noapte +7 bpm, 3 nopți la rând"` |
+| `observed` | listă de text | nu |  (max elemente 3) Ex.: `["+7 bpm peste mediana personală, 3 nopți"]` |
+| `recommendation_id` | text | da |  Ex.: `"immune-2-1"` |
+| `action` | text | da | Ce spune catalogul să faci, pentru această alertă. |
+
+#### AiZone
+
+Starea unei zone de pe corp azi. Trimisă doar la o întrebare generală.
+
+| Câmp | Tip | Obligatoriu | Descriere |
+|---|---|---|---|
+| `name` | text | da |  Ex.: `"Sentinel"` |
+| `status` | `"ok"` \| `"watch"` \| `"alert"` \| `"unknown"` | da |  |
+| `headline` | text | da |  Ex.: `"Puls de noapte crescut 3 nopți la rând"` |
+
 #### AiContext
 
 Construit de backend. Fără nume, fără crew_id: serviciul nu are nevoie să știe cine întreabă.
@@ -234,6 +262,8 @@ Construit de backend. Fără nume, fără crew_id: serviciul nu are nevoie să �
 | `alert_title` | text \| null | nu |  Ex.: `"Puls de noapte +7 bpm, 3 nopți la rând"` |
 | `evidence` | listă de [AiEvidence](#aievidence) | nu |  |
 | `recommendation` | [AiRecommendation](#airecommendation) \| null | nu |  |
+| `open_alerts` | listă de [AiOpenAlert](#aiopenalert) | nu | La o întrebare generală: alertele deschise ale astronautului, cea mai gravă prima. Gol = niciuna. (max elemente 5) |
+| `zones` | listă de [AiZone](#aizone) | nu | La o întrebare generală: starea celor patru zone de pe corp. Gol la o întrebare despre o alertă. (max elemente 4) |
 | `mission_day` | număr întreg | da |  Ex.: `96` |
 | `environment` | text | da |  Ex.: `"mars_transit"` |
 
