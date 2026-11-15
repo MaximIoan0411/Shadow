@@ -932,7 +932,7 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:02:13.723649Z",
+  "sim_now": "2027-04-15T07:02:02.192568Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
@@ -1052,7 +1052,7 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:02:14.487271Z",
+  "sim_now": "2027-04-15T07:02:02.922541Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
@@ -1126,7 +1126,7 @@ Răspuns `200`:
 ```json
 {
   "name": "SHADOW-1",
-  "sim_now": "2027-04-15T07:02:15.082778Z",
+  "sim_now": "2027-04-15T07:02:03.460092Z",
   "mission_day": 96,
   "total_days": 140,
   "time_scale": 60.0,
@@ -1249,7 +1249,7 @@ Răspuns `200`:
     "role_title": "Mission Specialist",
     "is_cmo": false
   },
-  "as_of": "2027-04-15T07:02:18.941831Z",
+  "as_of": "2027-04-15T07:02:06.335457Z",
   "mission_day": 96,
   "overall_status": "alert",
   "pillars": [
@@ -1753,7 +1753,7 @@ Răspuns `201`:
     "id": "ck-0381",
     "crew_id": "cm-2",
     "mission_day": 96,
-    "created_at": "2027-04-15T07:02:29.243637Z",
+    "created_at": "2027-04-15T07:02:15.400226Z",
     "values": {
       "mood": 4,
       "systolic_mmhg": 112.0,
@@ -1832,7 +1832,7 @@ Răspuns `200`:
     "id": "ck-0381",
     "crew_id": "cm-2",
     "mission_day": 96,
-    "created_at": "2027-04-15T07:02:29.243637Z",
+    "created_at": "2027-04-15T07:02:15.400226Z",
     "values": {
       "mood": 4,
       "systolic_mmhg": 112.0,
@@ -1898,7 +1898,7 @@ Răspuns `200`:
   "id": "ck-0381",
   "crew_id": "cm-2",
   "mission_day": 96,
-  "created_at": "2027-04-15T07:02:29.243637Z",
+  "created_at": "2027-04-15T07:02:15.400226Z",
   "values": {
     "mood": 4,
     "systolic_mmhg": 112.0,
@@ -2149,7 +2149,7 @@ Răspuns `201`:
 {
   "id": "pvt-0001",
   "crew_id": "cm-2",
-  "at": "2027-04-15T07:02:40.526235Z",
+  "at": "2027-04-15T07:02:26.035277Z",
   "n_trials": 3,
   "mean_rt_ms": 344.5,
   "mean_speed": 2.986,
@@ -2193,7 +2193,7 @@ Răspuns `200`:
   {
     "id": "pvt-0001",
     "crew_id": "cm-2",
-    "at": "2027-04-15T07:02:40.526235Z",
+    "at": "2027-04-15T07:02:26.035277Z",
     "n_trials": 3,
     "mean_rt_ms": 344.5,
     "mean_speed": 2.986,
@@ -2706,7 +2706,7 @@ Răspuns `200`:
       "note": null
     },
     {
-      "at": "2027-04-15T07:02:45.643860Z",
+      "at": "2027-04-15T07:02:30.999519Z",
       "actor": "Mission Specialist 2",
       "role": "astronaut",
       "action": "acknowledged",
@@ -2814,7 +2814,7 @@ Răspuns `200`:
       "id": "st-2",
       "text": "Take your temperature morning and evening.",
       "done": true,
-      "done_at": "2027-04-15T07:02:46.302687Z"
+      "done_at": "2027-04-15T07:02:31.681944Z"
     },
     "… încă 1 elemente de același fel"
   ],
@@ -2946,7 +2946,7 @@ Răspuns `200`:
       "id": "st-2",
       "text": "Take your temperature morning and evening.",
       "done": true,
-      "done_at": "2027-04-15T07:02:46.302687Z"
+      "done_at": "2027-04-15T07:02:31.681944Z"
     },
     "… încă 1 elemente de același fel"
   ],
@@ -3086,7 +3086,7 @@ Răspuns `200`:
       "note": null
     },
     {
-      "at": "2027-04-15T07:02:45.643860Z",
+      "at": "2027-04-15T07:02:30.999519Z",
       "actor": "Mission Specialist 2",
       "role": "astronaut",
       "action": "acknowledged",
@@ -3289,7 +3289,7 @@ Răspuns `200`:
     "crew_id": "cm-2",
     "alert_id": "al-0005",
     "in_reply_to": null,
-    "created_at": "2027-04-15T07:02:47.480942Z",
+    "created_at": "2027-04-15T07:02:32.693482Z",
     "sent_at": null,
     "arrives_at": null,
     "delivered_at": null,
@@ -3344,7 +3344,7 @@ Răspuns `200`:
   "crew_id": "cm-2",
   "alert_id": "al-0005",
   "in_reply_to": null,
-  "created_at": "2027-04-15T07:02:47.480942Z",
+  "created_at": "2027-04-15T07:02:32.693482Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -3358,8 +3358,8 @@ Răspuns `200`:
     "cipher": "AES-256-GCM",
     "signature_alg": "Ed25519",
     "key_id": "ship-2026-01",
-    "nonce_b64": "NjVIa404LG8dDsbr",
-    "signature_b64": "x7QZbwJfTXCkuKe3P+Vp0rxKH61BCb5Vr8njk7yBpoZn5TO9YM3p1RgGG+BLMBwnH/HZUdRcv/3W3BKK7uQNBg=="
+    "nonce_b64": "TZX3N7NBiiqn6nyI",
+    "signature_b64": "Or9imWT81jFHooeN4cVhpakAq6F9+zhguOxr4zLRznoM925WMfZVSjlfyOPyjW6YoKkn5MHVVP0dZk3+ok+nAA=="
   }
 }
 ```
@@ -3421,7 +3421,7 @@ Răspuns `201`:
   "crew_id": "cm-2",
   "alert_id": null,
   "in_reply_to": null,
-  "created_at": "2027-04-15T07:02:51.450078Z",
+  "created_at": "2027-04-15T07:02:36.776310Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -3479,13 +3479,13 @@ Răspuns `201`:
   "kind": "earth_reply",
   "status": "queued",
   "title": "Reply: De acord cu odihna. Temperatura de două ori pe zi; dacă depă",
-  "sender": "Earth Doctor",
+  "sender": "Flight Surgeon",
   "level": null,
   "alert_status": null,
   "crew_id": "cm-2",
   "alert_id": "al-0005",
   "in_reply_to": "pk-0002",
-  "created_at": "2027-04-15T07:02:52.589600Z",
+  "created_at": "2027-04-15T07:02:38.032037Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -3561,10 +3561,10 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:02:53.568631Z",
+  "at": "2027-04-15T07:02:39.099162Z",
   "dose_rate_usv_h": 64.99,
-  "mean_24h_usv_h": 65.82,
-  "ratio": 0.99,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.98,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
@@ -3612,15 +3612,15 @@ Răspuns `200`:
   "threshold_ratio": 2.0,
   "points": [
     {
-      "t": "2027-04-15T06:12:00.826656Z",
-      "dose_rate_usv_h": 67.4,
-      "mean_24h_usv_h": 65.9,
+      "t": "2027-04-15T06:11:50.962224Z",
+      "dose_rate_usv_h": 63.36,
+      "mean_24h_usv_h": 66.02,
       "sheltered": false
     },
     {
-      "t": "2027-04-15T06:22:00.826656Z",
-      "dose_rate_usv_h": 63.24,
-      "mean_24h_usv_h": 65.86,
+      "t": "2027-04-15T06:21:50.962224Z",
+      "dose_rate_usv_h": 66.69,
+      "mean_24h_usv_h": 66.03,
       "sheltered": false
     },
     "… încă 3 elemente de același fel"
@@ -3702,15 +3702,15 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:02:55.116144Z",
+  "at": "2027-04-15T07:02:40.716217Z",
   "dose_rate_usv_h": 20.65,
-  "mean_24h_usv_h": 65.82,
+  "mean_24h_usv_h": 66.06,
   "ratio": 0.31,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
   "sheltered": true,
-  "sheltered_since": "2027-04-15T07:02:54.956906Z",
+  "sheltered_since": "2027-04-15T07:02:40.558530Z",
   "event": null,
   "event_dose_msv": 0.0,
   "onboard_alert_at": null,
@@ -3807,7 +3807,7 @@ Răspuns `200`:
     "immune-2-1"
   ],
   "model": "catalog",
-  "latency_ms": 56,
+  "latency_ms": 42,
   "fallback": true,
   "disclaimer": "Decision-support prototype, not a medical device."
 }
@@ -3848,27 +3848,27 @@ Răspuns `200`:
 [
   {
     "id": 3,
-    "at": "2027-04-15T07:02:47.932706Z",
+    "at": "2027-04-15T07:02:33.027284Z",
     "actor": "Crew Medical Officer",
     "actor_role": "cmo",
     "action": "escalate",
     "resource": "alerts/al-0005",
     "crew_id": "cm-2",
     "outcome": "allowed",
-    "prev_hash": "e21730f6118d6061",
-    "hash": "0c79505549818f88"
+    "prev_hash": "875596d372b869ef",
+    "hash": "1ef394178ac3861c"
   },
   {
     "id": 2,
-    "at": "2027-04-15T07:02:12.986147Z",
+    "at": "2027-04-15T07:02:01.515830Z",
     "actor": "Mission Specialist 2",
     "actor_role": "astronaut",
     "action": "logout",
     "resource": "auth/logout",
     "crew_id": "cm-2",
     "outcome": "allowed",
-    "prev_hash": "abee13cec0fcbabb",
-    "hash": "e21730f6118d6061"
+    "prev_hash": "295d3963970859df",
+    "hash": "875596d372b869ef"
   },
   "… încă 1 elemente de același fel"
 ]
@@ -3906,7 +3906,7 @@ Răspuns `200`:
 {
   "intact": true,
   "entries": 3,
-  "checked_at": "2027-04-15T07:03:06.034840Z"
+  "checked_at": "2027-04-15T07:02:48.949243Z"
 }
 ```
 
@@ -3989,7 +3989,7 @@ Răspuns `200`:
   "accepted": false,
   "rejection": {
     "id": "rj-0001",
-    "at": "2027-04-15T07:03:06.916268Z",
+    "at": "2027-04-15T07:02:49.721653Z",
     "kind": "bad_signature",
     "source": "wearable-cm-2",
     "crew_id": "cm-2",
@@ -4024,7 +4024,7 @@ Răspuns `200`:
 
 ```json
 {
-  "ran_at": "2027-04-15T07:03:07.546758Z",
+  "ran_at": "2027-04-15T07:02:50.183668Z",
   "passed": 0,
   "failed": 0,
   "skipped": 0,
@@ -4144,19 +4144,19 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:03:08.482430Z",
-  "dose_rate_usv_h": 21.92,
-  "mean_24h_usv_h": 65.82,
-  "ratio": 0.33,
+  "at": "2027-04-15T07:02:50.975090Z",
+  "dose_rate_usv_h": 20.66,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.31,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
   "sheltered": true,
-  "sheltered_since": "2027-04-15T07:02:54.956906Z",
+  "sheltered_since": "2027-04-15T07:02:40.558530Z",
   "event": {
     "donki_id": "2024-05-11T02:10:00-SEP-001",
     "event_time": "2024-05-11T02:10:00Z",
-    "sim_onset_at": "2027-04-15T07:03:08.282971Z",
+    "sim_onset_at": "2027-04-15T07:02:50.831426Z",
     "instrument": "GOES-P: SEISS >100 MeV",
     "flare_class": "X5.8",
     "cme_id": "2024-05-11T01:36:00-CME-001",
@@ -4195,15 +4195,15 @@ Răspuns `200`:
 
 ```json
 {
-  "at": "2027-04-15T07:03:09.532901Z",
-  "dose_rate_usv_h": 21.9,
-  "mean_24h_usv_h": 65.82,
-  "ratio": 0.33,
+  "at": "2027-04-15T07:02:51.754934Z",
+  "dose_rate_usv_h": 20.65,
+  "mean_24h_usv_h": 66.06,
+  "ratio": 0.31,
   "threshold_ratio": 2.0,
   "alert_active": false,
   "alert_id": null,
   "sheltered": true,
-  "sheltered_since": "2027-04-15T07:02:54.956906Z",
+  "sheltered_since": "2027-04-15T07:02:40.558530Z",
   "event": null,
   "event_dose_msv": 0.0,
   "onboard_alert_at": null,
@@ -4252,7 +4252,7 @@ Răspuns `200`:
   "crew_id": null,
   "alert_id": null,
   "in_reply_to": null,
-  "created_at": "2027-04-15T07:03:10.402053Z",
+  "created_at": "2027-04-15T07:02:52.463745Z",
   "sent_at": null,
   "arrives_at": null,
   "delivered_at": null,
@@ -4291,7 +4291,7 @@ Răspuns `200`:
 ```json
 {
   "id": "rj-0002",
-  "at": "2027-04-15T07:03:29.539638Z",
+  "at": "2027-04-15T07:03:08.474095Z",
   "kind": "frozen_sensor",
   "source": "wearable-cm-4",
   "crew_id": "cm-4",
