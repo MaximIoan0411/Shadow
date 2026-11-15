@@ -34,6 +34,23 @@ class AiRecommendation(BaseModel):
     source_url: str
 
 
+class AiOpenAlert(BaseModel):
+    """O alertă deschisă a astronautului, pe scurt. Trimisă doar la o întrebare generală (fără `topic`)."""
+    topic: Topic
+    level: Literal[1, 2, 3]
+    title: str = Field(examples=["Puls de noapte +7 bpm, 3 nopți la rând"])
+    observed: list[str] = Field(default_factory=list, max_length=3, examples=[["+7 bpm peste mediana personală, 3 nopți"]])
+    recommendation_id: str = Field(examples=["immune-2-1"])
+    action: str = Field(description="Ce spune catalogul să faci, pentru această alertă.")
+
+
+class AiZone(BaseModel):
+    """Starea unei zone de pe corp azi. Trimisă doar la o întrebare generală."""
+    name: str = Field(examples=["Sentinel"])
+    status: Literal["ok", "watch", "alert", "unknown"]
+    headline: str = Field(examples=["Puls de noapte crescut 3 nopți la rând"])
+
+
 class AiContext(BaseModel):
     """Construit de backend. Fără nume, fără crew_id: serviciul nu are nevoie să știe cine întreabă."""
     topic: Topic | None = Field(default=None, description="Subiectul alertei. `null` = întrebare generală.")
@@ -41,6 +58,14 @@ class AiContext(BaseModel):
     alert_title: str | None = Field(default=None, examples=["Puls de noapte +7 bpm, 3 nopți la rând"])
     evidence: list[AiEvidence] = Field(default_factory=list)
     recommendation: AiRecommendation | None = None
+    open_alerts: list[AiOpenAlert] = Field(
+        default_factory=list, max_length=5,
+        description="La o întrebare generală: alertele deschise ale astronautului, cea mai gravă prima. Gol = niciuna.",
+    )
+    zones: list[AiZone] = Field(
+        default_factory=list, max_length=4,
+        description="La o întrebare generală: starea celor patru zone de pe corp. Gol la o întrebare despre o alertă.",
+    )
     mission_day: int = Field(examples=[96])
     environment: str = Field(examples=["mars_transit"])
 

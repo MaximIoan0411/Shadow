@@ -10,7 +10,7 @@ import re
 
 from rag.retrieve import Passage, tokens
 
-from .schemas import AiCitation, AiRecommendation
+from .schemas import AiCitation, AiOpenAlert, AiRecommendation
 
 OFF_TOPIC = "I can only help with questions about your health on the mission."
 NO_RECOMMENDATION = "I don't have a catalog recommendation for this question. If something worries you, notify the crew medical officer."
@@ -25,6 +25,9 @@ HEALTH_WORDS = (
     "sick", "ill", "feel", "anxi", "lonel", "sad", "focus", "memory", "vision", "eye", "skin", "cold",
     "puls", "somn", "obosi", "tensiun", "inim", "oase", "mușchi", "muschi", "adăpost", "adapost", "tast", "febr",
     "simptom", "exerci", "doz", "ameț", "durere", "sănăt", "sanat",
+    # întrebări despre propria stare, fără un cuvânt medical („How am I doing today?”)
+    "how am i", "how do i look", "my data", "my stat", "my number", "my score", "my zone", "my status", "my result",
+    "my progress", "my level", "improve", "wellbeing", "well-being",
 )
 # medicamente, doze și diagnostice: textul aplicației nu le numește niciodată
 FORBIDDEN = re.compile(
@@ -35,6 +38,15 @@ FORBIDDEN = re.compile(
     r"corticosteroids?|painkillers?|sleeping pills?)\b"
     r"|\byou (?:have|are suffering from|probably have|likely have|must have)\s+(?:a |an )?(?:infection|covid|flu|"
     r"influenza|virus|pneumonia|cancer|shingles|herpes|disease|disorder|syndrome)\b",
+    re.I,
+)
+# „urgența ascunsă”: un răspuns care spune că totul e în regulă, cu o alertă deschisă
+ALL_CLEAR = re.compile(
+    r"\b(?:you are|you're|you seem|you look)\s+(?:doing\s+)?(?:well|fine|ok|okay|healthy|good|great)\b"
+    r"|\beverything\s+(?:is|looks|seems)\s+(?:normal|fine|good|ok|okay)\b"
+    r"|\bnothing\s+(?:to worry|needs to be done|to do)\b"
+    r"|\bno\s+(?:need|reason)\s+to\s+(?:notify|worry|tell|inform)\b"
+    r"|\ball\s+(?:your\s+)?(?:zones|values|data|readings)\s+(?:are\s+)?(?:within|normal)\b",
     re.I,
 )
 MARKER = re.compile(r"\[(\d{1,2})\]")
@@ -58,6 +70,11 @@ def violates_rules(answer: str) -> bool:
     return bool(FORBIDDEN.search(answer) or THINKING_LEAK.search(answer))
 
 
+def hides_open_alert(answer: str, open_alerts: list[AiOpenAlert]) -> bool:
+    """True = răspunsul spune că totul e în regulă, deși astronautul are o alertă deschisă."""
+    return bool(open_alerts) and bool(ALL_CLEAR.search(answer))
+
+
 def catalog_answer(rec: AiRecommendation | None, evidence: list[str]) -> str:
     """Reformularea fixă a recomandării: folosită fără model sau când răspunsul modelului încalcă regulile."""
     if rec is None:
@@ -70,13 +87,21 @@ def catalog_citation(rec: AiRecommendation) -> AiCitation:
     return AiCitation(title=rec.source_citation, url=rec.source_url, snippet=rec.trigger)
 
 
-def fallback(rec: AiRecommendation | None, evidence: list[str], passages: list[Passage], question: str) -> tuple[str, list[AiCitation]]:
+def open_alerts_answer(open_alerts: list[AiOpenAlert]) -> str:
+    """La o întrebare generală, fără sursă: alertele deschise și ce spune catalogul pentru cea mai gravă."""
+    top = open_alerts[0]
+    names = "; ".join(f"{alert.title} (level {alert.level})" for alert in open_alerts)
+    return f"Your open alerts: {names}. For the first one, the catalog says: {top.action}"
+
+
+def fallback(rec: AiRecommendation | None, evidence: list[str], passages: list[Passage], question: str,
+             open_alerts: list[AiOpenAlert] | None = None) -> tuple[str, list[AiCitation]]:
     """Răspunsul fără model (mock) sau în locul unui răspuns respins: recomandarea din catalog, altfel fraza cea mai
-    potrivită din prima sursă găsită, altfel mesajul fix."""
+    potrivită din prima sursă găsită, altfel alertele deschise, altfel mesajul fix."""
     if rec is not None:
         return catalog_answer(rec, evidence), [catalog_citation(rec)]
     if not passages:
-        return NO_RECOMMENDATION, []
+        return (open_alerts_answer(open_alerts) if open_alerts else NO_RECOMMENDATION), []
     top = passages[0]
     quote = snippet(top, question)
     return f"From the sources: {quote} [1]", [AiCitation(title=top.title, url=top.url, snippet=quote)]

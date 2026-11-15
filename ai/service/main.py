@@ -92,7 +92,7 @@ async def chat(body: AiServiceChatRequest):
     evidence = [item.deviation_text for item in context.evidence]
     if client is None:
         # mock: reformularea fixă a recomandării (sau fraza din sursă), cu sursa ei
-        answer, citations = guard.fallback(rec, evidence, passages, body.message)
+        answer, citations = guard.fallback(rec, evidence, passages, body.message, context.open_alerts)
         return AiServiceChatResponse(answer=answer, citations=citations, recommendation_ids=[rec.id] if rec else [],
                                      model="mock", latency_ms=ms_since(started))
 
@@ -105,9 +105,14 @@ async def chat(body: AiServiceChatRequest):
         return unavailable("Modelul a întors un răspuns gol.")
 
     answered_by = client.model_name or model
+    if guard.hides_open_alert(raw, context.open_alerts):
+        log.warning("Răspuns respins (spune că totul e în regulă, cu o alertă deschisă): %s", raw[:200])
+        return AiServiceChatResponse(answer=guard.open_alerts_answer(context.open_alerts), citations=[],
+                                     recommendation_ids=[a.recommendation_id for a in context.open_alerts[:1]],
+                                     model=CATALOG_MODEL, latency_ms=ms_since(started))
     if guard.violates_rules(raw):
         log.warning("Răspuns respins (medicament, doză, diagnostic sau raționament scăpat): %s", raw[:200])
-        answer, citations = guard.fallback(rec, evidence, passages, body.message)
+        answer, citations = guard.fallback(rec, evidence, passages, body.message, context.open_alerts)
         answered_by = CATALOG_MODEL  # textul afișat e al catalogului, nu al modelului: se spune deschis
     else:
         answer, citations = guard.attach_citations(guard.clip(raw), passages, rec)
