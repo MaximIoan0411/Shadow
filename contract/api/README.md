@@ -3479,7 +3479,7 @@ Răspuns `201`:
   "kind": "earth_reply",
   "status": "queued",
   "title": "Reply: De acord cu odihna. Temperatura de două ori pe zi; dacă depă",
-  "sender": "Flight Surgeon",
+  "sender": "Earth Doctor",
   "level": null,
   "alert_status": null,
   "crew_id": "cm-2",
