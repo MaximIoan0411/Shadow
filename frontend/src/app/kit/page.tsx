@@ -234,7 +234,7 @@ export default function KitPage(): ReactElement {
         <Group title="Messages" lead="The neutral tone informs; coloured tones also carry the status icon.">
           <div className="flex flex-col gap-2.5">
             <Notice title="Today's check-in is saved (07:02)">You can send another one at any time: it replaces the previous one.</Notice>
-            <Notice tone="ok" title="Reply from the flight surgeon on Earth">Agreed on rest. Temperature twice a day.</Notice>
+            <Notice tone="ok" title="Reply from the Earth doctor">Agreed on rest. Temperature twice a day.</Notice>
             <Notice tone="watch" title="You are typing 18% slower than usual" action={<Button size="sm">See the plan</Button>} />
             <Notice tone="alert" title="Solar storm: go to the shelter">The dosimeter reads 6.2 times the mean of the last 24 hours.</Notice>
             <EmptyState title="No open alerts">All your values are within your in-flight baseline.</EmptyState>

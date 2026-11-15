@@ -3437,7 +3437,7 @@ Răspuns `201`:
 
 ---
 
-#### `POST /api/v1/earth/replies` — The reply of the flight surgeon on Earth
+#### `POST /api/v1/earth/replies` — The reply of the Earth doctor
 
 **Cine poate apela:** Pământ (earth)
 
@@ -3479,7 +3479,7 @@ Răspuns `201`:
   "kind": "earth_reply",
   "status": "queued",
   "title": "Reply: De acord cu odihna. Temperatura de două ori pe zi; dacă depă",
-  "sender": "Flight Surgeon",
+  "sender": "Earth Doctor",
   "level": null,
   "alert_status": null,
   "crew_id": "cm-2",
@@ -3505,7 +3505,7 @@ Răspuns `201`:
 
 **Cine poate apela:** astronaut, ofițer medical (cmo)
 
-The flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
+The Earth doctor's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
 verified. The ones still on their way do not appear here.
 
 | Parametru | Unde | Tip | Obligatoriu | Descriere |

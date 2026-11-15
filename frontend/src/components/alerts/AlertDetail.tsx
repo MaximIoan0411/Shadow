@@ -199,7 +199,7 @@ function AlertBody({ alert, role, crewId }: { readonly alert: Alert; readonly ro
         {(alert.packet_id || alert.earth_reply) && (
           <Block title="Earth link">
             {alert.earth_reply ? (
-              <Notice tone="ok" title="Reply from the flight surgeon on Earth">
+              <Notice tone="ok" title="Reply from the Earth doctor">
                 <span className="text-base text-fg">{alert.earth_reply}</span>
               </Notice>
             ) : (
@@ -259,7 +259,7 @@ function AlertBody({ alert, role, crewId }: { readonly alert: Alert; readonly ro
       >
         <p>
           {toEarth
-            ? `The alert leaves signed and encrypted. It reaches the flight surgeon after ${delay}, and the reply makes the same trip back.`
+            ? `The alert leaves signed and encrypted. It reaches the Earth doctor after ${delay}, and the reply makes the same trip back.`
             : "The crew medical officer will see this alert, with its evidence and plan."}
         </p>
         <Field id="escalate-note" label="Note (optional)" className="mt-4">

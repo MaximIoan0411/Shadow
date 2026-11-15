@@ -891,7 +891,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * The reply of the flight surgeon on Earth
+         * The reply of the Earth doctor
          * @description **Roluri permise:** `earth`
          *
          *     The "Queue, encrypted" button on Mission Control. The reply leaves at the next window and reaches the ship
@@ -917,7 +917,7 @@ export interface paths {
          * Messages arrived from Earth
          * @description **Roluri permise:** `astronaut`, `cmo`
          *
-         *     The flight surgeon's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
+         *     The Earth doctor's replies and the DONKI warnings that HAVE ARRIVED on board, already decrypted and
          *     verified. The ones still on their way do not appear here.
          */
         get: operations["crew_messages_api_v1_crew__crew_id__messages_get"];

@@ -22,7 +22,7 @@ type Role = Schemas["Role"];
 const KIND_LABEL = {
   alert_l3: "Level 3 alert",
   weekly_summary: "Weekly summary",
-  earth_reply: "Reply from the flight surgeon",
+  earth_reply: "Reply from the Earth doctor",
   donki_alert: "Solar storm warning",
 } as const satisfies Record<Packet["kind"], string>;
 

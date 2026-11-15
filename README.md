@@ -105,14 +105,14 @@ measure NASA already uses on the ISS; SHADOW compares each result with the astro
 |---|---|---|
 | 1 | the astronaut | typing slower than usual, one bad night |
 | 2 | the astronaut and the **crew medical officer** | night pulse +7 bpm three nights in a row |
-| 3 | **Earth** (the flight surgeon), sent by the medical officer | the medical officer asks for advice |
+| 3 | **the Earth doctor**, sent by the medical officer | the medical officer asks for advice |
 
 Each alert shows what was observed, against which baseline, the source of the threshold, and a plan from the
 recommendation catalog (*what to do, what to measure, when to check again*). SHADOW never recommends medicines or
 doses and never makes a diagnosis: the crew medical officer decides.
 
 **Only the medical officer sends an alert to Earth.** The alert leaves the ship as an encrypted and signed packet,
-waits for a communication window, and reaches the flight surgeon 11 min 40 s later. The reply makes the same trip
+waits for a communication window, and reaches the Earth doctor 11 min 40 s later. The reply makes the same trip
 back. Earth sees only the packets that arrived, never the crew's raw data.
 
 ## 5. The AI doctor: a local model that cites its sources
@@ -199,7 +199,7 @@ app (Next.js, Electron) ──► backend (FastAPI, :8000) ──► AI service 
                                  │
                                  ├── engine: baselines, pillars, cross signals, triage, radiation
                                  ├── security: signatures, encryption, tokens, access log
-                                 └── Earth link: queue, delay, windows, sealed packets ──► Earth (flight surgeon)
+                                 └── Earth link: queue, delay, windows, sealed packets ──► Earth doctor
 ```
 
 | Part | Technology |
@@ -246,7 +246,7 @@ Every start replays the scenario from day 96. The access log and revoked tokens 
 | Mission Specialist 2 | `cm2-shadow` | astronaut, with the scenario's alerts |
 | Crew Medical Officer | `cm3-shadow` | crew medical officer |
 | Flight Engineer | `cm4-shadow` | astronaut |
-| Flight Surgeon (*On Earth* tab) | `earth-shadow` | Earth |
+| Earth Doctor (*On Earth* tab) | `earth-shadow` | Earth |
 
 Each window has its own session (`Ctrl+N` opens another), so the ship and Earth can sit side by side.
 
@@ -260,7 +260,7 @@ The demo panel opens from the flask icon in the header or with `Ctrl+Shift+D`.
 | the perception gap | *Check-in*: mood 4/5, then save; the gap appears on the right |
 | typing rhythm | *Rhythm and reaction*: type a sentence; the reaction test is on the second tab |
 | the AI doctor with sources | *Alerts* → the night pulse alert → ask the AI doctor; open *1 source* |
-| an alert sent to Earth | *Crew Medical Officer* → *Medical queue* → *Send to Earth*; then *Flight Surgeon* sees it arrive |
+| an alert sent to Earth | *Crew Medical Officer* → *Medical queue* → *Send to Earth*; then *Earth Doctor* sees it arrive |
 | a forged packet | demo panel → *Spoofed packet*; it arrives *Rejected: invalid signature* and is never decrypted |
 | a frozen sensor and the access log | demo panel → *Frozen sensor*; then *Evidence* → *Rejections* and *Access log* |
 | the solar storm | *Radiation* → demo panel → *Solar storm*; wait for the alert, then *I am in the shelter* |
