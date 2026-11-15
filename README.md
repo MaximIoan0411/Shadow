@@ -135,8 +135,8 @@ The AI doctor answers questions such as *"Why has my night pulse gone up?"* or *
 On a mission to Mars, the ship sees a solar storm before Earth can warn it: NASA's warning needs time to be issued
 and another 11 min 40 s to arrive.
 
-SHADOW replays the **Gannon storm of 11 May 2024**: solar particle event `2024-05-11T02:10:00-SEP-001` (GOES
->100 MeV), linked to an X5.8 flare, a coronal mass ejection and **Ground Level Enhancement 74**, taken from **NASA
+SHADOW replays the **Gannon storm of 11 May 2024**: solar particle event `2024-05-11T02:10:00-SEP-001` (GOES above
+100 MeV), linked to an X5.8 flare, a coronal mass ejection and **Ground Level Enhancement 74**, taken from **NASA
 DONKI** (`data/donki/donki_sep_event.json`).
 
 1. The on-board dosimeter's dose rate climbs above the background of the last 24 hours.
