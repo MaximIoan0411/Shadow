@@ -1,0 +1,46 @@
+# Contextul de build e rădăcina repo-ului (vezi docker-compose.yml). Ce e aici NU ajunge în imagini.
+
+# git și unelte
+.git
+.vscode
+**/.DS_Store
+
+# secrete și chei: se dau la rulare (variabile de mediu, volum), nu se coc în imagine
+**/.env
+**/.env.*
+!**/.env.example
+security/keys/keys_files
+
+# medii și cache-uri locale: imaginea își instalează singură dependențele.
+# Un .venv de pe calculatorul gazdă, copiat peste cel din imagine, îl strică (alte căi, alt sistem).
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+frontend/.next
+frontend/.next-dev
+frontend/out
+frontend/dist
+frontend/*.tsbuildinfo
+
+# baze de date locale
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.sqlite3
+**/*.db
+
+# AI: indexul și modelul de embedding se refac în imagine; modelele mari nu intră
+ai/index/*
+!ai/index/README.md
+ai/models/*
+!ai/models/README.md
+ai/finetune
+ai/colab
+
+# nu e nevoie de ele în nicio imagine
+docs
+contract
+scripts
