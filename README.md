@@ -238,6 +238,27 @@ cd frontend && npm run dev                                 # interface in the br
 
 Every start replays the scenario from day 96. The access log and revoked tokens are kept.
 
+### With Docker
+
+```bash
+docker compose up --build
+```
+
+Then open http://localhost:3000. Three containers start: the interface (port 3000), the backend (API docs at
+http://localhost:8000/docs, reachable only from this computer) and the AI service (no published port; only the
+backend calls it). The first build takes a few minutes, mostly for the AI service's search index.
+
+- The database (with the access log) and the keys live in the `shadow-state` volume and survive restarts;
+  `docker compose down -v` deletes them.
+- The language model is not in an image. Put its address in `ai/.env` (see `ai/README.md`); for a `llama-server` on
+  this computer use `SHADOW_LLM_URL=http://host.docker.internal:8080`. Without it the AI doctor answers with the
+  catalog text.
+- Optional settings (`JWT_SECRET`, `LINK_AES_KEY_B64`, `TIME_SCALE`) are read from a `.env` file in the repository
+  root.
+
+Docker runs the browser version; the desktop app (Electron) still starts with `npm run app`. Needs Docker Compose
+2.24 or newer.
+
 ### Test accounts
 
 | Account | Password | Role |
@@ -276,6 +297,7 @@ The demo panel opens from the flask icon in the header or with `Ctrl+Shift+D`.
 | `data/` | shared data and its sources (`data/README.md`) |
 | `security/` | threat model, architecture, checklist, audit |
 | `scripts/` | documentation generator, contract checks, data validation |
+| `docker-compose.yml`, `*/Dockerfile` | the whole app in three containers |
 | `docs/` | plan, task lists, design assets |
 
 The team documentation inside the folders is written in Romanian; the interface and this README are in English.

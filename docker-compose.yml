@@ -1,0 +1,52 @@
+# SHADOW în Docker: `docker compose up --build`, apoi http://localhost:3000
+#
+#   frontend (3000) ──► backend (8000) ──► ai (8001) ──► llama-server (în afara Docker: Colab sau local)
+#
+# Setări opționale, dintr-un fișier .env din rădăcina repo-ului (model: .env.example): JWT_SECRET, LINK_AES_KEY_B64,
+# TIME_SCALE. Modelul medicului AI se alege în ai/.env (model: ai/.env.example); fără el, răspunde textul din catalog.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      AI_URL: http://ai:8001
+      JWT_SECRET: ${JWT_SECRET:-}
+      LINK_AES_KEY_B64: ${LINK_AES_KEY_B64:-}
+      TIME_SCALE: ${TIME_SCALE:-60}
+    volumes:
+      # baza de date (cu jurnalul de acces și tokenurile revocate) și cheile: rămân între porniri
+      - shadow-state:/app/state
+    ports:
+      # documentația API-ului, doar de pe acest calculator: http://localhost:8000/docs
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  ai:
+    build:
+      context: .
+      dockerfile: ai/Dockerfile
+    env_file:
+      - path: ai/.env
+        required: false
+    extra_hosts:
+      # pentru un llama-server pornit pe acest calculator: SHADOW_LLM_URL=http://host.docker.internal:8080
+      - "host.docker.internal:host-gateway"
+    # fără port publicat: doar backend-ul îl apelează
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # publicat și în rețeaua locală, ca aplicația să poată fi deschisă de pe telefon: http://<adresa-calculatorului>:3000
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  shadow-state:

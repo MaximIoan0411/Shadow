@@ -1,6 +1,7 @@
-# Build from the repository root:  docker build -f backend/Dockerfile .
+# Build from the repository root:  docker build -f backend/Dockerfile .   (or `docker compose up --build`)
 # The image keeps the repository layout (/app/backend, /app/data, /app/security/keys),
 # because the backend reads ../data and creates its keys with ../security/keys/generate_keys.py.
+# What must survive the container (database with the access log, keys) lives in /app/state: mount a volume there.
 
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
@@ -13,17 +14,24 @@ RUN uv sync --frozen
 
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PATH="/app/backend/.venv/bin:$PATH"
+# the server does not run as root; it can write only to /app/state
+RUN useradd --system --user-group --uid 10001 --no-create-home app \
+    && mkdir -p /app/state && chown app:app /app/state
 WORKDIR /app/backend
 COPY --from=builder /app/backend/.venv ./.venv
 COPY data/ /app/data/
 COPY security/keys/generate_keys.py /app/security/keys/generate_keys.py
+# .dockerignore (repository root) keeps the host's .venv, .env and shadow.sqlite out of this copy
 COPY backend/ ./
 
 ENV DATA_DIR=/app/data \
     KEYS_DIR=/app/security/keys \
-    DATABASE_URL=sqlite+aiosqlite:////app/backend/shadow.sqlite \
+    SHADOW_KEYS_DIR=/app/state/keys \
+    DATABASE_URL=sqlite+aiosqlite:////app/state/shadow.sqlite \
     AI_URL=http://ai:8001
 
+USER app
+VOLUME /app/state
 EXPOSE 8000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=10 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"
